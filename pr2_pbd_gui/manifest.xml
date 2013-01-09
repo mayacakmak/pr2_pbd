@@ -1,0 +1,21 @@
+<package>
+  <description brief="pr2_pbd_gui">
+
+     pr2_pbd_gui
+
+  </description>
+  <author>Maya Cakmak</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pr2_pbd_gui</url>
+  <depend package="rospy"/>
+  <depend package="rqt_gui"/>
+  <depend package="rqt_gui_py"/>
+
+  <export>
+    <rqt_gui plugin="${prefix}/plugin.xml"/>
+  </export>
+
+</package>
+
+
