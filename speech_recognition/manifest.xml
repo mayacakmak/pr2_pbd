@@ -1,0 +1,22 @@
+<package>
+  <description brief="speech_recognition">
+
+     speech_recognition
+     
+     1. Update msg/Command.msg with your list of commands
+     2. Upload data/commands.corpus at http://www.speech.cs.cmu.edu/tools/lmtool.html and compile the knowledge base.
+     3. Download the generated Dictionary as data/commands.dic and the Language Model as data/commands.lm
+     4. Make 
+  
+  </description>
+  <author>Maya Cakmak</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/speech_recognition</url>
+  <depend package="std_msgs"/>
+  <depend package="rospy"/>
+  <depend package="pocketsphinx"/>
+
+</package>
+
+
