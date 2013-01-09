@@ -1,11 +1,8 @@
 import roslib
 roslib.load_manifest('actionlib')
-roslib.load_manifest('pr2_pbd_interaction')
-roslib.load_manifest('speech_recognition')
-roslib.load_manifest('pr2_interactive_object_detection')
-roslib.load_manifest('visualization_msgs')
 roslib.load_manifest('geometry_msgs')
-roslib.load_manifest('interactive_markers')
+roslib.load_manifest('speech_recognition')
+roslib.load_manifest('pr2_pbd_interaction')
 
 # Generic libraries
 import sys,os
@@ -25,10 +22,8 @@ from ActionStepMarker import *
 from Arms import *
 from pr2_pbd_interaction.msg import *
 from speech_recognition.msg import Command
-from pr2_interactive_object_detection.msg import *
 from geometry_msgs.msg import *
 from std_msgs.msg import Header,ColorRGBA
-from visualization_msgs.msg import *
 
 COLOR_RED = "\033[31m"
 COLOR_GREEN = "\033[32m"

@@ -1,7 +1,7 @@
 <package>
-  <description brief="pr2_pbd">
+  <description brief="pr2_pbd_interaction">
 
-     pr2_pbd
+     The interaction framework for Programing by Demonstration.
 
   </description>
   <author>Maya Cakmak</author>
@@ -16,8 +16,10 @@
   <depend package="pr2_controllers_msgs"/>
   <depend package="geometry_msgs"/>
   <depend package="kinematics_msgs"/>
+  <depend package="arm_navigation_msgs"/>
   <depend package="pr2_gripper_sensor_msgs"/>
   <depend package="pr2_interactive_object_detection"/>
+  <depend package="interactive_markers"/>
 </package>
 
 

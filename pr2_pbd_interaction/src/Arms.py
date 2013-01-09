@@ -8,7 +8,6 @@ import rospy
 roslib.load_manifest('kinematics_msgs')
 roslib.load_manifest('pr2_pbd_interaction')
 roslib.load_manifest('pr2_social_gaze')
-roslib.load_manifest('arm_navigation_msgs')
 
 # Generic libraries
 import time, sys

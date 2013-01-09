@@ -1,9 +1,9 @@
 # Manifests
 import roslib
 roslib.load_manifest('rospy')
-roslib.load_manifest('pr2_pbd_interaction')
 roslib.load_manifest('geometry_msgs')
 roslib.load_manifest('interactive_markers')
+roslib.load_manifest('pr2_pbd_interaction')
 
 # Generic libraries
 import time
