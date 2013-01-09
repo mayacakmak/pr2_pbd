@@ -1,0 +1,31 @@
+<launch>
+
+  <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="interaction.py" output="screen">
+    <param name="dataRoot" value="$(find pr2_pbd_interaction)" />
+  </node>
+  
+  <node name="pr2_pbd_gui" pkg="rqt_gui" type="rqt_gui" output="screen"></node>
+
+  <include file="$(find pr2_social_gaze)/launch/gaze.launch"/>
+
+  <node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_left_arm_kinematics" output="screen">
+   <param name="tip_name" value="l_wrist_roll_link" />
+   <param name="root_name" value="torso_lift_link" />
+   <param name="maxIterations" value="10000" />
+  </node>
+
+  <node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_right_arm_kinematics" output="screen">
+   <param name="tip_name" value="r_wrist_roll_link" />
+   <param name="root_name" value="torso_lift_link" />
+   <param name="maxIterations" value="10000" />
+  </node>
+
+  <!--<include file="$(find trajectory_filter_server)/launch/trajectory_filter.launch"/>-->
+  <!-- <include file="$(find trajectory_filter_server)/launch/trajectory_unnormalize.launch"/>-->
+  
+  <node pkg="trajectory_filter_server" name="trajectory_filter" type="trajectory_filter_server" output="screen">
+   <rosparam command="load" file="$(find trajectory_filter_server)/config/joint_limits.yaml"/>
+   <rosparam command="load" file="$(find pr2_pbd_interaction)/config/filters.yaml"/>
+  </node>  
+
+</launch>
