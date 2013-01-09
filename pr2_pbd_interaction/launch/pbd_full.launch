@@ -1,0 +1,15 @@
+<launch>
+
+  <!-- This runs the core of the demo -->
+  
+  <include file="$(find pr2_pbd_interaction)/launch/pbd_demo.launch"/>
+  
+  <!-- This adds speech recognition (pocketsphinx based) -->
+
+  <include file="$(find speech_recognition)/launch/command_recognition.launch"/>
+  
+  <!-- This adds TTS (speakeasy based), add something like machine="prp" if you'd like this to run on the robot -->
+
+  <node name="speakeasy_node" pkg="speakeasy" type="speakeasy_node.py"/>
+   
+</launch>
