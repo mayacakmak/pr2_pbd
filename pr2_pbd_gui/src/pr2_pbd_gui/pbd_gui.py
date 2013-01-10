@@ -14,7 +14,6 @@ import rospy
 from std_msgs.msg import String
 #import qt_gui.qt_binding_helper
 from qt_gui.plugin import Plugin
-from python_qt_binding import loadUi
 from python_qt_binding import QtGui,QtCore
 from python_qt_binding.QtGui import QWidget, QFrame, QGroupBox
 from python_qt_binding.QtCore import Slot, qDebug, QSignalMapper, QTimer, qWarning
