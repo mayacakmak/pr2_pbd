@@ -4,9 +4,10 @@
      speech_recognition
      
      1. Update msg/Command.msg with your list of commands
-     2. Upload data/commands.corpus at http://www.speech.cs.cmu.edu/tools/lmtool.html and compile the knowledge base.
-     3. Download the generated Dictionary as data/commands.dic and the Language Model as data/commands.lm
-     4. Make 
+     2. Run the script to generate the command corpus automatically: $ ./scripts/generate_corpus.py
+     3. Upload data/commands.corpus at http://www.speech.cs.cmu.edu/tools/lmtool.html and compile the knowledge base.
+     4. Download the generated Dictionary as data/commands.dic and the Language Model as data/commands.lm
+     5. Make 
   
   </description>
   <author>Maya Cakmak</author>
