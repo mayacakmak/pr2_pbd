@@ -195,8 +195,9 @@ class Arms:
                             self.arms[1].executeJointTrajectory(aStep.armTrajectory.lArm, aStep.armTrajectory.timing)
             
                             # Wait until both arms complete the trajectory
-                            while((self.arms[0].isExecutingTrajectory() and aStep.armTrajectory.rRefFrame != ArmState.NOT_MOVING) 
-                                  or (self.arms[1].isExecutingTrajectory() and aStep.armTrajectory.lRefFrame != ArmState.NOT_MOVING)):
+                            while(((self.arms[0].isExecutingTrajectory() and aStep.armTrajectory.rRefFrame != ArmState.NOT_MOVING) 
+                                  or (self.arms[1].isExecutingTrajectory() and aStep.armTrajectory.lRefFrame != ArmState.NOT_MOVING)) 
+                                  and not self.preempt):
                                 time.sleep(0.01)
                             rospy.loginfo('Trajectory complete.')
                 
@@ -298,7 +299,7 @@ class Arms:
             self.arms[1].gotoJointKeyframe(lArm.joint_pose, timeToPoseL)        
 
         # Wait until both arms complete the trajectory
-        while(self.arms[0].isExecutingTrajectory() or self.arms[1].isExecutingTrajectory()):
+        while((self.arms[0].isExecutingTrajectory() or self.arms[1].isExecutingTrajectory()) and not self.preempt):
             time.sleep(0.01)
         rospy.loginfo('Arms reached target.')
         # Verify that both arms succeeded
