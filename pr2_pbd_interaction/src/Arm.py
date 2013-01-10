@@ -238,7 +238,7 @@ class Arm:
             resp1 = self.controllerService(start_controllers, stop_controllers, strictness)
             self.armMode = mode
         except rospy.ServiceException, e:
-            print "Service did not process request: %s"%str(e)
+            rospy.logerr("Service did not process request: " + str(e))
 
     def getMode(self):
         return self.armMode
@@ -304,8 +304,6 @@ class Arm:
             # Add frames to the trajectory
             trajectory.points.append(JointTrajectoryPoint(positions = positions, velocities = velocities, time_from_start = timing[i]))
 
-            print 'input.trajectory.positions[',i,']', positions
-
         output = self.filterServiceP(trajectory=trajectory, allowed_time=rospy.Duration.from_sec(20))
         rospy.loginfo('Trajectory for arm ' + str(self.armIndex) + ' has been filtered.')
         trajGoal = JointTrajectoryGoal()
@@ -313,12 +311,6 @@ class Arm:
         trajGoal.trajectory = output.trajectory
         trajGoal.trajectory.header.stamp = rospy.Time.now() + rospy.Duration(0.1)
         trajGoal.trajectory.joint_names = self.joints
-        
-        print 'error code', output.error_code
-        print 'filtered traj length', len(output.trajectory.points)
-        for i in range(len(output.trajectory.points)):
-            print 'output.trajectory.points[',i,'].positions', output.trajectory.points[i].positions
-            print 'output.trajectory.points[',i,'].velocities', output.trajectory.points[i].velocities
         
         # Client sends the goal to the Server
         self.trajectoryActionClient.send_goal(trajGoal)
