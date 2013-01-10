@@ -18,8 +18,7 @@ string NEXT_ACTION = next-action
 string PREV_ACTION = previous-action
 string SAVE_ACTION = save action
 string EDIT_ACTION = edit-action
-string START_HERE = start-here
-string MOVE_HERE = move-here
+string SAVE_POSE = save-pose
 string START_RECORDING_MOTION = start-recording-motion
 string STOP_RECORDING_MOTION = stop-recording-motion
 string command

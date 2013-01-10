@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Dependencies
 import roslib
 roslib.load_manifest('rospy')

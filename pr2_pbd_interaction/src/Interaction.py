@@ -63,8 +63,7 @@ class Interaction:
                           Command.PREV_ACTION: Response(self.prevProgrammedAction, None),
                           Command.SAVE_ACTION: Response(self.saveProgrammedAction, None),
                           Command.EDIT_ACTION: Response(self.editProgrammedAction, None),
-                          Command.START_HERE: Response(self.startAndSave, None),
-                          Command.MOVE_HERE: Response(self.saveArmStep, None),
+                          Command.SAVE_POSE: Response(self.saveArmStep, None),
 
                           Command.START_RECORDING_MOTION: Response(self.startRecordingMotion, None),
                           Command.STOP_RECORDING_MOTION: Response(self.stopRecordingMotion, None)
@@ -128,6 +127,7 @@ class Interaction:
     
     def createAction(self, param=None):
         self.session.newProgrammedAction()
+        self.isProgramming = True        
         return [Speech.SKILL_CREATED + ' ' + str(self.session.currentProgrammedActionIndex), GazeGoal.NOD]
    
     def nextProgrammedAction(self, param=None):
@@ -263,7 +263,7 @@ class Interaction:
         for i in range(1, len(self.armTrajectory.timing)):
             self.armTrajectory.rArm[i] = World.convertRefFrame(rRefFrame, self.armTrajectory.rArm[i], self.armTrajectory.rArm[i-1])
             self.armTrajectory.lArm[i] = World.convertRefFrame(lRefFrame, self.armTrajectory.lArm[i], self.armTrajectory.lArm[i-1])
-        self.armTrajectory.rRefFrame = rRefFrame 
+        self.armTrajectory.rRefFrame = rRefFrame
         self.armTrajectory.lRefFrame = lRefFrame
         
     def findDominantRefFrame(self, armTraj):
