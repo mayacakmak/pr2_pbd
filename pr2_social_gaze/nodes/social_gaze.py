@@ -10,9 +10,9 @@ roslib.load_manifest('pr2_mechanism_controllers')
 roslib.load_manifest('pr2_mechanism_msgs')
 roslib.load_manifest('pr2_controllers_msgs')
 roslib.load_manifest('kinematics_msgs')
-roslib.load_manifest('people_msgs')
 roslib.load_manifest('tf')
-roslib.load_manifest('face_detector')
+#roslib.load_manifest('face_detector')
+#roslib.load_manifest('people_msgs')
 
 from std_msgs.msg import String
 import time, sys
@@ -34,8 +34,8 @@ from sensor_msgs.msg import JointState
 from actionlib import SimpleActionClient
 from pr2_controllers_msgs.msg import PointHeadAction, PointHeadGoal
 from geometry_msgs.msg import *
-from face_detector.msg import *
 from tf import TransformListener
+#from face_detector.msg import *
 
 roslib.load_manifest('pr2_social_gaze')
 from pr2_social_gaze.msg import *
@@ -73,7 +73,7 @@ class SocialGaze:
         self.headGoal.target.point = Point(1,0,1)
         
         ## Client for receiving detected faces
-        self.faceClient = SimpleActionClient('face_detector_action', FaceDetectorAction)
+        #self.faceClient = SimpleActionClient('face_detector_action', FaceDetectorAction)
         
         ## Service client for arm states
         self.tfListener = TransformListener()
