@@ -41,6 +41,6 @@
   <include file="$(find pr2_pbd_interaction)/launch/interactive_manipulation_fuerte.launch"/>
 
   <!-- GROOVY -->
-  <!-- <include file="$(find pr2_pbd_interaction)/launch/interactive_manipulation_groovy.launch"/> -->
+  <!-- <include file="$(find pr2_pbd_interaction)/launch/interactive_manipulation_groovy.launch"/>-->
 
 </launch>

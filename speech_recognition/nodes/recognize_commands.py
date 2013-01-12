@@ -12,13 +12,30 @@ class CommandRecognizer:
     def __init__(self):
         rospy.Subscriber('recognizer/output', String, self.receiveSphinxData)
         self.commandOutput = rospy.Publisher('recognized_command', Command)
-        self.allCommands = [Command.TEST_MICROPHONE, Command.OPEN_RIGHT_HAND, Command.OPEN_LEFT_HAND,
-                            Command.CLOSE_RIGHT_HAND,Command.CLOSE_LEFT_HAND, Command.RELAX_RIGHT_ARM, 
-                            Command.RELAX_LEFT_ARM, Command.HOLD_RIGHT_ARM, Command.HOLD_LEFT_ARM, 
-                            Command.CREATE_NEW_SKILL, Command.STOP_EXECUTION, Command.SAVE_POSE, 
-                            Command.DELETE_LAST_POSE, Command.EXECUTE_SKILL, Command.DELETE_ALL_POSES, 
-                            Command.NEXT_SKILL, Command.PREV_SKILL, Command.UNDO]
-    
+        self.allCommands = [Command.TEST_MICROPHONE, 
+		Command.RELAX_RIGHT_ARM, 
+		Command.RELAX_LEFT_ARM, 
+		Command.OPEN_RIGHT_HAND, 
+		Command.OPEN_LEFT_HAND, 
+		Command.CLOSE_RIGHT_HAND, 
+		Command.CLOSE_LEFT_HAND, 
+		Command.STOP_EXECUTION, 
+		Command.UNDO, 
+		Command.DELETE_ALL_STEPS, 
+		Command.DELETE_LAST_STEP, 
+		Command.FREEZE_RIGHT_ARM, 
+		Command.FREEZE_LEFT_ARM, 
+		Command.RECORD_OBJECT_POSE, 
+		Command.CREATE_NEW_ACTION, 
+		Command.EXECUTE_ACTION, 
+		Command.NEXT_ACTION, 
+		Command.PREV_ACTION, 
+		Command.SAVE_ACTION, 
+		Command.EDIT_ACTION, 
+		Command.SAVE_POSE, 
+		Command.START_RECORDING_MOTION, 
+		Command.STOP_RECORDING_MOTION]
+
     def receiveSphinxData(self,data):
         recognizedStr = data.data
         recognizedCommand = Command.UNRECOGNIZED

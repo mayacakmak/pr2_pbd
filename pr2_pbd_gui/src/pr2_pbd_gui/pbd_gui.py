@@ -4,6 +4,7 @@ import roslib
 roslib.load_manifest('pr2_pbd_gui')
 roslib.load_manifest('speech_recognition')
 roslib.load_manifest('speakeasy');
+roslib.load_manifest('sound_play');
 
 
 import os
@@ -19,6 +20,7 @@ from python_qt_binding.QtGui import QWidget, QFrame, QGroupBox
 from python_qt_binding.QtCore import Slot, qDebug, QSignalMapper, QTimer, qWarning
 from speakeasy.msg import SpeakEasyTextToSpeech
 from speech_recognition.msg import Command
+from sound_play.msg import SoundRequest
 
 class PbDGUI(Plugin):
 
@@ -29,6 +31,7 @@ class PbDGUI(Plugin):
         self.getCommandList()
         self.commandOutput = rospy.Publisher('recognized_command', Command)
         self.speechInput = rospy.Subscriber('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech, self.robotSpeechReceived)
+        self.soundInput = rospy.Subscriber('robotsound', SoundRequest, self.robotSoundReceived)
         self.stateInput = rospy.Subscriber('interaction_state', String, self.robotStateReceived)
         QtGui.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
 
@@ -112,6 +115,11 @@ class PbDGUI(Plugin):
         command = Command()
         command.command = clickedCommand.text()
         self.commandOutput.publish(command)
+        
+    def robotSoundReceived(self, soundReq):
+        if (soundReq.command == SoundRequest.SAY):
+            qWarning('Robot said: ' + soundReq.arg)
+            self.speechLabel.setText('Robot said: ' + soundReq.arg)
         
     def robotSpeechReceived(self, speech):
         qWarning('Robot said: ' + speech.text)

@@ -4,10 +4,6 @@
 
   <include file="$(find pr2_gazebo)/launch/pr2_table_object.launch"/>
 
-  <!-- This is the robot side of the Interactive manipulation demo. To run on the real robot you would need to install
-  Interactive Manipulation on the robot, and run 'roslaunch pr2_interactive_manipulation pr2_interactive_manipulation_robot.launch' 
-  on the robot. -->
-
   <include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_robot.launch" >
     <arg name="sim" value="true" />
   </include>

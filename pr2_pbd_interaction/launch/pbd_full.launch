@@ -8,8 +8,9 @@
 
   <include file="$(find speech_recognition)/launch/command_recognition.launch"/>
   
-  <!-- This adds TTS (speakeasy based), add something like machine="prp" if you'd like this to run on the robot -->
+  <!-- This adds TTS (speakeasy or soundplay based), add something like machine="prp" if you'd like this to run on the robot -->
 
   <node name="speakeasy_node" pkg="speakeasy" type="speakeasy_node.py"/>
-   
+  <node name="soundplay_node" pkg="sound_play" type="soundplay_node.py"/>
+
 </launch>

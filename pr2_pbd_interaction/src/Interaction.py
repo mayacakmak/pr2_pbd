@@ -226,7 +226,7 @@ class Interaction:
                     self.trajectoryStartTime = rospy.Time.now()
                     return [Speech.STARTED_RECORDING_MOTION, GazeGoal.LOOK_FORWARD]
                 else:
-                    return [Speech.ALREADY_RECORDING_MOTION, GazeGoal.LOOK_FORWARD]
+                    return [Speech.ALREADY_RECORDING_MOTION, GazeGoal.SHAKE]
             else:
                 return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.LOOK_FORWARD]
         else:
@@ -249,7 +249,7 @@ class Interaction:
             self.session.addStepToProgrammedAction(armTrajectoryStep)
             self.armTrajectory = None
             self.trajectoryStartTime = None
-            return [Speech.STOPPED_RECORDING_MOTION + ' ' + Speech.STEP_RECORDED, GazeGoal.LOOK_FORWARD]
+            return [Speech.STOPPED_RECORDING_MOTION + ' ' + Speech.STEP_RECORDED, GazeGoal.NOD]
         else:
             return [Speech.MOTION_NOT_RECORDING, GazeGoal.SHAKE]
         
@@ -293,9 +293,9 @@ class Interaction:
                 step.armTarget = ArmTarget(states[0], states[1], 0.2, 0.2)
                 self.session.addStepToProgrammedAction(step)
                                 
-                return [Speech.STEP_RECORDED, None]
+                return [Speech.STEP_RECORDED, GazeGoal.LOOK_FORWARD]
             else:
-                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.LOOK_FORWARD]
+                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE]
         else:
             return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
 

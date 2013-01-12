@@ -1,11 +1,13 @@
 import roslib
 roslib.load_manifest('speakeasy');
+roslib.load_manifest('sound_play');
 import rospy
 
 # ROS libraries
 import actionlib
 from actionlib_msgs.msg import *
 from speakeasy.msg import SpeakEasyTextToSpeech
+from sound_play.msg import SoundRequest
 
 class TTSCommands:
     SAY  = 0;
@@ -66,19 +68,24 @@ class Speech:
 class RobotSpeech:
     "Finite state machine for the human interaction"
     def __init__(self):
-        self.speechOutput = rospy.Publisher('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech);
+        self.speechOutputSpeakeasy = rospy.Publisher('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech)
+        self.speechOutputSoundplay = rospy.Publisher('robotsound', SoundRequest)
         
-    def say(self, text):
-        ttsRequestMsg = SpeakEasyTextToSpeech()
-        ttsRequestMsg.command = TTSCommands.SAY
-        ttsRequestMsg.text    = text
-        ttsRequestMsg.engineName = 'cepstral'
-        ttsRequestMsg.voiceName = 'David'
-        self.speechOutput.publish(ttsRequestMsg)
-
+    def say(self, text, useSpeakeasy=False):
+        if (useSpeakeasy):
+            ttsRequestMsg = SpeakEasyTextToSpeech()
+            ttsRequestMsg.command = TTSCommands.SAY
+            ttsRequestMsg.text    = text
+            ttsRequestMsg.engineName = 'cepstral'
+            ttsRequestMsg.voiceName = 'David'
+            self.speechOutputSpeakeasy.publish(ttsRequestMsg)
+        else:
+            print 'sending speech'
+            self.speechOutputSoundplay.publish(SoundRequest(command=SoundRequest.SAY, arg=text))
+            
     def stopSaying(self):
         ttsRequestMsg = SpeakEasyTextToSpeech()
         ttsRequestMsg.command = TTSCommands.STOP
-        self.speechOutput.publish(ttsRequestMsg)
+        self.speechOutputSpeakeasy.publish(ttsRequestMsg)
 
 
