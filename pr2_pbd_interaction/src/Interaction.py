@@ -312,7 +312,7 @@ class Interaction:
             if ((self.session.nFrames() > 0) and (self.prevArmPoses != None) 
                 and (Arm.eeDistance(self.prevArmPoses[armIndex], absEEPoses[armIndex]) < thresholdMoved)):
                 # No actions
-                states[armIndex] = ArmState(ArmState.NOT_MOVING, Pose(), jointPoses[armIndex])
+                states[armIndex] = ArmState(ArmState.NOT_MOVING, absEEPoses[armIndex], jointPoses[armIndex])
                 # rospy.loginfo('Arm did not move: ' + str(armIndex))
             else:
                 if ((self.world.poses == None) or 
@@ -335,6 +335,7 @@ class Interaction:
                 
                 if (pAction.requiresObject()):
                     if (self.world.updateTaskObjectPose()):
+                        self.session.getProgrammedAction().updateInteractiveMarkers()
                         self.arms.startExecution(pAction)
                     else:
                         return [Speech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]
@@ -381,6 +382,9 @@ class Interaction:
         if (self.isRecordingMotion):
             self.saveStateToArmTrajectory()
 
+        if (self.session.nProgrammedActions() > 0):
+            self.session.getProgrammedAction().updateVisualization()
+
         self.world.update()
         time.sleep(0.1)
 
@@ -400,6 +404,8 @@ class Interaction:
              
     def recordObjectPose(self, param=None):
         if (self.world.updateTaskObjectPose()):
+            if (self.session.nProgrammedActions() > 0):
+                self.session.getProgrammedAction().updateInteractiveMarkers()
             return [Speech.START_STATE_RECORDED, GazeGoal.NOD]
         else:
             return [Speech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]

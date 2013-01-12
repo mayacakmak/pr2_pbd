@@ -3,6 +3,7 @@ import roslib
 roslib.load_manifest('rospy')
 roslib.load_manifest('geometry_msgs')
 roslib.load_manifest('pr2_pbd_interaction')
+roslib.load_manifest('visualization_msgs')
 
 # Generic libraries
 import time
@@ -13,19 +14,25 @@ from numpy import *
 from numpy.linalg import norm
 import os
 from geometry_msgs.msg import *
+from visualization_msgs.msg import MarkerArray, Marker
 
 # ROS Libraries
 import rospy
 import rosbag
 from pr2_pbd_interaction.msg import *
 from ActionStepMarker import *
+from std_msgs.msg import Header,ColorRGBA
 
 class ProgrammedAction:
     
     def __init__(self, skillIndex):
         self.seq = ActionStepSequence()
         self.skillIndex = skillIndex
-        self.markers = []
+        self.rMarkers = []
+        self.lMarkers = []
+        self.rLinks = []
+        self.lLinks = []
+        self.markerOutput = rospy.Publisher('visualization_marker_array', MarkerArray)
     
     def copy(self):
         pAction = ProgrammedAction(self.skillIndex)
@@ -73,13 +80,45 @@ class ProgrammedAction:
         self.seq.seq.append(self.copyActionStep(step))
         
         if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
-            self.markers.append(ActionStepMarker(self.nFrames(), 0, self.getLastStep()))
-            self.markers.append(ActionStepMarker(self.nFrames(), 1, self.getLastStep()))
+            self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, self.getLastStep()))
+            self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, self.getLastStep()))
+            self.rLinks.append(self.getLink(0, self.nFrames()-1))
+            self.lLinks.append(self.getLink(1, self.nFrames()-1))
+            
+    def getLink(self, armIndex, toIndex):
+        if (armIndex == 0):
+            startPoint = self.rMarkers[toIndex-1].getAbsolutePosition(isStart=True)
+            endPoint = self.rMarkers[toIndex].getAbsolutePosition(isStart=False)
+        else:
+            startPoint = self.lMarkers[toIndex-1].getAbsolutePosition(isStart=True)
+            endPoint = self.lMarkers[toIndex].getAbsolutePosition(isStart=False)
+            
+        return Marker(type=Marker.ARROW, id=(2*toIndex+armIndex), lifetime=rospy.Duration(2),
+                      scale=Vector3(0.01,0.03,0.01), header=Header(frame_id='base_link'),
+                      color=ColorRGBA(0.8, 0.8, 0.8, 0.3), points=[startPoint, endPoint])
+
+    def updateInteractiveMarkers(self):
+        for i in range(len(self.rMarkers)):
+            self.rMarkers[i].updateVisualization()
+        for i in range(len(self.lMarkers)):
+            self.lMarkers[i].updateVisualization()
+            
+    def updateVisualization(self):
+        # Draw the links
+        mArray = MarkerArray()
+        for i in range(len(self.rLinks)):
+            mArray.markers.append(self.rLinks[i])
+        for i in range(len(self.lLinks)):
+            mArray.markers.append(self.lLinks[i])
+        self.markerOutput.publish(mArray)
         
     def clear(self):
         #TODO: get backups before clear
         self.seq = ActionStepSequence()
-        self.markers = []
+        self.rMarkers = []
+        self.lMarkers = []
+        self.rLinks = []
+        self.lLinks = []
 
     def undoClear(self):
         self.seq = [] #TODO

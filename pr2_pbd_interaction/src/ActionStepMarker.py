@@ -86,6 +86,34 @@ class ActionStepMarker:
                 self.aStep.armTrajectory.rRefFrame = newRef
             else:
                 self.aStep.armTrajectory.lRefFrame = newRef
+
+    def getFrameAbsolutePosition(self, armState):
+        if (armState.refFrame == ArmState.OBJECT):
+            armStateCopy = ArmState(armState.refFrame, 
+                                    Pose(armState.ee_pose.position, armState.ee_pose.orientation), 
+                                    armState.joint_pose[:])
+            World.convertRefFrame(ArmState.ROBOT_BASE, armStateCopy)
+            return armStateCopy.ee_pose.position
+        else:
+            return armState.ee_pose.position
+            
+    def getAbsolutePosition(self, isStart=True):
+        if (self.aStep.type == ActionStep.ARM_TARGET):
+            if self.armIndex == 0:
+                return self.getFrameAbsolutePosition(self.aStep.armTarget.rArm)
+            else:
+                return self.getFrameAbsolutePosition(self.aStep.armTarget.lArm)
+        elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
+            if self.armIndex == 0:
+                if isStart:
+                    return self.getFrameAbsolutePosition(self.aStep.armTrajectory.rArm[len(self.aStep.armTrajectory.rArm)-1])
+                else:
+                    return self.getFrameAbsolutePosition(self.aStep.armTrajectory.rArm[0])
+            else:
+                if isStart:
+                    return self.getFrameAbsolutePosition(self.aStep.armTrajectory.lArm[len(self.aStep.armTrajectory.rArm)-1])
+                else:
+                    return self.getFrameAbsolutePosition(self.aStep.armTrajectory.lArm[0])
                         
     def getPose(self):
         if (self.aStep.type == ActionStep.ARM_TARGET):
@@ -136,7 +164,7 @@ class ActionStepMarker:
 
         if (refFrame == ArmState.OBJECT):
             menuControl.markers.append(Marker(type=Marker.ARROW, id=1000+self.id, lifetime=rospy.Duration(2),
-                                                     scale=Vector3(0.01,0.03,0.04), header=Header(frame_id='task_object'),
+                                                     scale=Vector3(0.02,0.03,0.04), header=Header(frame_id='task_object'),
                                                      color=ColorRGBA(1.0, 0.8, 0.2, 0.5), points=[pose.position, Point(0,0,0)]))
         
         self.int_marker = InteractiveMarker()
