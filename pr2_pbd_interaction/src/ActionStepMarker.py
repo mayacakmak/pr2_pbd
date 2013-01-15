@@ -52,7 +52,7 @@ class ActionStepMarker:
                 self.menuHandler.setCheckState(self.subEntries[i], MenuHandler.UNCHECKED)
             self.menuHandler.setCheckState(self.subEntries[self.getReferenceFrame()], MenuHandler.CHECKED)
             
-            self.updateVisualization()
+            self.updateVisualizationCore()
             self.menuHandler.apply(ActionStepMarker.IMServer, self.name)
             ActionStepMarker.IMServer.applyChanges()
 
@@ -136,45 +136,46 @@ class ActionStepMarker:
         else:
             rospy.logerr('Cannot request trajectory pose on non-trajectory action step.')
             
-    def updateVisualization(self):
-        menuControl = InteractiveMarkerControl()
-        menuControl.interaction_mode = InteractiveMarkerControl.MENU
-        menuControl.always_visible = True
-
-        refFrame = self.getReferenceFrame()
-        if (refFrame == ArmState.OBJECT):
-            frame_id = 'task_object'
-        else:
-            frame_id = 'base_link'
-        pose = self.getPose()
-        
-        if (self.aStep.type == ActionStep.ARM_TARGET):
-            menuControl.markers.append(self.getSphereMarker(self.id, pose, frame_id, 0.08))
-        elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
-            pointList = []
-            for j in range(len(self.aStep.armTrajectory.timing)):
-                pointList.append(self.getTrajPose(j).position)
-            menuControl.markers.append(Marker(type=Marker.SPHERE_LIST, id=self.id, lifetime=rospy.Duration(2),
-                                         scale=Vector3(0.02,0.02,0.02), header=Header(frame_id=frame_id),
-                                         color=ColorRGBA(0.8, 0.4, 0.0, 0.8), points=pointList))
-            menuControl.markers.append(self.getSphereMarker(self.id+2000, self.getTrajPose(0), frame_id, 0.05))
-            menuControl.markers.append(self.getSphereMarker(self.id+3000, self.getTrajPose(len(self.aStep.armTrajectory.timing)-1), frame_id, 0.05))
-        else:
-            rospy.logerr('Unhandled action step type ' + str(self.aStep.type))
-
-        if (refFrame == ArmState.OBJECT):
-            menuControl.markers.append(Marker(type=Marker.ARROW, id=1000+self.id, lifetime=rospy.Duration(2),
-                                                     scale=Vector3(0.02,0.03,0.04), header=Header(frame_id='task_object'),
-                                                     color=ColorRGBA(1.0, 0.8, 0.2, 0.5), points=[pose.position, Point(0,0,0)]))
-        
-        self.int_marker = InteractiveMarker()
-        self.int_marker.name = self.name
-        self.int_marker.header.frame_id = "/base_link"
-        self.int_marker.pose = pose
-        self.int_marker.scale = 1
-        self.int_marker.controls.append(menuControl)
-
-        ActionStepMarker.IMServer.insert(self.int_marker, self.markerFeedback)
+    def updateVisualizationCore(self):
+        if (self.getReferenceFrame() != ArmState.NOT_MOVING):
+            menuControl = InteractiveMarkerControl()
+            menuControl.interaction_mode = InteractiveMarkerControl.MENU
+            menuControl.always_visible = True
+    
+            refFrame = self.getReferenceFrame()
+            if (refFrame == ArmState.OBJECT):
+                frame_id = 'task_object'
+            else:
+                frame_id = 'base_link'
+            pose = self.getPose()
+            
+            if (self.aStep.type == ActionStep.ARM_TARGET):
+                menuControl.markers.append(self.getSphereMarker(self.id, pose, frame_id, 0.08))
+            elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
+                pointList = []
+                for j in range(len(self.aStep.armTrajectory.timing)):
+                    pointList.append(self.getTrajPose(j).position)
+                menuControl.markers.append(Marker(type=Marker.SPHERE_LIST, id=self.id, lifetime=rospy.Duration(2),
+                                             scale=Vector3(0.02,0.02,0.02), header=Header(frame_id=frame_id),
+                                             color=ColorRGBA(0.8, 0.4, 0.0, 0.8), points=pointList))
+                menuControl.markers.append(self.getSphereMarker(self.id+2000, self.getTrajPose(0), frame_id, 0.05))
+                menuControl.markers.append(self.getSphereMarker(self.id+3000, self.getTrajPose(len(self.aStep.armTrajectory.timing)-1), frame_id, 0.05))
+            else:
+                rospy.logerr('Non-handled action step type ' + str(self.aStep.type))
+    
+            if (refFrame == ArmState.OBJECT):
+                menuControl.markers.append(Marker(type=Marker.ARROW, id=1000+self.id, lifetime=rospy.Duration(2),
+                                                         scale=Vector3(0.02,0.03,0.04), header=Header(frame_id='task_object'),
+                                                         color=ColorRGBA(1.0, 0.8, 0.2, 0.5), points=[pose.position, Point(0,0,0)]))
+            
+            self.int_marker = InteractiveMarker()
+            self.int_marker.name = self.name
+            self.int_marker.header.frame_id = frame_id #"/base_link"
+            self.int_marker.pose = pose
+            self.int_marker.scale = 1
+            self.int_marker.controls.append(menuControl)
+    
+            ActionStepMarker.IMServer.insert(self.int_marker, self.markerFeedback)
         
     def getSphereMarker(self, id, pose, frame_id, radius):
         return Marker(type=Marker.SPHERE, id=id, lifetime=rospy.Duration(2),
@@ -190,13 +191,16 @@ class ActionStepMarker:
         self.menuHandler.setCheckState(self.subEntries[currentRefFrame], MenuHandler.UNCHECKED)
         self.menuHandler.setCheckState(feedback.menu_entry_id, MenuHandler.CHECKED )
         newRef = self.subEntries.index(feedback.menu_entry_id)
-        
         self.setReferenceFrame(newRef)
-        
         rospy.loginfo("Switching reference frame to " + str(self.refNames[newRef]) + " for action " + str(self.name))
         self.updateVisualization()
-        self.menuHandler.reApply(ActionStepMarker.IMServer)
-        ActionStepMarker.IMServer.applyChanges()
+    
+    def updateVisualization(self):
+        self.updateVisualizationCore()
+        if (self.getReferenceFrame() != ArmState.NOT_MOVING):
+#            print 'updating visualization...', self.id
+            self.menuHandler.reApply(ActionStepMarker.IMServer)
+            ActionStepMarker.IMServer.applyChanges()
 
     def getObjectPose(self):
         try:

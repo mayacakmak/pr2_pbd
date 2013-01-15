@@ -80,7 +80,6 @@ class RobotSpeech:
             ttsRequestMsg.voiceName = 'David'
             self.speechOutputSpeakeasy.publish(ttsRequestMsg)
         else:
-            print 'sending speech'
             self.speechOutputSoundplay.publish(SoundRequest(command=SoundRequest.SAY, arg=text))
             
     def stopSaying(self):

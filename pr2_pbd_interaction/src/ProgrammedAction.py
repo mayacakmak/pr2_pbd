@@ -30,8 +30,8 @@ class ProgrammedAction:
         self.skillIndex = skillIndex
         self.rMarkers = []
         self.lMarkers = []
-        self.rLinks = []
-        self.lLinks = []
+        self.rLinks = dict()
+        self.lLinks = dict()
         self.markerOutput = rospy.Publisher('visualization_marker_array', MarkerArray)
     
     def copy(self):
@@ -82,8 +82,9 @@ class ProgrammedAction:
         if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
             self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, self.getLastStep()))
             self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, self.getLastStep()))
-            self.rLinks.append(self.getLink(0, self.nFrames()-1))
-            self.lLinks.append(self.getLink(1, self.nFrames()-1))
+            if (self.nFrames() > 1):
+                self.rLinks[self.nFrames()-1] = self.getLink(0, self.nFrames()-1)
+                self.lLinks[self.nFrames()-1] = self.getLink(1, self.nFrames()-1)
             
     def getLink(self, armIndex, toIndex):
         if (armIndex == 0):
@@ -100,15 +101,23 @@ class ProgrammedAction:
     def updateInteractiveMarkers(self):
         for i in range(len(self.rMarkers)):
             self.rMarkers[i].updateVisualization()
+            if (self.rLinks.has_key(i)):
+                self.rLinks[i] = self.getLink(0, i)
+        for i in range(len(self.lMarkers)):
+            self.lMarkers[i].updateVisualization()
+            if (self.lLinks.has_key(i)):
+                self.lLinks[i] = self.getLink(1, i)
+        for i in range(len(self.rMarkers)):
+            self.rMarkers[i].updateVisualization()
         for i in range(len(self.lMarkers)):
             self.lMarkers[i].updateVisualization()
             
     def updateVisualization(self):
         # Draw the links
         mArray = MarkerArray()
-        for i in range(len(self.rLinks)):
+        for i in self.rLinks.keys():
             mArray.markers.append(self.rLinks[i])
-        for i in range(len(self.lLinks)):
+        for i in self.lLinks.keys():
             mArray.markers.append(self.lLinks[i])
         self.markerOutput.publish(mArray)
         
@@ -117,8 +126,8 @@ class ProgrammedAction:
         self.seq = ActionStepSequence()
         self.rMarkers = []
         self.lMarkers = []
-        self.rLinks = []
-        self.lLinks = []
+        self.rLinks = dict()
+        self.lLinks = dict()
 
     def undoClear(self):
         self.seq = [] #TODO
