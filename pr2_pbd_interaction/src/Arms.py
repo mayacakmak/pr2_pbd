@@ -109,31 +109,42 @@ class Arms:
             # If arm target action
             if (self.pAction.seq.seq[i].type == ActionStep.ARM_TARGET):
                 # Find frames that are relative and convert to absolute
-                self.pAction.seq.seq[i].armTarget.rArm, foundSolutionR = self.solveIK4ArmState(self.pAction.seq.seq[i].armTarget.rArm)
-                self.pAction.seq.seq[i].armTarget.lArm, foundSolutionL = self.solveIK4ArmState(self.pAction.seq.seq[i].armTarget.lArm)
+                self.pAction.seq.seq[i].armTarget.rArm, foundSolutionR = self.solveIK4ArmState(0, self.pAction.seq.seq[i].armTarget.rArm)
+                self.pAction.seq.seq[i].armTarget.lArm, foundSolutionL = self.solveIK4ArmState(1, self.pAction.seq.seq[i].armTarget.lArm)
                 if (not foundSolutionR) or (not foundSolutionL):
                     return False
             
             if (self.pAction.seq.seq[i].type == ActionStep.ARM_TRAJECTORY):
                 for j in range(len(self.pAction.seq.seq[i].armTrajectory.timing)):
-                    self.pAction.seq.seq[i].armTrajectory.rArm[j], foundSolutionR = self.solveIK4ArmState(self.pAction.seq.seq[i].armTrajectory.rArm[j])
-                    self.pAction.seq.seq[i].armTrajectory.lArm[j], foundSolutionL = self.solveIK4ArmState(self.pAction.seq.seq[i].armTrajectory.lArm[j])
+                    self.pAction.seq.seq[i].armTrajectory.rArm[j], foundSolutionR = self.solveIK4ArmState(0, self.pAction.seq.seq[i].armTrajectory.rArm[j])
+                    self.pAction.seq.seq[i].armTrajectory.lArm[j], foundSolutionL = self.solveIK4ArmState(1, self.pAction.seq.seq[i].armTrajectory.lArm[j])
                     if (not foundSolutionR) or (not foundSolutionL):
                         return False
         return True
 
-    def solveIK4ArmState(self, armState):
+    def solveIK4ArmState(self, armIndex, armState):
         # We need to find IK only if the frame is relative to an object
         if (armState.refFrame == ArmState.OBJECT):
             solvedArmState = ArmState()
             targetPose = World.transform(armState.ee_pose, '/task_object', '/base_link')
-            targetJoints = self.arms[0].getIKForEEPose(targetPose, armState.joint_pose)
+            targetJoints = self.arms[armIndex].getIKForEEPose(targetPose, armState.joint_pose)
             if (targetJoints == None):
                 rospy.logerr('Could not find IK for R arm relative pose of action step')
                 return solvedArmState, False
             else:
                 solvedArmState.refFrame = ArmState.ROBOT_BASE
                 solvedArmState.ee_pose = Pose(targetPose.position, targetPose.orientation)
+                solvedArmState.joint_pose = targetJoints
+                return solvedArmState, True
+        elif (armState.refFrame == ArmState.ROBOT_BASE):
+            targetJoints = self.arms[armIndex].getIKForEEPose(armState.ee_pose, armState.joint_pose)
+            if (targetJoints == None):
+                rospy.logerr('Could not find IK for R arm relative pose of action step')
+                return armState, False
+            else:
+                solvedArmState = ArmState()
+                solvedArmState.refFrame = ArmState.ROBOT_BASE
+                solvedArmState.ee_pose = Pose(armState.ee_pose.position, armState.ee_pose.orientation)
                 solvedArmState.joint_pose = targetJoints
                 return solvedArmState, True
         else:

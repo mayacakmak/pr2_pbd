@@ -101,25 +101,23 @@ class ProgrammedAction:
     def updateInteractiveMarkers(self):
         for i in range(len(self.rMarkers)):
             self.rMarkers[i].updateVisualization()
-            if (self.rLinks.has_key(i)):
-                self.rLinks[i] = self.getLink(0, i)
         for i in range(len(self.lMarkers)):
             self.lMarkers[i].updateVisualization()
-            if (self.lLinks.has_key(i)):
-                self.lLinks[i] = self.getLink(1, i)
-        for i in range(len(self.rMarkers)):
-            self.rMarkers[i].updateVisualization()
-        for i in range(len(self.lMarkers)):
-            self.lMarkers[i].updateVisualization()
+
+    def updateLinks(self):
+        for i in self.rLinks.keys():
+            self.rLinks[i] = self.getLink(0, i)
+        for i in self.lLinks.keys():
+            self.lLinks[i] = self.getLink(1, i)
             
     def updateVisualization(self):
-        # Draw the links
         mArray = MarkerArray()
         for i in self.rLinks.keys():
             mArray.markers.append(self.rLinks[i])
         for i in self.lLinks.keys():
             mArray.markers.append(self.lLinks[i])
         self.markerOutput.publish(mArray)
+        self.updateLinks()
         
     def clear(self):
         #TODO: get backups before clear

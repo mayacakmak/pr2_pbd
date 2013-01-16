@@ -38,6 +38,7 @@ class World:
         
         self.objectActionClient = actionlib.SimpleActionClient('object_detection_user_command', UserCommandAction)
         self.objectActionClient.wait_for_server()
+        self.clearAllObjects()
         rospy.loginfo('Interactive object detection action server has responded.')
         
     def receieveRecognizedObjectInfo(self, objectList):
@@ -186,7 +187,18 @@ class World:
             rospy.logerr('Could not look down to take table snapshot')
             return False
         
-        
+    def clearAllObjects(self):
+        self.objectActionClient.send_goal(UserCommandGoal(UserCommandGoal.RESET, False))
+        while (self.objectActionClient.get_state() == GoalStatus.ACTIVE or 
+               self.objectActionClient.get_state() == GoalStatus.PENDING):
+            time.sleep(0.1)
+        rospy.loginfo('Object recognition has been reset.')
+        rospy.loginfo('STATUS: ' + self.objectActionClient.get_goal_status_text())
+        if (self.objectActionClient.get_state() == GoalStatus.SUCCEEDED):
+            rospy.loginfo('Successfully reset object localization pipeline.')
+            self.poses = None
+
+
     def update(self):
         # Visualize the detected object
         if (self.poses != None):

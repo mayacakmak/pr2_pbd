@@ -52,6 +52,7 @@ class ActionStepMarker:
                 self.menuHandler.setCheckState(self.subEntries[i], MenuHandler.UNCHECKED)
             self.menuHandler.setCheckState(self.subEntries[self.getReferenceFrame()], MenuHandler.CHECKED)
             
+            self.poseControlVisible = False
             self.updateVisualizationCore()
             self.menuHandler.apply(ActionStepMarker.IMServer, self.name)
             ActionStepMarker.IMServer.applyChanges()
@@ -86,6 +87,15 @@ class ActionStepMarker:
                 self.aStep.armTrajectory.rRefFrame = newRef
             else:
                 self.aStep.armTrajectory.lRefFrame = newRef
+
+    def setNewPose(self, newPose):
+        if (self.aStep.type == ActionStep.ARM_TARGET):
+            if self.armIndex == 0:
+                self.aStep.armTarget.rArm.ee_pose = newPose
+            else:
+                self.aStep.armTarget.lArm.ee_pose = newPose
+        elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
+            print 'how to move the whole traj..'
 
     def getFrameAbsolutePosition(self, armState):
         if (armState.refFrame == ArmState.OBJECT):
@@ -150,14 +160,17 @@ class ActionStepMarker:
             pose = self.getPose()
             
             if (self.aStep.type == ActionStep.ARM_TARGET):
-                menuControl.markers.append(self.getSphereMarker(self.id, pose, frame_id, 0.08))
+                mainMarker = self.getSphereMarker(self.id, pose, frame_id, 0.08)
+                menuControl.markers.append(mainMarker)
             elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
                 pointList = []
                 for j in range(len(self.aStep.armTrajectory.timing)):
                     pointList.append(self.getTrajPose(j).position)
-                menuControl.markers.append(Marker(type=Marker.SPHERE_LIST, id=self.id, lifetime=rospy.Duration(2),
+
+                mainMarker = Marker(type=Marker.SPHERE_LIST, id=self.id, lifetime=rospy.Duration(2),
                                              scale=Vector3(0.02,0.02,0.02), header=Header(frame_id=frame_id),
-                                             color=ColorRGBA(0.8, 0.4, 0.0, 0.8), points=pointList))
+                                             color=ColorRGBA(0.8, 0.4, 0.0, 0.8), points=pointList)                
+                menuControl.markers.append(mainMarker)
                 menuControl.markers.append(self.getSphereMarker(self.id+2000, self.getTrajPose(0), frame_id, 0.05))
                 menuControl.markers.append(self.getSphereMarker(self.id+3000, self.getTrajPose(len(self.aStep.armTrajectory.timing)-1), frame_id, 0.05))
             else:
@@ -172,10 +185,16 @@ class ActionStepMarker:
             self.int_marker.name = self.name
             self.int_marker.header.frame_id = frame_id #"/base_link"
             self.int_marker.pose = pose
-            self.int_marker.scale = 1
+            self.int_marker.scale = 0.2
             self.int_marker.controls.append(menuControl)
     
+            self.make6DofMarker(self.int_marker, False) #make6DofMarker(frame_id, pose, mainMarker, False)
+            buttonControl = InteractiveMarkerControl()
+            menuControl.interaction_mode = InteractiveMarkerControl.BUTTON
+            self.int_marker.controls.append(buttonControl)
+
             ActionStepMarker.IMServer.insert(self.int_marker, self.markerFeedback)
+            #ActionStepMarker.IMServer.insert(self.int_marker2, self.markerFeedback2)
         
     def getSphereMarker(self, id, pose, frame_id, radius):
         return Marker(type=Marker.SPHERE, id=id, lifetime=rospy.Duration(2),
@@ -183,11 +202,23 @@ class ActionStepMarker:
                         color=ColorRGBA(1.0, 0.5, 0.0, 0.8))        
     
     def markerFeedback(self, feedback):
-        print 'feedback.event_type', feedback.event_type
+        if feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
+            rospy.loginfo('Changing position of an action step, in reference frame ' + str(feedback.header.frame_id))
+            self.setNewPose(feedback.pose)
+            self.updateVisualization()
+        elif feedback.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
+            # Set the visibility of the 6DOF controller
+            rospy.loginfo('Changing visibility of the pose controls.')
+            if (self.poseControlVisible):
+                self.poseControlVisible = False
+            else:
+                self.poseControlVisible = True
+            self.updateVisualization()
+        else:
+            rospy.loginfo('Unknown event' + str(feedback.event_type))
 
     def changeReferenceFrame(self, feedback):
         currentRefFrame = self.getReferenceFrame()
-
         self.menuHandler.setCheckState(self.subEntries[currentRefFrame], MenuHandler.UNCHECKED)
         self.menuHandler.setCheckState(feedback.menu_entry_id, MenuHandler.CHECKED )
         newRef = self.subEntries.index(feedback.menu_entry_id)
@@ -214,10 +245,96 @@ class ActionStepMarker:
             rospy.logwarn('Something wrong with transform request.')
             return None
 
-
-
-
-
-
-
+    
+    def make6DofMarker(self, int_marker, fixed ):
+        
+        control = InteractiveMarkerControl()
+        control.orientation.w = 1
+        control.orientation.x = 1
+        control.orientation.y = 0
+        control.orientation.z = 0
+        control.name = "rotate_x"
+        control.always_visible = False
+        if (self.poseControlVisible):
+            control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+        else:
+            control.interaction_mode = InteractiveMarkerControl.NONE
+        if fixed:
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+        int_marker.controls.append(control)
+    
+        control = InteractiveMarkerControl()
+        control.orientation.w = 1
+        control.orientation.x = 1
+        control.orientation.y = 0
+        control.orientation.z = 0
+        control.name = "move_x"
+        control.always_visible = False
+        if (self.poseControlVisible):
+            control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+        else:
+            control.interaction_mode = InteractiveMarkerControl.NONE
+        if fixed:
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+        int_marker.controls.append(control)
+    
+        control = InteractiveMarkerControl()
+        control.orientation.w = 1
+        control.orientation.x = 0
+        control.orientation.y = 1
+        control.orientation.z = 0
+        control.name = "rotate_z"
+        control.always_visible = False
+        if (self.poseControlVisible):
+            control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+        else:
+            control.interaction_mode = InteractiveMarkerControl.NONE
+        if fixed:
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+        int_marker.controls.append(control)
+    
+        control = InteractiveMarkerControl()
+        control.orientation.w = 1
+        control.orientation.x = 0
+        control.orientation.y = 1
+        control.orientation.z = 0
+        control.name = "move_z"
+        control.always_visible = False
+        if (self.poseControlVisible):
+            control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+        else:
+            control.interaction_mode = InteractiveMarkerControl.NONE
+        if fixed:
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+        int_marker.controls.append(control)
+    
+        control = InteractiveMarkerControl()
+        control.orientation.w = 1
+        control.orientation.x = 0
+        control.orientation.y = 0
+        control.orientation.z = 1
+        control.name = "rotate_y"
+        control.always_visible = False
+        if (self.poseControlVisible):
+            control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+        else:
+            control.interaction_mode = InteractiveMarkerControl.NONE
+        if fixed:
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+        int_marker.controls.append(control)
+    
+        control = InteractiveMarkerControl()
+        control.orientation.w = 1
+        control.orientation.x = 0
+        control.orientation.y = 0
+        control.orientation.z = 1
+        control.name = "move_y"
+        control.always_visible = False
+        if (self.poseControlVisible):
+            control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+        else:
+            control.interaction_mode = InteractiveMarkerControl.NONE
+        if fixed:
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+        int_marker.controls.append(control)
 
