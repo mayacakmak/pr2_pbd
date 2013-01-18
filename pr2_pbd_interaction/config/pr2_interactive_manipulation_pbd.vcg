@@ -1,4 +1,4 @@
-Attached\ Objects.Enabled=1
+Attached\ Objects.Enabled=0
 Attached\ Objects.Marker\ Topic=/attached_objects
 Attached\ Objects.Queue\ Size=100
 Background\ ColorB=0.486275
@@ -33,45 +33,37 @@ Base\ Laser.Queue\ Size=10
 Base\ Laser.Selectable=1
 Base\ Laser.Style=1
 Base\ Laser.Topic=/base_scan_throttled
-Camera\ Config=0.475 5.30161 3.08509 0.371988 0.357437 0.763089
+Camera\ Config=0.290398 5.67358 2.5254 -0.134302 0.224455 0.584447
 Camera\ Type=rviz::OrbitViewController
-CameraFocus.Enabled=1
+CameraFocus.Enabled=0
 Fixed\ Frame=/odom_combined
-Grasp\ Execution\ Markers.Enabled=1
+Grasp\ Execution\ Markers.Enabled=0
 Grasp\ Execution\ Markers.Marker\ Topic=/object_manipulator/grasp_execution_markers
 Grasp\ Execution\ Markers.Queue\ Size=100
-Grasp\ Markers.Enabled=1
+Grasp\ Markers.Enabled=0
 Grasp\ Markers.Marker\ Topic=/grasp_markers
 Grasp\ Markers.Queue\ Size=100
-In-Hand\ Objects.Enabled=1
+In-Hand\ Objects.Enabled=0
 In-Hand\ Objects.Show\ Axes=0
 In-Hand\ Objects.Show\ Descriptions=1
 In-Hand\ Objects.Show\ Tool\ Tips=1
 In-Hand\ Objects.Update\ Topic=/in_hand_objects/update
-Interactive\ Manipulation.Enabled=1
+Interactive\ Manipulation.Enabled=0
 Interactive\ Manipulation.Show\ Axes=0
 Interactive\ Manipulation.Show\ Descriptions=1
 Interactive\ Manipulation.Show\ Tool\ Tips=1
 Interactive\ Manipulation.Update\ Topic=/interactive_manipulation/update
-Interactive\ Point\ Cloud.Enabled=1
+Interactive\ Point\ Cloud.Enabled=0
 Interactive\ Point\ Cloud.Show\ Axes=0
 Interactive\ Point\ Cloud.Show\ Descriptions=1
 Interactive\ Point\ Cloud.Show\ Tool\ Tips=1
 Interactive\ Point\ Cloud.Update\ Topic=/interactive_point_cloud/update
-InteractiveManipulationFrontend.Enabled=1
-InteractiveMarker.Enabled=1
-InteractiveMarker.Show\ Axes=0
-InteractiveMarker.Show\ Descriptions=1
-InteractiveMarker.Show\ Tool\ Tips=1
-InteractiveMarker.Update\ Topic=/menu/update
-InteractiveObjectDetection.Enabled=1
+InteractiveManipulationFrontend.Enabled=0
+InteractiveObjectDetection.Enabled=0
 Map.Alpha=0.7
 Map.Draw\ Behind=0
 Map.Enabled=0
 Map.Topic=/map
-MarkerArray.Enabled=1
-MarkerArray.Marker\ Array\ Topic=visualization_marker_array
-MarkerArray.Queue\ Size=100
 Nav\ Global\ Path.Alpha=1
 Nav\ Global\ Path.ColorB=0
 Nav\ Global\ Path.ColorG=1
@@ -84,7 +76,7 @@ Nav\ Obstacles.ColorG=1
 Nav\ Obstacles.ColorR=0.1
 Nav\ Obstacles.Enabled=0
 Nav\ Obstacles.Topic=/move_base_node/local_costmap/obstacles
-ObjectRecognition.Enabled=1
+ObjectRecognition.Enabled=0
 ObjectRecognition.Show\ Bounding\ Boxes=0
 Octomap\ Point\ Cloud\ (PointCloud2)..AxisColorAutocompute\ Value\ Bounds=1
 Octomap\ Point\ Cloud\ (PointCloud2)..AxisColorAxis=2
@@ -123,8 +115,16 @@ PR2\ Marker\ Control.Update\ Topic=/pr2_marker_control/update
 Planning\ Scene\ Markers.Enabled=0
 Planning\ Scene\ Markers.Marker\ Topic=/planning_scene_markers
 Planning\ Scene\ Markers.Queue\ Size=100
-Property\ Grid\ Splitter=696,84
-Property\ Grid\ State=expanded=.Global Options;splitterratio=0.831921
+ProgrammedActionViz.Enabled=1
+ProgrammedActionViz.Marker\ Array\ Topic=visualization_marker_array
+ProgrammedActionViz.Queue\ Size=100
+ProgrammedActions.Enabled=1
+ProgrammedActions.Show\ Axes=0
+ProgrammedActions.Show\ Descriptions=1
+ProgrammedActions.Show\ Tool\ Tips=1
+ProgrammedActions.Update\ Topic=/programmed_actions/update
+Property\ Grid\ Splitter=640,84
+Property\ Grid\ State=expanded=.Global Options;splitterratio=0.698413
 PublishClickCamera.Enabled=1
 PublishClickCamera.Image\ Rendering=background & overlay
 PublishClickCamera.Image\ Topic=/interactive_manipulation_camera/image
@@ -133,7 +133,7 @@ PublishClickCamera.Publish\ Click\ Topic=/interactive_manipulation_image_click
 PublishClickCamera.Queue\ Size=10
 PublishClickCamera.Transport\ Hint=compressed
 PublishClickCamera.Zoom\ Factor=1
-QMainWindow=000000ff00000000fd00000003000000000000021a0000037cfc0200000005fb0000001800430061006d00650072006100200046006f0063007500730100000036000000720000006b00fffffffb00000024005000750062006c0069007300680043006c00690063006b00430061006d00650072006101000000ae0000020c0000001900fffffffb000000300049006e0074006500720061006300740069007600650020004d0061006e006900700075006c006100740069006f006e01000002c0000000f2000000e000fffffffc0000027d0000010d0000000000fffffffa000000000100000001fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb0000000c00430061006d006500720061000000040200000098000000000000000000000001000001640000037cfc0200000004fc000000360000037c0000010c0100001dfa000000010100000002fb000000380049006e0074006500720061006300740069007600650020004f0062006a00650063007400200044006500740065006300740069006f006e0100000000ffffffff0000012800fffffffb000000100044006900730070006c00610079007301000005560000013a0000011d00fffffffb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000026c0000022e0000006700fffffffb0000000a0056006900650077007300000002d2000001c8000000bb00fffffffb0000001200530065006c0065006300740069006f006e000000026c0000022e0000006700ffffff00000003000006a60000003ffc0100000001fb0000000800540069006d00650100000000000006a6000002bf00ffffff0000031c0000037c00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+QMainWindow=000000ff00000000fd00000003000000000000026100000326fc0200000005fb0000001800430061006d00650072006100200046006f0063007500730000000036000000bb0000006b00fffffffb00000024005000750062006c0069007300680043006c00690063006b00430061006d0065007200610100000036000003260000001900fffffffb000000300049006e0074006500720061006300740069007600650020004d0061006e006900700075006c006100740069006f006e000000033800000120000000e000fffffffc0000027d0000010d0000000000fffffffa000000000100000001fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb0000000c00430061006d0065007200610000000402000000980000000000000000000000010000018c00000326fc0200000004fc0000003600000326000000ee00fffffffa000000010100000002fb000000380049006e0074006500720061006300740069007600650020004f0062006a00650063007400200044006500740065006300740069006f006e0000000000ffffffff0000012800fffffffb000000100044006900730070006c00610079007301000005560000013a0000011d00fffffffb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000026c0000022e0000006700fffffffb0000000a0056006900650077007300000002d2000001c8000000bb00fffffffb0000001200530065006c0065006300740069006f006e000000026c0000022e0000006700ffffff00000003000007090000003efc0100000001fb0000000800540069006d0065010000000000000709000002bf00ffffff000003100000032600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
 Robot\ Model.Alpha=1
 Robot\ Model.Collision\ Enabled=0
 Robot\ Model.Enabled=1
@@ -365,6 +365,19 @@ Robot\:\ Robot\ Model\ Link\ torso_lift_linkAlpha=1
 Robot\:\ Robot\ Model\ Link\ torso_lift_linkEnabled=1
 Robot\:\ Robot\ Model\ Link\ torso_lift_linkShow\ Axes=0
 Robot\:\ Robot\ Model\ Link\ torso_lift_linkShow\ Trail=0
+SceneObjects.Enabled=1
+SceneObjects.Show\ Axes=0
+SceneObjects.Show\ Descriptions=1
+SceneObjects.Show\ Tool\ Tips=1
+SceneObjects.Update\ Topic=/world_objects/update
+TF.All\ Enabled=0
+TF.Enabled=0
+TF.Frame\ Timeout=15
+TF.Marker\ Scale=1
+TF.Show\ Arrows=1
+TF.Show\ Axes=1
+TF.Show\ Names=1
+TF.Update\ Interval=0
 Tabletop\ Segmentation\ Markers.Enabled=1
 Tabletop\ Segmentation\ Markers.Marker\ Topic=/tabletop_segmentation_markers
 Tabletop\ Segmentation\ Markers.Queue\ Size=100
@@ -393,29 +406,35 @@ Name=Grasp Execution Markers
 ClassName=rviz::MarkerDisplay
 Name=Grasp Markers
 [Display15]
-ClassName=rviz::MarkerDisplay
-Name=Tabletop Segmentation Markers
-[Display16]
 ClassName=rviz::MapDisplay
 Name=Map
-[Display17]
+[Display16]
 ClassName=rviz::LaserScanDisplay
 Name=Base Laser
-[Display18]
+[Display17]
 ClassName=rviz::GridCellsDisplay
 Name=Nav Obstacles
-[Display19]
+[Display18]
 ClassName=rviz::PathDisplay
 Name=Nav Global Path
+[Display19]
+ClassName=rviz::TFDisplay
+Name=TF
 [Display2]
 ClassName=pr2_interactive_manipulation::PublishClickCameraDisplay
 Name=PublishClickCamera
 [Display20]
-ClassName=rviz::InteractiveMarkerDisplay
-Name=InteractiveMarker
+ClassName=rviz::MarkerDisplay
+Name=Tabletop Segmentation Markers
 [Display21]
+ClassName=rviz::InteractiveMarkerDisplay
+Name=SceneObjects
+[Display22]
+ClassName=rviz::InteractiveMarkerDisplay
+Name=ProgrammedActions
+[Display23]
 ClassName=rviz::MarkerArrayDisplay
-Name=MarkerArray
+Name=ProgrammedActionViz
 [Display3]
 ClassName=rviz::InteractiveMarkerDisplay
 Name=Interactive Manipulation
@@ -444,7 +463,7 @@ Config=0 4.20838 2.6432 -0.349336 0.192482 0.807002
 Target=/base_link
 Type=rviz::OrbitViewController
 [Window]
-Height=1055
-Width=1724
-X=424
-Y=25
+Height=968
+Width=1823
+X=333
+Y=97

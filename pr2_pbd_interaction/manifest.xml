@@ -19,6 +19,7 @@
   <depend package="arm_navigation_msgs"/>
   <depend package="pr2_interactive_object_detection"/>
   <depend package="interactive_markers"/>
+  <depend package="tabletop_collision_map_processing"/>
 </package>
 
 

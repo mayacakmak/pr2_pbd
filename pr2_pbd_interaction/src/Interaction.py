@@ -214,7 +214,7 @@ class Interaction:
         states = [GripperState(self.arms.getGripperState(0)), GripperState(self.arms.getGripperState(1))]
         states[armIndex].state = gripperState
         step.gripperTarget = GripperTarget(states[0], states[1])
-        self.session.addStepToProgrammedAction(step)
+        self.session.addStepToProgrammedAction(step, self.world.getReferenceFrameNameList())
         
     def startRecordingMotion(self, param=None):
         if (self.session.nProgrammedActions() > 0):
@@ -246,7 +246,7 @@ class Interaction:
             self.fixTrajectoryReferenceFrames()
             armTrajectoryStep.armTrajectory = ArmTrajectory(self.armTrajectory.rArm[:], self.armTrajectory.lArm[:], 
                                                             self.armTrajectory.timing[:], self.armTrajectory.rRefFrame, self.armTrajectory.lRefFrame)
-            self.session.addStepToProgrammedAction(armTrajectoryStep)
+            self.session.addStepToProgrammedAction(armTrajectoryStep, self.world.getReferenceFrameNameList())
             self.armTrajectory = None
             self.trajectoryStartTime = None
             return [Speech.STOPPED_RECORDING_MOTION + ' ' + Speech.STEP_RECORDED, GazeGoal.NOD]
@@ -254,35 +254,36 @@ class Interaction:
             return [Speech.MOTION_NOT_RECORDING, GazeGoal.SHAKE]
         
     def fixTrajectoryReferenceFrames(self):
-        rRefFrame = self.findDominantRefFrame(self.armTrajectory.rArm)
-        lRefFrame = self.findDominantRefFrame(self.armTrajectory.lArm)
+        rRefFrame, rRefFrameName = self.findDominantRefFrame(self.armTrajectory.rArm)
+        lRefFrame, lRefFrameName = self.findDominantRefFrame(self.armTrajectory.lArm)
         
         startFrame = self.session.getLastStepOfProgrammedAction()
-        self.armTrajectory.rArm[0] = World.convertRefFrame(rRefFrame, self.armTrajectory.rArm[0], startFrame.armTarget.rArm)
-        self.armTrajectory.lArm[0] = World.convertRefFrame(lRefFrame, self.armTrajectory.lArm[0], startFrame.armTarget.lArm)
+        self.armTrajectory.rArm[0] = World.convertRefFrame(rRefFrame, rRefFrameName, self.armTrajectory.rArm[0], startFrame.armTarget.rArm)
+        self.armTrajectory.lArm[0] = World.convertRefFrame(lRefFrame, lRefFrameName, self.armTrajectory.lArm[0], startFrame.armTarget.lArm)
         for i in range(1, len(self.armTrajectory.timing)):
-            self.armTrajectory.rArm[i] = World.convertRefFrame(rRefFrame, self.armTrajectory.rArm[i], self.armTrajectory.rArm[i-1])
-            self.armTrajectory.lArm[i] = World.convertRefFrame(lRefFrame, self.armTrajectory.lArm[i], self.armTrajectory.lArm[i-1])
+            self.armTrajectory.rArm[i] = World.convertRefFrame(rRefFrame, rRefFrameName, self.armTrajectory.rArm[i], self.armTrajectory.rArm[i-1])
+            self.armTrajectory.lArm[i] = World.convertRefFrame(lRefFrame, lRefFrameName, self.armTrajectory.lArm[i], self.armTrajectory.lArm[i-1])
+        
         self.armTrajectory.rRefFrame = rRefFrame
         self.armTrajectory.lRefFrame = lRefFrame
+        self.armTrajectory.rRefFrameName = rRefFrameName
+        self.armTrajectory.lRefFrameName = lRefFrameName
         
     def findDominantRefFrame(self, armTraj):
-        refFrameCounts = [0]*5
+        refFrameNames = self.world.getReferenceFrameNameList()
+        refFrameCounts = [0]*len(refFrames)
         for i in range(len(armTraj)):
             refFrameCounts[armTraj[i].refFrame] += 1
-        refFrameN = max(refFrameCounts[0:4]) # Excluding 'NOT_MOVING'
-        if (refFrameN > 0):
-            return refFrameCounts[0:4].index(refFrameN)
-        else:
-            return ArmState.NOT_MOVING # Because the arm was never moving
-
+        dominantRefFrameIndex = refFrameCounts.index(max(refFrameCounts))
+        dominantRefFrameName = refFrameNames[dominantRefFrameIndex]
+        return World.getRefFromName(dominantRefFrameName), dominantRefFrameName
+    
     def saveStateToArmTrajectory(self):
         if (self.armTrajectory != None):
             states = self.getArmStates()
-            if (states[0].refFrame != ArmState.NOT_MOVING or states[1].refFrame != ArmState.NOT_MOVING):
-                self.armTrajectory.rArm.append(states[0])
-                self.armTrajectory.lArm.append(states[1])
-                self.armTrajectory.timing.append(rospy.Time.now() - self.trajectoryStartTime)
+            self.armTrajectory.rArm.append(states[0])
+            self.armTrajectory.lArm.append(states[1])
+            self.armTrajectory.timing.append(rospy.Time.now() - self.trajectoryStartTime)
 
     def saveArmStep(self, param=None):
         if (self.session.nProgrammedActions() > 0):
@@ -291,7 +292,7 @@ class Interaction:
                 step = ActionStep()
                 step.type = ActionStep.ARM_TARGET
                 step.armTarget = ArmTarget(states[0], states[1], 0.2, 0.2)
-                self.session.addStepToProgrammedAction(step)
+                self.session.addStepToProgrammedAction(step, self.world.getReferenceFrameNameList())
                                 
                 return [Speech.STEP_RECORDED, GazeGoal.LOOK_FORWARD]
             else:
@@ -305,26 +306,24 @@ class Interaction:
         
         relEEPoses = [None, None]
         thresholdMoved = 0.002
-        thresholdFar = 0.75
         states = [None, None]
 
         for armIndex in [0,1]:
-            if ((self.session.nFrames() > 0) and (self.prevArmPoses != None) 
-                and (Arm.eeDistance(self.prevArmPoses[armIndex], absEEPoses[armIndex]) < thresholdMoved)):
-                # No actions
-                states[armIndex] = ArmState(ArmState.NOT_MOVING, absEEPoses[armIndex], jointPoses[armIndex])
-                # rospy.loginfo('Arm did not move: ' + str(armIndex))
+            if (not self.world.hasObjects()):
+                # Absolute
+                states[armIndex] = ArmState(ArmState.ROBOT_BASE, absEEPoses[armIndex], 
+                                            jointPoses[armIndex], 'base_link')
             else:
-                if ((self.world.poses == None) or 
-                    (Arm.eeDistance(self.world.poses[self.world.index], absEEPoses[armIndex]) > thresholdFar)):
-                    # Absolute
-                    states[armIndex] = ArmState(ArmState.ROBOT_BASE, absEEPoses[armIndex], jointPoses[armIndex])
+                nearestObject = self.world.getNearestObject(absEEPoses[armIndex])
+
+                if (nearestObject == None):
+                    states[armIndex] = ArmState(ArmState.ROBOT_BASE, absEEPoses[armIndex], 
+                                                jointPoses[armIndex], 'base_link')
                 else:
                     # Relative
-                    relEEPoses[armIndex] = World.transform(absEEPoses[armIndex], '/base_link', '/task_object')
-                    states[armIndex] = ArmState(ArmState.OBJECT, relEEPoses[armIndex], jointPoses[armIndex])
-            
-        self.prevArmPoses = absEEPoses
+                    relEEPoses[armIndex] = World.transform(absEEPoses[armIndex], 'base_link', nearestObject)
+                    states[armIndex] = ArmState(ArmState.OBJECT, relEEPoses[armIndex], 
+                                                jointPoses[armIndex], nearestObject)
         return states
         
     def executeProgrammedAction(self, param=None):
@@ -335,7 +334,7 @@ class Interaction:
                 
                 if (pAction.requiresObject()):
                     if (self.world.updateTaskObjectPose()):
-                        self.session.getProgrammedAction().updateInteractiveMarkers()
+                        self.session.getProgrammedAction().updateObjects(self.world.getReferenceFrameNameList())
                         self.arms.startExecution(pAction)
                     else:
                         return [Speech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]
@@ -383,7 +382,18 @@ class Interaction:
             self.saveStateToArmTrajectory()
 
         if (self.session.nProgrammedActions() > 0):
-            self.session.getProgrammedAction().updateVisualization()
+            pAction = self.session.getProgrammedAction()
+            pAction.updateVisualization()
+            
+            targetR = pAction.getPotentialTargets(0)
+            if (targetR != None):
+                self.arms.startMovingToArmState(targetR, 0)
+                pAction.resetAllTargets(0)
+                
+            targetL = pAction.getPotentialTargets(1)
+            if (targetL != None):
+                self.arms.startMovingToArmState(targetL, 1)
+                pAction.resetAllTargets(1)
 
         self.world.update()
         time.sleep(0.1)
@@ -405,7 +415,7 @@ class Interaction:
     def recordObjectPose(self, param=None):
         if (self.world.updateTaskObjectPose()):
             if (self.session.nProgrammedActions() > 0):
-                self.session.getProgrammedAction().updateInteractiveMarkers()
+                self.session.getProgrammedAction().updateObjects(self.world.getReferenceFrameNameList())
             return [Speech.START_STATE_RECORDED, GazeGoal.NOD]
         else:
             return [Speech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]

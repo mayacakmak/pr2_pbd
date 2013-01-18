@@ -71,17 +71,18 @@ class ProgrammedAction:
         armStateCopy.refFrame = int(armState.refFrame)
         armStateCopy.joint_pose = array(armState.joint_pose)
         armStateCopy.ee_pose = Pose(armState.ee_pose.position, armState.ee_pose.orientation)
+        armStateCopy.refFrameName = str(armState.refFrameName)
         return armStateCopy
-     
+    
     def getName(self):
         return 'Action' + str(self.skillIndex)
 
-    def addActionStep(self, step):
+    def addActionStep(self, step, objectList):
         self.seq.seq.append(self.copyActionStep(step))
         
         if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
-            self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, self.getLastStep()))
-            self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, self.getLastStep()))
+            self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, self.getLastStep(), objectList))
+            self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, self.getLastStep(), objectList))
             if (self.nFrames() > 1):
                 self.rLinks[self.nFrames()-1] = self.getLink(0, self.nFrames()-1)
                 self.lLinks[self.nFrames()-1] = self.getLink(1, self.nFrames()-1)
@@ -98,11 +99,39 @@ class ProgrammedAction:
                       scale=Vector3(0.01,0.03,0.01), header=Header(frame_id='base_link'),
                       color=ColorRGBA(0.8, 0.8, 0.8, 0.3), points=[startPoint, endPoint])
 
+    def updateObjects(self, objectList):
+        self.updateInteractiveMarkers()
+
+        for i in range(len(self.rMarkers)):
+            self.rMarkers[i].updateReferenceFrameList(objectList)
+        for i in range(len(self.lMarkers)):
+            self.lMarkers[i].updateReferenceFrameList(objectList)
+     
+        
     def updateInteractiveMarkers(self):
         for i in range(len(self.rMarkers)):
             self.rMarkers[i].updateVisualization()
         for i in range(len(self.lMarkers)):
             self.lMarkers[i].updateVisualization()
+
+    def resetAllTargets(self, armIndex):
+        if (armIndex == 0):
+            for i in range(len(self.rMarkers)):
+                self.rMarkers[i].poseReached()
+        else:
+            for i in range(len(self.lMarkers)):
+                self.lMarkers[i].poseReached()
+
+    def getPotentialTargets(self, armIndex):
+        if (armIndex == 0):
+            for i in range(len(self.rMarkers)):
+                if (self.rMarkers[i].isPoseRequested):
+                    return self.rMarkers[i].getTarget()
+        else:
+            for i in range(len(self.lMarkers)):
+                if (self.lMarkers[i].isPoseRequested):
+                    return self.lMarkers[i].getTarget()
+        return None
 
     def updateLinks(self):
         for i in self.rLinks.keys():

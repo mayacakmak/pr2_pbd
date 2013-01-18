@@ -126,7 +126,7 @@ class Arms:
         # We need to find IK only if the frame is relative to an object
         if (armState.refFrame == ArmState.OBJECT):
             solvedArmState = ArmState()
-            targetPose = World.transform(armState.ee_pose, '/task_object', '/base_link')
+            targetPose = World.transform(armState.ee_pose, armState.refFrameName, '/base_link')
             targetJoints = self.arms[armIndex].getIKForEEPose(targetPose, armState.joint_pose)
             if (targetJoints == None):
                 rospy.logerr('Could not find IK for R arm relative pose of action step')
@@ -153,6 +153,28 @@ class Arms:
     def isConditionMet(self, cond):
         # TODO
         return True
+
+    def startMovingToArmState(self, armState, armIndex):
+        self.preempt = False
+        thread = threading.Thread(group=None, target=self.moveToArmState,  args=(armState,armIndex,), name='move_to_arm_state_thread')
+        thread.start()
+    
+    def moveToArmState(self, armState, armIndex):
+        rospy.loginfo('Started thread to move arm ' + str(armIndex))
+        self.executionStatus = ExecutionStatus.EXECUTING
+        solvedArmState, foundSolution = self.solveIK4ArmState(armIndex, armState)
+        if (foundSolution):
+            if (armIndex == 0):
+                isExecutionSuccessful = self.moveToJointTarget(solvedArmState, None)
+            else:
+                isExecutionSuccessful = self.moveToJointTarget(None, solvedArmState)
+
+        if (not foundSolution):
+            self.executionStatus = ExecutionStatus.NO_IK
+        elif (isExecutionSuccessful):
+            self.executionStatus = ExecutionStatus.SUCCEEDED
+        else:
+            self.executionStatus = ExecutionStatus.OBSTRUCTED
     
     def executeProgrammedAction(self):
         '''
@@ -188,7 +210,7 @@ class Arms:
                         if (aStep.type == ActionStep.ARM_TARGET):
                             rospy.loginfo('Will perform arm target action step.')
                             
-                            if (not self.moveToTarget(aStep.armTarget.rArm, aStep.armTarget.lArm)):
+                            if (not self.moveToJointTarget(aStep.armTarget.rArm, aStep.armTarget.lArm)):
                                 self.executionStatus = ExecutionStatus.OBSTRUCTED
                                 break
         
@@ -197,7 +219,7 @@ class Arms:
                             rospy.loginfo('Will perform arm trajectory action step.')
 
                             # First move to the start frame
-                            if (not self.moveToTarget(aStep.armTrajectory.rArm[0], aStep.armTrajectory.lArm[0])):
+                            if (not self.moveToJointTarget(aStep.armTrajectory.rArm[0], aStep.armTrajectory.lArm[0])):
                                 self.executionStatus = ExecutionStatus.OBSTRUCTED
                                 break
 
@@ -206,8 +228,7 @@ class Arms:
                             self.arms[1].executeJointTrajectory(aStep.armTrajectory.lArm, aStep.armTrajectory.timing)
             
                             # Wait until both arms complete the trajectory
-                            while(((self.arms[0].isExecutingTrajectory() and aStep.armTrajectory.rRefFrame != ArmState.NOT_MOVING) 
-                                  or (self.arms[1].isExecutingTrajectory() and aStep.armTrajectory.lRefFrame != ArmState.NOT_MOVING)) 
+                            while((self.arms[0].isExecutingTrajectory() or self.arms[1].isExecutingTrajectory()) 
                                   and not self.preempt):
                                 time.sleep(0.01)
                             rospy.loginfo('Trajectory complete.')
@@ -270,19 +291,19 @@ class Arms:
                 
                 
                 
-    def moveToTarget(self, rArm, lArm):
+    def moveToJointTarget(self, rArm, lArm):
         timeToPoseR = None
         timeToPoseL = None
 
         #  Check if no action for both sides
-        if (rArm.refFrame == ArmState.NOT_MOVING):
+        if (rArm == None):
             rospy.logwarn('Right arm will not move.')
         #  Determine time to target
         else:
             timeToPoseR = Arms.getDurationBetweenPoses(self.arms[0].getEndEffectorState(), rArm.ee_pose)
             rospy.loginfo('Duration until next frame for R arm ' + str(timeToPoseR))
         
-        if (lArm.refFrame == ArmState.NOT_MOVING):
+        if (lArm == None):
             rospy.logwarn('Left arm will not move.')
         else:
             timeToPoseL = Arms.getDurationBetweenPoses(self.arms[1].getEndEffectorState(), lArm.ee_pose)

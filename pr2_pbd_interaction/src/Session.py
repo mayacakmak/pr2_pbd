@@ -105,9 +105,9 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
     
-    def addStepToProgrammedAction(self, step):
+    def addStepToProgrammedAction(self, step, objectList):
         if (self.nProgrammedActions() > 0):
-            self.allProgrammedActions[self.currentProgrammedActionIndex].addActionStep(step)
+            self.allProgrammedActions[self.currentProgrammedActionIndex].addActionStep(step, objectList)
         else:
             rospy.logwarn('No skills created yet.')
 

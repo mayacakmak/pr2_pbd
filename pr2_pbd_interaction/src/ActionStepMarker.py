@@ -30,59 +30,78 @@ class ActionStepMarker:
     
     IMServer = None
 
-    def __init__(self, id, armIndex, aStep):
+    def __init__(self, id, armIndex, aStep, refFrameList):
         
         if ActionStepMarker.IMServer == None:
-            ActionStepMarker.IMServer = InteractiveMarkerServer('menu')
+            ActionStepMarker.IMServer = InteractiveMarkerServer('programmed_actions')
 
-        self.refNames = ['ROBOT_BASE', 'ROBOT_OTHER_ARM', 'OBJECT', 'PREVIOUS_TARGET', 'NOT_MOVING']
+        self.refNames = refFrameList
         self.aStep = aStep
         self.armIndex = armIndex
         self.id = 2*id + self.armIndex
         self.name = 'step' + str(id) + 'arm' + str(self.armIndex)
+        self.isPoseRequested = False
+        self.poseControlVisible = False
+        
+        self.updateMenu()
 
-        if (self.getReferenceFrame() != ArmState.NOT_MOVING):
-            self.menuHandler = MenuHandler()
-            frameEntry = self.menuHandler.insert('Reference frame')
-            self.subEntries = [None]*len(self.refNames)
-            for i in range(len(self.refNames)):
-                self.subEntries[i] = self.menuHandler.insert(self.refNames[i], parent=frameEntry, callback=self.changeReferenceFrame)
-    
-            for i in range(len(self.refNames)):
-                self.menuHandler.setCheckState(self.subEntries[i], MenuHandler.UNCHECKED)
-            self.menuHandler.setCheckState(self.subEntries[self.getReferenceFrame()], MenuHandler.CHECKED)
+    def updateReferenceFrameList(self, refFrameList):
+        self.refNames = refFrameList
+        self.updateMenu()
             
-            self.poseControlVisible = False
-            self.updateVisualizationCore()
-            self.menuHandler.apply(ActionStepMarker.IMServer, self.name)
-            ActionStepMarker.IMServer.applyChanges()
+    def updateMenu(self):
+        self.menuHandler = MenuHandler()
+        frameEntry = self.menuHandler.insert('Reference frame')
+        self.subEntries = [None]*len(self.refNames)
+        for i in range(len(self.refNames)):
+            self.subEntries[i] = self.menuHandler.insert(self.refNames[i], parent=frameEntry, callback=self.changeReferenceFrame)
 
-    def getReferenceFrame(self):
+        self.moveMenuEntry = self.menuHandler.insert('Move here', callback=self.moveToPose)
+
+        for i in range(len(self.refNames)):
+            self.menuHandler.setCheckState(self.subEntries[i], MenuHandler.UNCHECKED)
+        self.menuHandler.setCheckState(self.getMenuIDFromName(self.getReferenceFrameName()), MenuHandler.CHECKED)
+
+        self.updateVisualizationCore()
+
+        self.menuHandler.apply(ActionStepMarker.IMServer, self.name)
+        ActionStepMarker.IMServer.applyChanges()
+
+    def getMenuIDFromName(self, refName):
+        index = self.refNames.index(refName)
+        return self.subEntries[index]
+        
+    def getNameFromMenuID(self, id):
+        index = self.subEntries.index(id)
+        return self.refNames[index]
+
+    def getReferenceFrameName(self):
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                return self.aStep.armTarget.rArm.refFrame
+                return self.aStep.armTarget.rArm.refFrameName
             else:
-                return self.aStep.armTarget.lArm.refFrame
+                return self.aStep.armTarget.lArm.refFrameName
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             if self.armIndex == 0:
-                return self.aStep.armTrajectory.rRefFrame
+                return self.aStep.armTrajectory.refFrameName
             else:
-                return self.aStep.armTrajectory.lRefFrame
+                return self.aStep.armTrajectory.refFrameName
         else:
             rospy.logerr('Unhandled marker type: ' + str(self.aStep.type))
         
-    def setReferenceFrame(self, newRef):
+    def setReferenceFrame(self, newRefName):
+        newRef = World.getRefFromName(newRefName) 
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                self.aStep.armTarget.rArm = World.convertRefFrame(newRef, self.aStep.armTarget.rArm)
+                self.aStep.armTarget.rArm = World.convertRefFrame(newRef, newRefName, self.aStep.armTarget.rArm)
             else:
-                self.aStep.armTarget.lArm = World.convertRefFrame(newRef, self.aStep.armTarget.lArm)
+                self.aStep.armTarget.lArm = World.convertRefFrame(newRef, newRefName, self.aStep.armTarget.lArm)
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             for i in range(len(self.aStep.armTrajectory.timing)):
                 if self.armIndex == 0:
-                    self.aStep.armTrajectory.rArm[i] = World.convertRefFrame(newRef, self.aStep.armTrajectory.rArm[i])
+                    self.aStep.armTrajectory.rArm[i] = World.convertRefFrame(newRef, newRefName, self.aStep.armTrajectory.rArm[i])
                 else:
-                    self.aStep.armTrajectory.lArm[i] = World.convertRefFrame(newRef, self.aStep.armTrajectory.lArm[i])
+                    self.aStep.armTrajectory.lArm[i] = World.convertRefFrame(newRef, newRefName, self.aStep.armTrajectory.lArm[i])
             if self.armIndex == 0:
                 self.aStep.armTrajectory.rRefFrame = newRef
             else:
@@ -101,8 +120,8 @@ class ActionStepMarker:
         if (armState.refFrame == ArmState.OBJECT):
             armStateCopy = ArmState(armState.refFrame, 
                                     Pose(armState.ee_pose.position, armState.ee_pose.orientation), 
-                                    armState.joint_pose[:])
-            World.convertRefFrame(ArmState.ROBOT_BASE, armStateCopy)
+                                    armState.joint_pose[:], armState.refFrameName)
+            World.convertRefFrame(ArmState.ROBOT_BASE, 'base_link', armStateCopy)
             return armStateCopy.ee_pose.position
         else:
             return armState.ee_pose.position
@@ -124,18 +143,23 @@ class ActionStepMarker:
                     return self.getFrameAbsolutePosition(self.aStep.armTrajectory.lArm[len(self.aStep.armTrajectory.rArm)-1])
                 else:
                     return self.getFrameAbsolutePosition(self.aStep.armTrajectory.lArm[0])
-                        
+               
     def getPose(self):
+        t = self.getTarget()
+        if (t != None):
+            return t.ee_pose
+                        
+    def getTarget(self):
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                return self.aStep.armTarget.rArm.ee_pose
+                return self.aStep.armTarget.rArm
             else:
-                return self.aStep.armTarget.lArm.ee_pose
+                return self.aStep.armTarget.lArm
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             if self.armIndex == 0:
-                return self.aStep.armTrajectory.rArm[int(len(self.aStep.armTrajectory.rArm)/2)].ee_pose
+                return self.aStep.armTrajectory.rArm[int(len(self.aStep.armTrajectory.rArm)/2)]
             else:
-                return self.aStep.armTrajectory.lArm[int(len(self.aStep.armTrajectory.lArm)/2)].ee_pose
+                return self.aStep.armTrajectory.lArm[int(len(self.aStep.armTrajectory.lArm)/2)]
 
     def getTrajPose(self, index):
         if (self.aStep.type == ActionStep.ARM_TRAJECTORY):
@@ -147,59 +171,50 @@ class ActionStepMarker:
             rospy.logerr('Cannot request trajectory pose on non-trajectory action step.')
             
     def updateVisualizationCore(self):
-        if (self.getReferenceFrame() != ArmState.NOT_MOVING):
-            menuControl = InteractiveMarkerControl()
-            menuControl.interaction_mode = InteractiveMarkerControl.MENU
-            menuControl.always_visible = True
-    
-            refFrame = self.getReferenceFrame()
-            if (refFrame == ArmState.OBJECT):
-                frame_id = 'task_object'
-            else:
-                frame_id = 'base_link'
-            pose = self.getPose()
-            
-            if (self.aStep.type == ActionStep.ARM_TARGET):
-                mainMarker = self.getSphereMarker(self.id, pose, frame_id, 0.08)
-                menuControl.markers.append(mainMarker)
-            elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
-                pointList = []
-                for j in range(len(self.aStep.armTrajectory.timing)):
-                    pointList.append(self.getTrajPose(j).position)
+        menuControl = InteractiveMarkerControl()
+        menuControl.interaction_mode = InteractiveMarkerControl.MENU
+        menuControl.always_visible = True
+        frame_id = self.getReferenceFrameName()
+        pose = self.getPose()
+        
+        if (self.aStep.type == ActionStep.ARM_TARGET):
+            mainMarker = self.getSphereMarker(self.id, pose, frame_id, 0.08)
+            menuControl.markers.append(mainMarker)
+        elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
+            pointList = []
+            for j in range(len(self.aStep.armTrajectory.timing)):
+                pointList.append(self.getTrajPose(j).position)
 
-                mainMarker = Marker(type=Marker.SPHERE_LIST, id=self.id, lifetime=rospy.Duration(2),
-                                             scale=Vector3(0.02,0.02,0.02), header=Header(frame_id=frame_id),
-                                             color=ColorRGBA(0.8, 0.4, 0.0, 0.8), points=pointList)                
-                menuControl.markers.append(mainMarker)
-                menuControl.markers.append(self.getSphereMarker(self.id+2000, self.getTrajPose(0), frame_id, 0.05))
-                menuControl.markers.append(self.getSphereMarker(self.id+3000, self.getTrajPose(len(self.aStep.armTrajectory.timing)-1), frame_id, 0.05))
-            else:
-                rospy.logerr('Non-handled action step type ' + str(self.aStep.type))
-    
-            if (refFrame == ArmState.OBJECT):
-                menuControl.markers.append(Marker(type=Marker.ARROW, id=1000+self.id, lifetime=rospy.Duration(2),
-                                                         scale=Vector3(0.02,0.03,0.04), header=Header(frame_id='task_object'),
-                                                         color=ColorRGBA(1.0, 0.8, 0.2, 0.5), points=[pose.position, Point(0,0,0)]))
-            
-            self.int_marker = InteractiveMarker()
-            self.int_marker.name = self.name
-            self.int_marker.header.frame_id = frame_id #"/base_link"
-            self.int_marker.pose = pose
-            self.int_marker.scale = 0.2
-            self.int_marker.controls.append(menuControl)
-    
-            self.make6DofMarker(self.int_marker, False) #make6DofMarker(frame_id, pose, mainMarker, False)
-            buttonControl = InteractiveMarkerControl()
-            menuControl.interaction_mode = InteractiveMarkerControl.BUTTON
-            self.int_marker.controls.append(buttonControl)
+            mainMarker = Marker(type=Marker.SPHERE_LIST, id=self.id, lifetime=rospy.Duration(2),
+                                         scale=Vector3(0.02,0.02,0.02), header=Header(frame_id=frame_id),
+                                         color=ColorRGBA(0.8, 0.4, 0.0, 0.8), points=pointList)                
+            menuControl.markers.append(mainMarker)
+            menuControl.markers.append(self.getSphereMarker(self.id+2000, self.getTrajPose(0), frame_id, 0.05))
+            menuControl.markers.append(self.getSphereMarker(self.id+3000, self.getTrajPose(len(self.aStep.armTrajectory.timing)-1), frame_id, 0.05))
+        else:
+            rospy.logerr('Non-handled action step type ' + str(self.aStep.type))
 
-            ActionStepMarker.IMServer.insert(self.int_marker, self.markerFeedback)
-            #ActionStepMarker.IMServer.insert(self.int_marker2, self.markerFeedback2)
+        refFrame = World.getRefFromName(frame_id)
+        if (refFrame == ArmState.OBJECT):
+            menuControl.markers.append(Marker(type=Marker.ARROW, id=1000+self.id, lifetime=rospy.Duration(2),
+                                                     scale=Vector3(0.02,0.03,0.04), header=Header(frame_id=frame_id),
+                                                     color=ColorRGBA(1.0, 0.8, 0.2, 0.5), points=[pose.position, Point(0,0,0)]))
+        self.int_marker = InteractiveMarker()
+        self.int_marker.name = self.name
+        self.int_marker.header.frame_id = frame_id
+        self.int_marker.pose = pose
+        self.int_marker.scale = 0.2
+        self.int_marker.controls.append(menuControl)
+        self.make6DofMarker(self.int_marker, False)
+        buttonControl = InteractiveMarkerControl()
+        menuControl.interaction_mode = InteractiveMarkerControl.BUTTON
+        self.int_marker.controls.append(buttonControl)
+        ActionStepMarker.IMServer.insert(self.int_marker, self.markerFeedback)
         
     def getSphereMarker(self, id, pose, frame_id, radius):
         return Marker(type=Marker.SPHERE, id=id, lifetime=rospy.Duration(2),
                         scale=Vector3(radius,radius,radius), pose=pose, header=Header(frame_id=frame_id),
-                        color=ColorRGBA(1.0, 0.5, 0.0, 0.8))        
+                        color=ColorRGBA(1.0, 0.5, 0.0, 0.8))  
     
     def markerFeedback(self, feedback):
         if feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
@@ -217,37 +232,28 @@ class ActionStepMarker:
         else:
             rospy.loginfo('Unknown event' + str(feedback.event_type))
 
+    def moveToPose(self, feedback):
+        self.isPoseRequested = True
+
+    def poseReached(self):
+        self.isPoseRequested = False
+
     def changeReferenceFrame(self, feedback):
-        currentRefFrame = self.getReferenceFrame()
-        self.menuHandler.setCheckState(self.subEntries[currentRefFrame], MenuHandler.UNCHECKED)
-        self.menuHandler.setCheckState(feedback.menu_entry_id, MenuHandler.CHECKED )
-        newRef = self.subEntries.index(feedback.menu_entry_id)
+        self.menuHandler.setCheckState(self.getMenuIDFromName(self.getReferenceFrameName()), MenuHandler.UNCHECKED)
+        self.menuHandler.setCheckState(feedback.menu_entry_id, MenuHandler.CHECKED)
+        newRef = self.getNameFromMenuID(feedback.menu_entry_id)
         self.setReferenceFrame(newRef)
-        rospy.loginfo("Switching reference frame to " + str(self.refNames[newRef]) + " for action " + str(self.name))
+        rospy.loginfo("Switching reference frame to " + newRef + " for action step " + str(self.name))
+        self.menuHandler.reApply(ActionStepMarker.IMServer)
+        ActionStepMarker.IMServer.applyChanges()
         self.updateVisualization()
     
     def updateVisualization(self):
         self.updateVisualizationCore()
-        if (self.getReferenceFrame() != ArmState.NOT_MOVING):
-#            print 'updating visualization...', self.id
-            self.menuHandler.reApply(ActionStepMarker.IMServer)
-            ActionStepMarker.IMServer.applyChanges()
-
-    def getObjectPose(self):
-        try:
-            t = Arms.tfListener.getLatestCommonTime('base_link', 'task_object')
-            (position, orientation) = Arms.tfListener.lookupTransform('base_link', 'task_object', t)
-            eePose = Pose()
-            eePose.position = Point(position[0], position[1], position[2])
-            eePose.orientation = Quaternion(orientation[0], orientation[1], orientation[2], orientation[3])
-            return eePose
-        except:
-            rospy.logwarn('Something wrong with transform request.')
-            return None
-
+        self.menuHandler.reApply(ActionStepMarker.IMServer)
+        ActionStepMarker.IMServer.applyChanges()
     
     def make6DofMarker(self, int_marker, fixed ):
-        
         control = InteractiveMarkerControl()
         control.orientation.w = 1
         control.orientation.x = 1
