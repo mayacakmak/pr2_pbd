@@ -245,7 +245,8 @@ class Interaction:
 
             self.fixTrajectoryReferenceFrames()
             armTrajectoryStep.armTrajectory = ArmTrajectory(self.armTrajectory.rArm[:], self.armTrajectory.lArm[:], 
-                                                            self.armTrajectory.timing[:], self.armTrajectory.rRefFrame, self.armTrajectory.lRefFrame)
+                                                            self.armTrajectory.timing[:], self.armTrajectory.rRefFrame, self.armTrajectory.lRefFrame,
+                                                            self.armTrajectory.rRefFrameName, self.armTrajectory.lRefFrameName)
             self.session.addStepToProgrammedAction(armTrajectoryStep, self.world.getReferenceFrameNameList())
             self.armTrajectory = None
             self.trajectoryStartTime = None
@@ -256,13 +257,10 @@ class Interaction:
     def fixTrajectoryReferenceFrames(self):
         rRefFrame, rRefFrameName = self.findDominantRefFrame(self.armTrajectory.rArm)
         lRefFrame, lRefFrameName = self.findDominantRefFrame(self.armTrajectory.lArm)
-        
-        startFrame = self.session.getLastStepOfProgrammedAction()
-        self.armTrajectory.rArm[0] = World.convertRefFrame(rRefFrame, rRefFrameName, self.armTrajectory.rArm[0], startFrame.armTarget.rArm)
-        self.armTrajectory.lArm[0] = World.convertRefFrame(lRefFrame, lRefFrameName, self.armTrajectory.lArm[0], startFrame.armTarget.lArm)
-        for i in range(1, len(self.armTrajectory.timing)):
-            self.armTrajectory.rArm[i] = World.convertRefFrame(rRefFrame, rRefFrameName, self.armTrajectory.rArm[i], self.armTrajectory.rArm[i-1])
-            self.armTrajectory.lArm[i] = World.convertRefFrame(lRefFrame, lRefFrameName, self.armTrajectory.lArm[i], self.armTrajectory.lArm[i-1])
+
+        for i in range(len(self.armTrajectory.timing)):
+            self.armTrajectory.rArm[i] = World.convertRefFrame(rRefFrame, rRefFrameName, self.armTrajectory.rArm[i])
+            self.armTrajectory.lArm[i] = World.convertRefFrame(lRefFrame, lRefFrameName, self.armTrajectory.lArm[i])
         
         self.armTrajectory.rRefFrame = rRefFrame
         self.armTrajectory.lRefFrame = lRefFrame
@@ -271,7 +269,7 @@ class Interaction:
         
     def findDominantRefFrame(self, armTraj):
         refFrameNames = self.world.getReferenceFrameNameList()
-        refFrameCounts = [0]*len(refFrames)
+        refFrameCounts = [0]*len(refFrameNames)
         for i in range(len(armTraj)):
             refFrameCounts[armTraj[i].refFrame] += 1
         dominantRefFrameIndex = refFrameCounts.index(max(refFrameCounts))

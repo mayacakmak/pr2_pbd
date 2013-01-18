@@ -101,7 +101,7 @@ class World:
                     bbox = self.bbService(objectList.graspable_objects[i].cluster)
                     clusterPose = bbox.pose.pose
                     if (clusterPose != None):
-                        print 'Adding undecognized object Cluster pose:', World.pose2string(clusterPose)
+                        print 'Adding unrecognized object Cluster pose:', World.pose2string(clusterPose)
                         print 'in reference frame', bbox.pose.header.frame_id
                         self.addNewObject(clusterPose, bbox.box_dims, False)
         else:
@@ -211,7 +211,7 @@ class World:
             return ArmState.OBJECT
         
     @staticmethod
-    def convertRefFrame(refFrame, refFrameName, armFrame, prevFrame=None):
+    def convertRefFrame(refFrame, refFrameName, armFrame):
         if (armFrame.refFrame != refFrame):
             if refFrame == ArmState.ROBOT_BASE:
                 if (armFrame.refFrame == ArmState.OBJECT):

@@ -60,6 +60,8 @@ class ProgrammedAction:
                 aStepCopy.armTrajectory.lArm.append(self.copyArmState(aStep.armTrajectory.lArm[j]))
             aStepCopy.armTrajectory.rRefFrame = int(aStep.armTrajectory.rRefFrame)
             aStepCopy.armTrajectory.lRefFrame = int(aStep.armTrajectory.lRefFrame)
+            aStepCopy.armTrajectory.rRefFrameName = str(aStep.armTrajectory.rRefFrameName)
+            aStepCopy.armTrajectory.lRefFrameName = str(aStep.armTrajectory.lRefFrameName)
         elif(aStepCopy.type == ActionStep.GRIPPER_TARGET):
             aStepCopy.gripperTarget = GripperTarget()
             aStepCopy.gripperTarget.rGripper = GripperState(aStep.gripperTarget.rGripper.state)
