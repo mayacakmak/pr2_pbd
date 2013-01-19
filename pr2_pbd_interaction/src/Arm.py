@@ -144,31 +144,6 @@ class Arm:
             rospy.logwarn('Something wrong with transform request.')
             return None
 
-
-#        if (len(self.ikjoints) > 0):
-#            # Get end effector state from forward kinematics for the current joint state
-#            self.fkrequest.robot_state.joint_state.name = self.ikjoints
-#            self.fkrequest.robot_state.joint_state.position = self.getJointPositions(self.ikjoints)
-#            try:
-#                response = self.fkServiceP(self.fkrequest)
-#            except rospy.ServiceException, e:
-#                sys.exit(1)
-#    
-#            # Transform the end effector pose to our coordinate frame
-#            p = PoseStamped()
-#            try:
-#                t = World.tfListener.getLatestCommonTime('/torso_lift_link', refName)
-#                p.header.stamp = t
-#                p.header.frame_id = '/torso_lift_link'
-#                p.pose = response.pose_stamped[0].pose
-#                transformedP = World.tfListener.transformPose('/'+refName, p)
-#                return transformedP.pose
-#            except:
-#                rospy.logwarn('Something wrong with transform.')
-#                return None
-#        else:
-#            return None
-
     def jointStatesCallback(self, msg):
     #Callback function that saves the joint positions when a joint_states message is received
         self.lock.acquire()

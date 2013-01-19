@@ -1,2 +1,0 @@
-GripperState rGripper
-GripperState lGripper

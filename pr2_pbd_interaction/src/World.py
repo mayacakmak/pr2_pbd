@@ -35,7 +35,14 @@ class WorldObject:
         self.index = index
         self.isRecognized = isRecognized
         self.dimensions = dimensions
+        self.menuHandler = MenuHandler()
         self.intMarker = None
+        self.isRemoved = False
+        
+        self.menuHandler.insert('Remove from scene', callback=self.remove)
+    
+    def remove(self, feedback):
+        self.isRemoved = True
     
     def getName(self):
         if (self.isRecognized):
@@ -143,18 +150,13 @@ class World:
                         break
 
             if (toRemove != None):
-                obj = self.objects.pop(toRemove)
-                self.IMServer.erase(obj.intMarker.name)
-                self.IMServer.applyChanges()
-                for i in range(len(self.objects)):
-                    if ((not self.objects[i].isRecognized) and self.objects[i].index>obj.index):
-                        self.objects[i].decreseIndex()
-                self.nUnrecognizedObjects -= 1
+                self.removeObject(toRemove)
 
             self.objects.append(WorldObject(pose, self.nRecognizedObjects, dimensions, isRecognized))
-            intMarker = self.getObjectMarker(len(self.objects)-1, mesh)
-            self.objects[-1].intMarker = intMarker
+            self.objects[-1].intMarker = self.getObjectMarker(len(self.objects)-1, mesh)
             self.IMServer.insert(self.objects[-1].intMarker, self.markerFeedback)
+            self.IMServer.applyChanges()
+            self.objects[-1].menuHandler.apply(self.IMServer, self.objects[-1].intMarker.name)
             self.IMServer.applyChanges()
             self.nRecognizedObjects += 1
             return True
@@ -169,8 +171,25 @@ class World:
             self.objects[-1].intMarker = self.getObjectMarker(len(self.objects)-1)
             self.IMServer.insert(self.objects[-1].intMarker, self.markerFeedback)
             self.IMServer.applyChanges()
+            self.objects[-1].menuHandler.apply(self.IMServer, self.objects[-1].intMarker.name)
+            self.IMServer.applyChanges()
             self.nUnrecognizedObjects += 1
             return True
+    
+    def removeObject(self, toRemove):
+        obj = self.objects.pop(toRemove)
+        self.IMServer.erase(obj.intMarker.name)
+        self.IMServer.applyChanges()
+        if (obj.isRecognized):
+            for i in range(len(self.objects)):
+                if ((self.objects[i].isRecognized) and self.objects[i].index>obj.index):
+                    self.objects[i].decreseIndex()
+            self.nRecognizedObjects -= 1
+        else:
+            for i in range(len(self.objects)):
+                if ((not self.objects[i].isRecognized) and self.objects[i].index>obj.index):
+                    self.objects[i].decreseIndex()
+            self.nUnrecognizedObjects -= 1
    
     def getObjectMarker(self, index, mesh=None):
         int_marker = InteractiveMarker()
@@ -186,11 +205,20 @@ class World:
 
         objectMarker = Marker(type=Marker.CUBE, id=index, lifetime=rospy.Duration(2),
                               scale=self.objects[index].dimensions, header=Header(frame_id='base_link'),
-                              color=ColorRGBA(0.2, 0.8, 0.0, 0.6), pose = self.objects[index].pose)     
+                              color=ColorRGBA(0.2, 0.8, 0.0, 0.6), pose = self.objects[index].pose) 
+
         if (mesh != None):
             objectMarker = self.getMeshMarker(objectMarker, mesh)
-            
         buttonControl.markers.append(objectMarker)
+
+        textPos = Point()
+        textPos.x = self.objects[index].pose.position.x
+        textPos.y = self.objects[index].pose.position.y
+        textPos.z = self.objects[index].pose.position.z + self.objects[index].dimensions.z/2 + 0.06
+        buttonControl.markers.append(Marker(type=Marker.TEXT_VIEW_FACING, id=index, scale=Vector3(0,0,0.03),
+                                            text=int_marker.name, color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
+                                            header=Header(frame_id='base_link'), pose=Pose(textPos, Quaternion(0,0,0,1))))
+        
         int_marker.controls.append(buttonControl)
         return int_marker
 
@@ -365,6 +393,12 @@ class World:
     def update(self):
         # Visualize the detected object
         if (self.hasObjects()):
+            toRemove = None
             for i in range(len(self.objects)):
                 self.publishTFPose(self.objects[i].pose, self.objects[i].getName(), 'base_link')
+                if (self.objects[i].isRemoved):
+                    toRemove = i
+            if toRemove != None:
+                self.removeObject(toRemove)
+                    
                                    

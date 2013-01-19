@@ -62,16 +62,13 @@ class ProgrammedAction:
             aStepCopy.armTrajectory.lRefFrame = int(aStep.armTrajectory.lRefFrame)
             aStepCopy.armTrajectory.rRefFrameName = str(aStep.armTrajectory.rRefFrameName)
             aStepCopy.armTrajectory.lRefFrameName = str(aStep.armTrajectory.lRefFrameName)
-        elif(aStepCopy.type == ActionStep.GRIPPER_TARGET):
-            aStepCopy.gripperTarget = GripperTarget()
-            aStepCopy.gripperTarget.rGripper = GripperState(aStep.gripperTarget.rGripper.state)
-            aStepCopy.gripperTarget.lGripper = GripperState(aStep.gripperTarget.lGripper.state)
+        aStepCopy.gripperAction = GripperAction(aStep.gripperAction.rGripper, aStep.gripperAction.lGripper)
         return aStepCopy
     
     def copyArmState(self, armState):
         armStateCopy = ArmState()
         armStateCopy.refFrame = int(armState.refFrame)
-        armStateCopy.joint_pose = array(armState.joint_pose)
+        armStateCopy.joint_pose = armState.joint_pose[:]
         armStateCopy.ee_pose = Pose(armState.ee_pose.position, armState.ee_pose.orientation)
         armStateCopy.refFrameName = str(armState.refFrameName)
         return armStateCopy
@@ -171,6 +168,10 @@ class ProgrammedAction:
     
     def save(self, dataDir):
         if (self.nFrames() > 0):
+            for i in range(len(self.seq.seq)):
+                aStep = self.seq.seq[i]
+                print i, '(R):', aStep.armTarget.rArm.joint_pose 
+                print i, '(L):', aStep.armTarget.lArm.joint_pose 
             demoBag = rosbag.Bag(dataDir + self.getFname(), 'w')
             demoBag.write('sequence', self.seq)
             demoBag.close()

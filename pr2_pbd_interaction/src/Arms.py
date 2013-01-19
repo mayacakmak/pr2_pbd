@@ -240,26 +240,24 @@ class Arms:
                                 break
                             
                         # If hand action do it for both sides
-                        elif (aStep.type == ActionStep.GRIPPER_TARGET):
+                        if (aStep.gripperAction.rGripper != self.arms[0].getGripperState()):
+                            rospy.loginfo('Will perform right gripper action ' + str(aStep.gripperAction.rGripper))
+                            self.arms[0].executeGripperAction(aStep.gripperAction.rGripper)
+                            Response.performGazeAction(GazeGoal.FOLLOW_RIGHT_EE)
+                        
+                        if (aStep.gripperAction.lGripper != self.arms[1].getGripperState()):
+                            rospy.loginfo('Will perform LEFT gripper action ' +  str(aStep.gripperAction.lGripper))
+                            self.arms[1].executeGripperAction(aStep.gripperAction.lGripper)
+                            Response.performGazeAction(GazeGoal.FOLLOW_LEFT_EE)
+    
+                        # Wait for grippers to be done
+                        while(self.arms[0].isGripperMoving() or self.arms[1].isGripperMoving()):
+                            time.sleep(0.01)
+                        rospy.loginfo('Hands done moving.')
                             
-                            rospy.loginfo('Will perform gripper action step.')
-                            
-                            if (aStep.gripperTarget.rGripper.state != self.arms[0].getGripperState()):
-                                self.arms[0].executeGripperAction(aStep.gripperTarget.rGripper.state)
-                                Response.performGazeAction(GazeGoal.FOLLOW_RIGHT_EE)
-                            
-                            if (aStep.gripperTarget.lGripper.state != self.arms[1].getGripperState()):
-                                self.arms[1].executeGripperAction(aStep.gripperTarget.rGripper.state)
-                                Response.performGazeAction(GazeGoal.FOLLOW_LEFT_EE)
-        
-                            # Wait for grippers to be done
-                            while(self.arms[0].isGripperMoving() or self.arms[1].isGripperMoving()):
-                                time.sleep(0.01)
-                            rospy.loginfo('Hands done moving.')
-                            
-                            # Verify that both grippers succeeded
-                            if ((not self.arms[0].isGripperAtGoal()) or (not self.arms[1].isGripperAtGoal())):
-                                rospy.logwarn('Hand(s) did not fully close or open!')
+                        # Verify that both grippers succeeded
+                        if ((not self.arms[0].isGripperAtGoal()) or (not self.arms[1].isGripperAtGoal())):
+                            rospy.logwarn('Hand(s) did not fully close or open!')
                     
                         # Check that postconditions are met
                         if (self.isConditionMet(aStep.preCond)):

@@ -4,6 +4,7 @@ roslib.load_manifest('rospy')
 roslib.load_manifest('geometry_msgs')
 roslib.load_manifest('interactive_markers')
 roslib.load_manifest('pr2_pbd_interaction')
+roslib.load_manifest('tf')
 
 # Generic libraries
 import time
@@ -18,6 +19,7 @@ from geometry_msgs.msg import *
 # ROS Libraries
 import rospy
 import rosbag
+import tf
 from pr2_pbd_interaction.msg import *
 from geometry_msgs.msg import *
 from std_msgs.msg import Header,ColorRGBA
@@ -43,7 +45,7 @@ class ActionStepMarker:
         self.name = 'step' + str(id) + 'arm' + str(self.armIndex)
         self.isPoseRequested = False
         self.poseControlVisible = False
-        
+        self.offset = 0.09
         self.updateMenu()
 
     def updateReferenceFrameList(self, refFrameList):
@@ -113,46 +115,52 @@ class ActionStepMarker:
     def setNewPose(self, newPose):
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                self.aStep.armTarget.rArm.ee_pose = newPose
+                self.aStep.armTarget.rArm.ee_pose = self.offsetPose(newPose, -1)
             else:
-                self.aStep.armTarget.lArm.ee_pose = newPose
+                self.aStep.armTarget.lArm.ee_pose = self.offsetPose(newPose, -1)
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             rospy.logwarn('Modification of whole trajectory segments is not implemented.')
 
-    def getFrameAbsolutePosition(self, armState):
+    def getFrameAbsolutePose(self, armState):
         if (armState.refFrame == ArmState.OBJECT):
             armStateCopy = ArmState(armState.refFrame, 
                                     Pose(armState.ee_pose.position, armState.ee_pose.orientation), 
                                     armState.joint_pose[:], armState.refFrameName)
             World.convertRefFrame(ArmState.ROBOT_BASE, 'base_link', armStateCopy)
-            return armStateCopy.ee_pose.position
+            return armStateCopy.ee_pose
         else:
-            return armState.ee_pose.position
+            return armState.ee_pose
             
     def getAbsolutePosition(self, isStart=True):
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                return self.getFrameAbsolutePosition(self.aStep.armTarget.rArm)
+                return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTarget.rArm)).position
             else:
-                return self.getFrameAbsolutePosition(self.aStep.armTarget.lArm)
+                return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTarget.lArm)).position
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             if self.armIndex == 0:
                 if isStart:
-                    return self.getFrameAbsolutePosition(self.aStep.armTrajectory.rArm[len(self.aStep.armTrajectory.rArm)-1])
+                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.rArm[len(self.aStep.armTrajectory.rArm)-1])).position
                 else:
-                    return self.getFrameAbsolutePosition(self.aStep.armTrajectory.rArm[0])
+                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.rArm[0])).position
             else:
                 if isStart:
-                    return self.getFrameAbsolutePosition(self.aStep.armTrajectory.lArm[len(self.aStep.armTrajectory.rArm)-1])
+                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.lArm[len(self.aStep.armTrajectory.rArm)-1])).position
                 else:
-                    return self.getFrameAbsolutePosition(self.aStep.armTrajectory.lArm[0])
+                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.lArm[0])).position
                
     def getPose(self):
         t = self.getTarget()
         if (t != None):
-            return t.ee_pose
+            return self.offsetPose(t.ee_pose)
+            
+    def offsetPose(self, pose, const=1):
+            M = self.getMartixFromPose(pose)
+            T = tf.transformations.translation_matrix([const*self.offset, 0, 0])
+            Mhand = tf.transformations.concatenate_matrices(M, T)
+            return self.getPoseFromMartix(Mhand)
                         
-    def getTarget(self):
+    def getTarget(self, trajectoryIndex=None):
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
                 return self.aStep.armTarget.rArm
@@ -160,9 +168,13 @@ class ActionStepMarker:
                 return self.aStep.armTarget.lArm
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             if self.armIndex == 0:
-                return self.aStep.armTrajectory.rArm[int(len(self.aStep.armTrajectory.rArm)/2)]
+                if trajectoryIndex == None:
+                    trajectoryIndex = int(len(self.aStep.armTrajectory.rArm)/2)
+                return self.aStep.armTrajectory.rArm[trajectoryIndex]
             else:
-                return self.aStep.armTrajectory.lArm[int(len(self.aStep.armTrajectory.lArm)/2)]
+                if trajectoryIndex == None:
+                    trajectoryIndex = int(len(self.aStep.armTrajectory.lArm)/2)
+                return self.aStep.armTrajectory.lArm[trajectoryIndex]
 
     def getTrajPose(self, index):
         if (self.aStep.type == ActionStep.ARM_TRAJECTORY):
@@ -181,8 +193,9 @@ class ActionStepMarker:
         pose = self.getPose()
         
         if (self.aStep.type == ActionStep.ARM_TARGET):
-            mainMarker = self.getSphereMarker(self.id, pose, frame_id, 0.08)
-            menuControl.markers.append(mainMarker)
+            #mainMarker = self.getSphereMarker(self.id, pose, frame_id, 0.08)
+            #menuControl.markers.append(mainMarker)
+            menuControl = self.makeGripperMarker(menuControl)
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             pointList = []
             for j in range(len(self.aStep.armTrajectory.timing)):
@@ -215,7 +228,7 @@ class ActionStepMarker:
         textPos.z = pose.position.z + 0.06
         menuControl.markers.append(Marker(type=Marker.TEXT_VIEW_FACING, id=self.id, scale=Vector3(0,0,0.03),
                                             text='Step'+str(self.step), color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
-                                            header=Header(frame_id='base_link'), pose=Pose(textPos, Quaternion(0,0,0,1))))
+                                            header=Header(frame_id=frame_id), pose=Pose(textPos, Quaternion(0,0,0,1))))
 
         self.int_marker.controls.append(menuControl)
         ActionStepMarker.IMServer.insert(self.int_marker, self.markerFeedback)
@@ -352,3 +365,72 @@ class ActionStepMarker:
             control.orientation_mode = InteractiveMarkerControl.FIXED
         int_marker.controls.append(control)
 
+    def getPoseFromMartix(self, M):
+        pos = M[:3, 3].copy()
+        rot = tf.transformations.quaternion_from_matrix(M)
+        return Pose(Point(pos[0], pos[1], pos[2]), Quaternion(rot[0], rot[1], rot[2], rot[3]))
+
+    def getMartixFromPose(self, p):
+        T = tf.transformations.quaternion_matrix([p.orientation.x, p.orientation.y, p.orientation.z, p.orientation.w])
+        T[:3, 3] = [p.position.x, p.position.y, p.position.z]
+        return T
+        
+    def getMeshMarker(self):
+        mesh = Marker()
+        mesh.mesh_use_embedded_materials = False;
+        mesh.type = Marker.MESH_RESOURCE;
+        mesh.scale.x = 1.0;
+        mesh.scale.y = 1.0;
+        mesh.scale.z = 1.0;
+        mesh.color = ColorRGBA(1.0, 0.5, 0.0, 0.6) #ColorRGBA(0.8, 0.0, 0.4, 0.8);
+        return mesh
+
+    def makeGripperMarker(self, control ):
+        angle = 0
+        T1 = tf.transformations.euler_matrix(0, 0, angle)
+        T1[:3, 3] = [0.07691-self.offset, 0.01, 0]
+        T2 = tf.transformations.euler_matrix(0, 0, -angle) 
+        T2[:3, 3] = [0.09137-self.offset, 0.00495, 0]
+        T_proximal = T1;
+        T_distal = tf.transformations.concatenate_matrices(T1, T2)
+        
+        mesh1 = self.getMeshMarker()
+        mesh1.mesh_resource = "package://pr2_description/meshes/gripper_v0/gripper_palm.dae";
+        mesh1.pose.position.x = -self.offset
+        mesh1.pose.orientation.w = 1;
+        
+        mesh2 = self.getMeshMarker()
+        mesh2.mesh_resource = "package://pr2_description/meshes/gripper_v0/l_finger.dae";
+        mesh2.pose = self.getPoseFromMartix(T_proximal)
+        
+        mesh3 = self.getMeshMarker()
+        mesh3.mesh_resource = "package://pr2_description/meshes/gripper_v0/l_finger_tip.dae";
+        mesh3.pose = self.getPoseFromMartix(T_distal);
+        
+        q = tf.transformations.quaternion_multiply(tf.transformations.quaternion_from_euler(numpy.pi, 0, 0),tf.transformations.quaternion_from_euler(0, 0, angle))
+        T1 = tf.transformations.quaternion_matrix(q)
+        T1[:3, 3] = [0.07691-self.offset, -0.01, 0]
+        T2 = tf.transformations.euler_matrix(0, 0, -angle) 
+        T2[:3, 3] = [0.09137-self.offset, 0.00495, 0]
+        T_proximal = T1;
+        T_distal = tf.transformations.concatenate_matrices(T1, T2)
+        
+        mesh4 = self.getMeshMarker()
+        mesh4.mesh_resource = "package://pr2_description/meshes/gripper_v0/l_finger.dae";
+        mesh4.pose = self.getPoseFromMartix(T_proximal)
+        mesh5 = self.getMeshMarker()
+        mesh5.mesh_resource = "package://pr2_description/meshes/gripper_v0/l_finger_tip.dae";
+        mesh5.pose = self.getPoseFromMartix(T_distal);
+
+        control.markers.append( mesh1 );
+        control.markers.append( mesh2 );
+        control.markers.append( mesh3 );
+        control.markers.append( mesh4 );
+        control.markers.append( mesh5 );
+        
+        return control
+
+          
+          
+          
+          

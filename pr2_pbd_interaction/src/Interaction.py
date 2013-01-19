@@ -209,13 +209,17 @@ class Interaction:
             return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
         
     def saveGripperStep(self, armIndex, gripperState):
-        step = ActionStep()
-        step.type = ActionStep.GRIPPER_TARGET
-        states = [GripperState(self.arms.getGripperState(0)), GripperState(self.arms.getGripperState(1))]
-        states[armIndex].state = gripperState
-        step.gripperTarget = GripperTarget(states[0], states[1])
-        self.session.addStepToProgrammedAction(step, self.world.getReferenceFrameNameList())
-        
+        if (self.session.nProgrammedActions() > 0):
+            if (self.isProgramming):
+                states = self.getArmStates()
+                step = ActionStep()
+                step.type = ActionStep.ARM_TARGET
+                step.armTarget = ArmTarget(states[0], states[1], 0.2, 0.2)
+                actions = [self.arms.getGripperState(0), self.arms.getGripperState(1)]
+                actions[armIndex] = gripperState
+                step.gripperAction = GripperAction(actions[0], actions[1])
+                self.session.addStepToProgrammedAction(step, self.world.getReferenceFrameNameList())
+
     def startRecordingMotion(self, param=None):
         if (self.session.nProgrammedActions() > 0):
             if (self.isProgramming):
@@ -247,6 +251,7 @@ class Interaction:
             armTrajectoryStep.armTrajectory = ArmTrajectory(self.armTrajectory.rArm[:], self.armTrajectory.lArm[:], 
                                                             self.armTrajectory.timing[:], self.armTrajectory.rRefFrame, self.armTrajectory.lRefFrame,
                                                             self.armTrajectory.rRefFrameName, self.armTrajectory.lRefFrameName)
+            armTrajectoryStep.gripperAction = GripperAction(self.arms.getGripperState(0), self.arms.getGripperState(1))
             self.session.addStepToProgrammedAction(armTrajectoryStep, self.world.getReferenceFrameNameList())
             self.armTrajectory = None
             self.trajectoryStartTime = None
@@ -290,6 +295,7 @@ class Interaction:
                 step = ActionStep()
                 step.type = ActionStep.ARM_TARGET
                 step.armTarget = ArmTarget(states[0], states[1], 0.2, 0.2)
+                step.gripperAction = GripperAction(self.arms.getGripperState(0), self.arms.getGripperState(1))
                 self.session.addStepToProgrammedAction(step, self.world.getReferenceFrameNameList())
                                 
                 return [Speech.STEP_RECORDED, GazeGoal.LOOK_FORWARD]
