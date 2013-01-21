@@ -44,10 +44,12 @@ class ActionStepMarker:
         self.isPoseRequested = False
         self.poseControlVisible = False
         self.offset = 0.09
+        armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
         self.updateMenu()
 
     def updateReferenceFrameList(self, refFrameList):
         self.refNames = refFrameList
+        armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
         self.updateMenu()
             
     def destroy(self):
@@ -122,6 +124,8 @@ class ActionStepMarker:
                 self.aStep.armTarget.rArm.ee_pose = self.offsetPose(newPose, -1)
             else:
                 self.aStep.armTarget.lArm.ee_pose = self.offsetPose(newPose, -1)
+            armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
+            self.updateVisualization()
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             rospy.logwarn('Modification of whole trajectory segments is not implemented.')
 
@@ -386,7 +390,10 @@ class ActionStepMarker:
         mesh.scale.x = 1.0;
         mesh.scale.y = 1.0;
         mesh.scale.z = 1.0;
-        mesh.color = ColorRGBA(1.0, 0.5, 0.0, 0.6) #ColorRGBA(0.8, 0.0, 0.4, 0.8);
+        if self.isReachable:
+            mesh.color = ColorRGBA(1.0, 0.5, 0.0, 0.6) #ColorRGBA(0.8, 0.0, 0.4, 0.8);
+        else:
+            mesh.color = ColorRGBA(0.5, 0.5, 0.5, 0.6)
         return mesh
 
     def makeGripperMarker(self, control, isHandOpen=False):

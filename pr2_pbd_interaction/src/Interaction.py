@@ -64,7 +64,6 @@ class Interaction:
                           Command.SAVE_ACTION: Response(self.saveProgrammedAction, None),
                           Command.EDIT_ACTION: Response(self.editProgrammedAction, None),
                           Command.SAVE_POSE: Response(self.saveArmStep, None),
-
                           Command.START_RECORDING_MOTION: Response(self.startRecordingMotion, None),
                           Command.STOP_RECORDING_MOTION: Response(self.stopRecordingMotion, None)
                           }
@@ -122,6 +121,7 @@ class Interaction:
             return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
     
     def saveProgrammedAction(self, param=None):
+        self.session.saveProgrammedAction()
         self.isProgramming = False
         return [Speech.ACTION_SAVED + ' ' + str(self.session.currentProgrammedActionIndex), GazeGoal.NOD]
 
@@ -424,9 +424,6 @@ class Interaction:
         else:
             return [Speech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]
 
-    def saveExperimentState(self):
-        self.session.saveExperimentState()
-        
     def emptyResponse(self, responses):
         return responses;
     

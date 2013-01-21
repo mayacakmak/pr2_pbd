@@ -33,21 +33,22 @@ class ExecutionStatus:
 
 class Arms:
     
+    arms = []
     def __init__(self):
         
         armRight = Arm(ArmSide.RIGHT)
         armLeft = Arm(ArmSide.LEFT)
-        self.arms = [armRight, armLeft]
+        Arms.arms = [armRight, armLeft]
         self.attendedArm = -1
         self.pAction = None
         self.preempt = False
         
         rospy.loginfo('Arms have been initialized.')
 
-        self.arms[0].setMode(ArmMode.HOLD)
-        self.arms[1].setMode(ArmMode.HOLD)
-        self.arms[0].updateGripperState()
-        self.arms[1].updateGripperState()
+        Arms.arms[0].setMode(ArmMode.HOLD)
+        Arms.arms[1].setMode(ArmMode.HOLD)
+        Arms.arms[0].updateGripperState()
+        Arms.arms[1].updateGripperState()
         self.closeGripper(ArmSide.RIGHT)
         self.closeGripper(ArmSide.LEFT)
         self.executionStatus = ExecutionStatus.NOT_EXECUTING
@@ -57,7 +58,7 @@ class Arms:
             # Already in that mode
             return False
         else:
-            self.arms[armIndex].setMode(mode)
+            Arms.arms[armIndex].setMode(mode)
             return True
 
     def setGripperState(self, armIndex, gripperState):
@@ -72,22 +73,22 @@ class Arms:
         return True
 
     def getDemoJointState(self, armIndex):
-        return self.arms[armIndex].getJointPositions()            
+        return Arms.arms[armIndex].getJointPositions()            
     
     def openGripper(self, armIndex, wait=False):
-        self.arms[armIndex].openGripper(wait=wait)
+        Arms.arms[armIndex].openGripper(wait=wait)
         
     def closeGripper(self, armIndex, wait=False):
-        self.arms[armIndex].closeGripper(wait=wait)
+        Arms.arms[armIndex].closeGripper(wait=wait)
         
     def getGripperState(self, armIndex):
-        return self.arms[armIndex].getGripperState()
+        return Arms.arms[armIndex].getGripperState()
 
     def getEndEffectorState(self, armIndex):
-        return self.arms[armIndex].getEndEffectorState()
+        return Arms.arms[armIndex].getEndEffectorState()
     
     def getMode(self, armIndex):
-        return self.arms[armIndex].armMode
+        return Arms.arms[armIndex].armMode
     
     def isExecuting(self):
         return (self.executionStatus == ExecutionStatus.EXECUTING)
@@ -109,25 +110,26 @@ class Arms:
             # If arm target action
             if (self.pAction.seq.seq[i].type == ActionStep.ARM_TARGET):
                 # Find frames that are relative and convert to absolute
-                self.pAction.seq.seq[i].armTarget.rArm, foundSolutionR = self.solveIK4ArmState(0, self.pAction.seq.seq[i].armTarget.rArm)
-                self.pAction.seq.seq[i].armTarget.lArm, foundSolutionL = self.solveIK4ArmState(1, self.pAction.seq.seq[i].armTarget.lArm)
+                self.pAction.seq.seq[i].armTarget.rArm, foundSolutionR = Arms.solveIK4ArmState(0, self.pAction.seq.seq[i].armTarget.rArm)
+                self.pAction.seq.seq[i].armTarget.lArm, foundSolutionL = Arms.solveIK4ArmState(1, self.pAction.seq.seq[i].armTarget.lArm)
                 if (not foundSolutionR) or (not foundSolutionL):
                     return False
             
             if (self.pAction.seq.seq[i].type == ActionStep.ARM_TRAJECTORY):
                 for j in range(len(self.pAction.seq.seq[i].armTrajectory.timing)):
-                    self.pAction.seq.seq[i].armTrajectory.rArm[j], foundSolutionR = self.solveIK4ArmState(0, self.pAction.seq.seq[i].armTrajectory.rArm[j])
-                    self.pAction.seq.seq[i].armTrajectory.lArm[j], foundSolutionL = self.solveIK4ArmState(1, self.pAction.seq.seq[i].armTrajectory.lArm[j])
+                    self.pAction.seq.seq[i].armTrajectory.rArm[j], foundSolutionR = Arms.solveIK4ArmState(0, self.pAction.seq.seq[i].armTrajectory.rArm[j])
+                    self.pAction.seq.seq[i].armTrajectory.lArm[j], foundSolutionL = Arms.solveIK4ArmState(1, self.pAction.seq.seq[i].armTrajectory.lArm[j])
                     if (not foundSolutionR) or (not foundSolutionL):
                         return False
         return True
 
-    def solveIK4ArmState(self, armIndex, armState):
+    @staticmethod
+    def solveIK4ArmState(armIndex, armState):
         # We need to find IK only if the frame is relative to an object
         if (armState.refFrame == ArmState.OBJECT):
             solvedArmState = ArmState()
             targetPose = World.transform(armState.ee_pose, armState.refFrameName, '/base_link')
-            targetJoints = self.arms[armIndex].getIKForEEPose(targetPose, armState.joint_pose)
+            targetJoints = Arms.arms[armIndex].getIKForEEPose(targetPose, armState.joint_pose)
             if (targetJoints == None):
                 rospy.logerr('Could not find IK for R arm relative pose of action step')
                 return solvedArmState, False
@@ -137,7 +139,7 @@ class Arms:
                 solvedArmState.joint_pose = targetJoints
                 return solvedArmState, True
         elif (armState.refFrame == ArmState.ROBOT_BASE):
-            targetJoints = self.arms[armIndex].getIKForEEPose(armState.ee_pose, armState.joint_pose)
+            targetJoints = Arms.arms[armIndex].getIKForEEPose(armState.ee_pose, armState.joint_pose)
             if (targetJoints == None):
                 rospy.logerr('Could not find IK for R arm relative pose of action step')
                 return armState, False
@@ -162,7 +164,7 @@ class Arms:
     def moveToArmState(self, armState, armIndex):
         rospy.loginfo('Started thread to move arm ' + str(armIndex))
         self.executionStatus = ExecutionStatus.EXECUTING
-        solvedArmState, foundSolution = self.solveIK4ArmState(armIndex, armState)
+        solvedArmState, foundSolution = Arms.solveIK4ArmState(armIndex, armState)
         if (foundSolution):
             if (armIndex == 0):
                 isExecutionSuccessful = self.moveToJointTarget(solvedArmState, None)
@@ -224,39 +226,39 @@ class Arms:
                                 break
 
                             #  Then execute the trajectory
-                            self.arms[0].executeJointTrajectory(aStep.armTrajectory.rArm, aStep.armTrajectory.timing)
-                            self.arms[1].executeJointTrajectory(aStep.armTrajectory.lArm, aStep.armTrajectory.timing)
+                            Arms.arms[0].executeJointTrajectory(aStep.armTrajectory.rArm, aStep.armTrajectory.timing)
+                            Arms.arms[1].executeJointTrajectory(aStep.armTrajectory.lArm, aStep.armTrajectory.timing)
             
                             # Wait until both arms complete the trajectory
-                            while((self.arms[0].isExecutingTrajectory() or self.arms[1].isExecutingTrajectory()) 
+                            while((Arms.arms[0].isExecutingTrajectory() or Arms.arms[1].isExecutingTrajectory()) 
                                   and not self.preempt):
                                 time.sleep(0.01)
                             rospy.loginfo('Trajectory complete.')
                 
                             # Verify that both arms succeeded
-                            if ((not self.arms[0].isExecutionSuccessful()) or (not self.arms[1].isExecutionSuccessful())):
+                            if ((not Arms.arms[0].isExecutionSuccessful()) or (not Arms.arms[1].isExecutionSuccessful())):
                                 rospy.logwarn('Aborting execution because arms failed to follow trajectory.')
                                 self.executionStatus = ExecutionStatus.OBSTRUCTED
                                 break
                             
                         # If hand action do it for both sides
-                        if (aStep.gripperAction.rGripper != self.arms[0].getGripperState()):
+                        if (aStep.gripperAction.rGripper != Arms.arms[0].getGripperState()):
                             rospy.loginfo('Will perform right gripper action ' + str(aStep.gripperAction.rGripper))
-                            self.arms[0].executeGripperAction(aStep.gripperAction.rGripper)
+                            Arms.arms[0].executeGripperAction(aStep.gripperAction.rGripper)
                             Response.performGazeAction(GazeGoal.FOLLOW_RIGHT_EE)
                         
-                        if (aStep.gripperAction.lGripper != self.arms[1].getGripperState()):
+                        if (aStep.gripperAction.lGripper != Arms.arms[1].getGripperState()):
                             rospy.loginfo('Will perform LEFT gripper action ' +  str(aStep.gripperAction.lGripper))
-                            self.arms[1].executeGripperAction(aStep.gripperAction.lGripper)
+                            Arms.arms[1].executeGripperAction(aStep.gripperAction.lGripper)
                             Response.performGazeAction(GazeGoal.FOLLOW_LEFT_EE)
     
                         # Wait for grippers to be done
-                        while(self.arms[0].isGripperMoving() or self.arms[1].isGripperMoving()):
+                        while(Arms.arms[0].isGripperMoving() or Arms.arms[1].isGripperMoving()):
                             time.sleep(0.01)
                         rospy.loginfo('Hands done moving.')
                             
                         # Verify that both grippers succeeded
-                        if ((not self.arms[0].isGripperAtGoal()) or (not self.arms[1].isGripperAtGoal())):
+                        if ((not Arms.arms[0].isGripperAtGoal()) or (not Arms.arms[1].isGripperAtGoal())):
                             rospy.logwarn('Hand(s) did not fully close or open!')
                     
                         # Check that postconditions are met
@@ -278,10 +280,10 @@ class Arms:
                     
                     rospy.loginfo('Step ' + str(i) + ' of action is complete.')
 
-            self.arms[0].updateGripperState()
-            self.arms[1].updateGripperState()
-            self.arms[0].resetMovementHistory()
-            self.arms[1].resetMovementHistory()
+            Arms.arms[0].updateGripperState()
+            Arms.arms[1].updateGripperState()
+            Arms.arms[0].resetMovementHistory()
+            Arms.arms[1].resetMovementHistory()
 
             if self.executionStatus == ExecutionStatus.EXECUTING:
                 self.executionStatus = ExecutionStatus.SUCCEEDED
@@ -298,13 +300,13 @@ class Arms:
             rospy.logwarn('Right arm will not move.')
         #  Determine time to target
         else:
-            timeToPoseR = Arms.getDurationBetweenPoses(self.arms[0].getEndEffectorState(), rArm.ee_pose)
+            timeToPoseR = Arms.getDurationBetweenPoses(Arms.arms[0].getEndEffectorState(), rArm.ee_pose)
             rospy.loginfo('Duration until next frame for R arm ' + str(timeToPoseR))
         
         if (lArm == None):
             rospy.logwarn('Left arm will not move.')
         else:
-            timeToPoseL = Arms.getDurationBetweenPoses(self.arms[1].getEndEffectorState(), lArm.ee_pose)
+            timeToPoseL = Arms.getDurationBetweenPoses(Arms.arms[1].getEndEffectorState(), lArm.ee_pose)
             rospy.loginfo('Duration until next frame for L arm ' + str(timeToPoseL))
 
         #  If both arms are moving adjust velocities and look at the most moving arm
@@ -324,16 +326,16 @@ class Arms:
 
         #  Move arms to target
         if (isMovingR):
-            self.arms[0].gotoJointKeyframe(rArm.joint_pose, timeToPoseR)
+            Arms.arms[0].gotoJointKeyframe(rArm.joint_pose, timeToPoseR)
         if (isMovingL):
-            self.arms[1].gotoJointKeyframe(lArm.joint_pose, timeToPoseL)        
+            Arms.arms[1].gotoJointKeyframe(lArm.joint_pose, timeToPoseL)        
 
         # Wait until both arms complete the trajectory
-        while((self.arms[0].isExecutingTrajectory() or self.arms[1].isExecutingTrajectory()) and not self.preempt):
+        while((Arms.arms[0].isExecutingTrajectory() or Arms.arms[1].isExecutingTrajectory()) and not self.preempt):
             time.sleep(0.01)
         rospy.loginfo('Arms reached target.')
         # Verify that both arms succeeded
-        if ((not self.arms[0].isExecutionSuccessful() and isMovingR) or (not self.arms[1].isExecutionSuccessful() and isMovingL)):
+        if ((not Arms.arms[0].isExecutionSuccessful() and isMovingR) or (not Arms.arms[1].isExecutionSuccessful() and isMovingL)):
             rospy.logwarn('Aborting execution because arms failed to move to keyframe.')
             return False
         else:
@@ -341,9 +343,9 @@ class Arms:
 
     def getMostMovingArm(self):
         threshold = 0.02
-        if (self.arms[0].getMovement() < threshold and self.arms[1].getMovement() < threshold):
+        if (Arms.arms[0].getMovement() < threshold and Arms.arms[1].getMovement() < threshold):
             return -1
-        elif (self.arms[0].getMovement() < threshold):
+        elif (Arms.arms[0].getMovement() < threshold):
             return 1
         else:
             return 0
@@ -377,8 +379,8 @@ class Arms:
 
     def update(self):
         
-        self.arms[0].update(self.isExecuting())
-        self.arms[1].update(self.isExecuting())
+        Arms.arms[0].update(self.isExecuting())
+        Arms.arms[1].update(self.isExecuting())
         
         movingArm = self.getMostMovingArm()
         if (movingArm != self.attendedArm and not self.isExecuting()):
