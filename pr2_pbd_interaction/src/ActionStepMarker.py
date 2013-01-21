@@ -7,9 +7,7 @@ roslib.load_manifest('pr2_pbd_interaction')
 roslib.load_manifest('tf')
 
 # Generic libraries
-import time
-import sys
-import signal
+import time, sys, signal
 import numpy
 from numpy import *
 from numpy.linalg import norm
@@ -52,21 +50,21 @@ class ActionStepMarker:
         self.refNames = refFrameList
         self.updateMenu()
             
+    def destroy(self):
+        ActionStepMarker.IMServer.erase(self.name)
+        ActionStepMarker.IMServer.applyChanges()
+
     def updateMenu(self):
         self.menuHandler = MenuHandler()
         frameEntry = self.menuHandler.insert('Reference frame')
         self.subEntries = [None]*len(self.refNames)
         for i in range(len(self.refNames)):
             self.subEntries[i] = self.menuHandler.insert(self.refNames[i], parent=frameEntry, callback=self.changeReferenceFrame)
-
         self.moveMenuEntry = self.menuHandler.insert('Move here', callback=self.moveToPose)
-
         for i in range(len(self.refNames)):
             self.menuHandler.setCheckState(self.subEntries[i], MenuHandler.UNCHECKED)
         self.menuHandler.setCheckState(self.getMenuIDFromName(self.getReferenceFrameName()), MenuHandler.CHECKED)
-
         self.updateVisualizationCore()
-
         self.menuHandler.apply(ActionStepMarker.IMServer, self.name)
         ActionStepMarker.IMServer.applyChanges()
 
@@ -93,7 +91,7 @@ class ActionStepMarker:
             rospy.logerr('Unhandled marker type: ' + str(self.aStep.type))
         
     def setReferenceFrame(self, newRefName):
-        newRef = World.getRefFromName(newRefName) 
+        newRef = World.getRefFromName(newRefName)
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
                 self.aStep.armTarget.rArm = World.convertRefFrame(newRef, newRefName, self.aStep.armTarget.rArm)

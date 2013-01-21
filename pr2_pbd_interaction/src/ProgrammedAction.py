@@ -6,9 +6,7 @@ roslib.load_manifest('pr2_pbd_interaction')
 roslib.load_manifest('visualization_msgs')
 
 # Generic libraries
-import time
-import sys
-import signal
+import time, sys, signal, threading
 import numpy
 from numpy import *
 from numpy.linalg import norm
@@ -33,6 +31,7 @@ class ProgrammedAction:
         self.rLinks = dict()
         self.lLinks = dict()
         self.markerOutput = rospy.Publisher('visualization_marker_array', MarkerArray)
+        self.lock = threading.Lock()
     
     def copy(self):
         pAction = ProgrammedAction(self.skillIndex)
@@ -100,12 +99,10 @@ class ProgrammedAction:
 
     def updateObjects(self, objectList):
         self.updateInteractiveMarkers()
-
         for i in range(len(self.rMarkers)):
             self.rMarkers[i].updateReferenceFrameList(objectList)
         for i in range(len(self.lMarkers)):
             self.lMarkers[i].updateReferenceFrameList(objectList)
-     
         
     def updateInteractiveMarkers(self):
         for i in range(len(self.rMarkers)):
@@ -139,6 +136,7 @@ class ProgrammedAction:
             self.lLinks[i] = self.getLink(1, i)
             
     def updateVisualization(self):
+        self.lock.acquire()
         mArray = MarkerArray()
         for i in self.rLinks.keys():
             mArray.markers.append(self.rLinks[i])
@@ -146,6 +144,7 @@ class ProgrammedAction:
             mArray.markers.append(self.lLinks[i])
         self.markerOutput.publish(mArray)
         self.updateLinks()
+        self.lock.release()
         
     def clear(self):
         #TODO: get backups before clear
@@ -181,12 +180,46 @@ class ProgrammedAction:
     def load(self, dataDir):
         fname = dataDir + self.getFname()
         if (os.path.exists(fname)):
-            demoBag = rosbag.Bag(fname, 'r')
-            self.seq = demoBag.read('sequence')
+            demoBag = rosbag.Bag(fname)
+            for topic, msg, t in demoBag.read_messages(topics=['sequence']):
+                print 'Reading demo bag file at time ', t.to_sec()
+                self.seq = msg
+            print self.seq
             demoBag.close()
         else:
             rospy.logwarn('File does not exist, cannot load demonstration: '+ fname)
     
+    def resetVisualization(self):
+        self.lock.acquire()
+        for i in range(len(self.rMarkers)):
+            self.rMarkers[i].destroy()
+            self.lMarkers[i].destroy()
+        for i in self.rLinks.keys():
+            self.rLinks[i].action = Marker.DELETE
+            self.lLinks[i].action = Marker.DELETE
+        mArray = MarkerArray()
+        for i in self.rLinks.keys():
+            mArray.markers.append(self.rLinks[i])
+        for i in self.lLinks.keys():
+            mArray.markers.append(self.lLinks[i])
+        self.markerOutput.publish(mArray)
+        self.rMarkers = []
+        self.lMarkers = []
+        self.rLinks = dict()
+        self.lLinks = dict()
+        self.lock.release()
+        
+    def initializeVisualization(self, objectList):
+        for i in range(len(self.seq.seq)):
+            step = self.seq.seq[i]
+            if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
+                self.rMarkers.append(ActionStepMarker(i+1, 0, step, objectList))
+                self.lMarkers.append(ActionStepMarker(i+1, 1, step, objectList))
+                if (i > 0):
+                    self.rLinks[i] = self.getLink(0, i)
+                    self.lLinks[i] = self.getLink(1, i)
+        self.updateInteractiveMarkers()
+
     def getLastStep(self):
         return self.seq.seq[len(self.seq.seq)-1]
     

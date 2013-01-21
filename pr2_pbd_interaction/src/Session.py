@@ -1,13 +1,12 @@
 import roslib
 from ProgrammedAction import *
-import os, sys
+import os, sys, yaml
 
 class Session:
     "This class holds and maintains experimental data"
-    def __init__(self, isDebug=False):
+    def __init__(self, objectList, isDebug=False):
         self.reloadState = False
         if (isDebug):
-            self.reloadState = False
             self.expNum = 0
             self.dataDir = self.getDataDir(self.expNum)
             if (not os.path.exists(self.dataDir)):
@@ -21,11 +20,8 @@ class Session:
         self.backupProgrammedAction = None
 
         if (self.reloadState):
-            self.loadStateForSession()
+            self.loadStateForSession(objectList)
             rospy.loginfo("Session state loaded.")
-        
-    def isReloadState(self):
-        return self.reloadState
         
     def getParticipantID(self):
         self.expNum = None
@@ -53,7 +49,7 @@ class Session:
     def getDataDir(self, expNum):
         return rospy.get_param('/pr2_pbd_interaction/dataRoot') + '/data/experiment' + str(expNum) + '/'
     
-    def saveSessionState(self):
+    def saveSessionState(self, saveActions=True):
         expState = dict()
         expState['nProgrammedActions'] = self.nProgrammedActions()
         expState['currentProgrammedActionIndex'] = self.currentProgrammedActionIndex
@@ -62,19 +58,23 @@ class Session:
         f.write(yaml.dump(expState))
         f.close()
 
-        for i in range(self.nProgrammedActions()):
-            self.allProgrammedActions[i].save(self.dataDir)
+        if (saveActions):
+            for i in range(self.nProgrammedActions()):
+                self.allProgrammedActions[i].save(self.dataDir)
         
-    def loadStateForSession(self):
+    def loadStateForSession(self, objectList):
         f = open(self.dataDir + 'experimentState.yaml', 'r')
         expState = yaml.load(f)
         nProgrammedActions = expState['nProgrammedActions']
         for i in range(nProgrammedActions):
-            self.allProgrammedActions.update({(i+1): ProgrammedAction()})
+            self.allProgrammedActions.update({(i+1): ProgrammedAction(i+1)})
             self.allProgrammedActions[(i+1)].load(self.dataDir)
         self.currentProgrammedActionIndex = expState['currentProgrammedActionIndex']
+        self.allProgrammedActions[self.currentProgrammedActionIndex].initializeVisualization(objectList)
 
     def newProgrammedAction(self):
+        if (self.nProgrammedActions() > 0):
+            self.getProgrammedAction().resetVisualization()
         self.currentProgrammedActionIndex += 1
         self.allProgrammedActions.update({self.currentProgrammedActionIndex: ProgrammedAction(self.currentProgrammedActionIndex)})
 
@@ -82,7 +82,7 @@ class Session:
         return len(self.allProgrammedActions)
     
     def getProgrammedAction(self):
-        return self.allProgrammedActions[self.currentProgrammedActionIndex] 
+        return self.allProgrammedActions[self.currentProgrammedActionIndex]
     
     def getProgrammedActionName(self):
         return self.allProgrammedActions[self.currentProgrammedActionIndex].getName()
@@ -102,6 +102,7 @@ class Session:
     def saveProgrammedAction(self):
         if (self.nProgrammedActions() > 0):
             self.allProgrammedActions[self.currentProgrammedActionIndex].save(self.dataDir)
+            self.saveSessionState(saveActions=False)
         else:
             rospy.logwarn('No skills created yet.')
     
@@ -129,20 +130,24 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
 
-    def nextProgrammedAction(self):
+    def nextProgrammedAction(self, objectList):
         if (self.nProgrammedActions() > 0):
             if (self.currentProgrammedActionIndex < self.nProgrammedActions()):
+                self.getProgrammedAction().resetVisualization()
                 self.currentProgrammedActionIndex += 1
+                self.getProgrammedAction().initializeVisualization(objectList)
                 return True
             else: 
                 return False
         else:
             rospy.logwarn('No skills created yet.')
 
-    def previousProgrammedAction(self):
+    def previousProgrammedAction(self, objectList):
         if (self.nProgrammedActions() > 0):
             if (self.currentProgrammedActionIndex > 1):
+                self.getProgrammedAction().resetVisualization()
                 self.currentProgrammedActionIndex -= 1
+                self.getProgrammedAction().initializeVisualization(objectList)
                 return True
             else: 
                 return False

@@ -178,10 +178,10 @@ class Arm:
 
         # Seed for searching the IK solution
         if seed == [] or seed == None:
+            seed = []
             for i in range(0, len(self.ikjoints)):
-                self.ikrequest.ik_request.ik_seed_state.joint_state.position[i] = (self.iklimits[i].min_position + self.iklimits[i].max_position)/2.0
-        else:
-            self.ikrequest.ik_request.ik_seed_state.joint_state.position = seed
+                seed.append((self.iklimits[i].min_position + self.iklimits[i].max_position)/2.0)
+        self.ikrequest.ik_request.ik_seed_state.joint_state.position = seed
         
         try:
 	    rospy.loginfo('Sending IK request.')

@@ -35,8 +35,8 @@ class Interaction:
     def __init__(self):
 
         self.arms = Arms()
-        self.session = Session(isDebug=True)
         self.world = World()
+        self.session = Session(objectList=self.world.getReferenceFrameNameList(), isDebug=True)
 
         self.stateOutput = rospy.Publisher('interaction_state', String)
         self.visualizationOutput = rospy.Publisher('visualization_marker_array', MarkerArray)
@@ -124,7 +124,7 @@ class Interaction:
     def saveProgrammedAction(self, param=None):
         self.isProgramming = False
         return [Speech.ACTION_SAVED + ' ' + str(self.session.currentProgrammedActionIndex), GazeGoal.NOD]
-    
+
     def createAction(self, param=None):
         self.session.newProgrammedAction()
         self.isProgramming = True        
@@ -132,7 +132,7 @@ class Interaction:
    
     def nextProgrammedAction(self, param=None):
         if (self.session.nProgrammedActions() > 0):
-            if self.session.nextProgrammedAction():
+            if self.session.nextProgrammedAction(self.world.getReferenceFrameNameList()):
                 return [Speech.SWITCH_SKILL + ' ' + str(self.session.currentProgrammedActionIndex), GazeGoal.NOD]
             else:
                 return [Speech.ERROR_NEXT_SKILL + ' ' + str(self.session.currentProgrammedActionIndex), GazeGoal.SHAKE]
@@ -141,7 +141,7 @@ class Interaction:
         
     def prevProgrammedAction(self, param=None):
         if (self.session.nProgrammedActions() > 0):
-            if self.session.previousProgrammedAction():
+            if self.session.previousProgrammedAction(self.world.getReferenceFrameNameList()):
                 return [Speech.SWITCH_SKILL + ' ' + str(self.session.currentProgrammedActionIndex), GazeGoal.NOD]
             else:
                 return [Speech.ERROR_PREV_SKILL + ' ' + str(self.session.currentProgrammedActionIndex), GazeGoal.SHAKE]
