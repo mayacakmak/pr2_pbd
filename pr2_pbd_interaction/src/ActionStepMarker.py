@@ -112,6 +112,12 @@ class ActionStepMarker:
                 self.aStep.armTrajectory.lRefFrameName = newRefName
                 self.aStep.armTrajectory.lRefFrame = newRef
 
+    def isHandOpen(self):
+            if self.armIndex == 0:
+                return (self.aStep.gripperAction.rGripper == GripperState.OPEN)
+            else:
+                return (self.aStep.gripperAction.lGripper == GripperState.OPEN)
+
     def setNewPose(self, newPose):
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
@@ -195,7 +201,7 @@ class ActionStepMarker:
         if (self.aStep.type == ActionStep.ARM_TARGET):
             #mainMarker = self.getSphereMarker(self.id, pose, frame_id, 0.08)
             #menuControl.markers.append(mainMarker)
-            menuControl = self.makeGripperMarker(menuControl)
+            menuControl = self.makeGripperMarker(menuControl, self.isHandOpen())
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             pointList = []
             for j in range(len(self.aStep.armTrajectory.timing)):
@@ -225,7 +231,7 @@ class ActionStepMarker:
         textPos = Point()
         textPos.x = pose.position.x
         textPos.y = pose.position.y
-        textPos.z = pose.position.z + 0.06
+        textPos.z = pose.position.z + 0.1
         menuControl.markers.append(Marker(type=Marker.TEXT_VIEW_FACING, id=self.id, scale=Vector3(0,0,0.03),
                                             text='Step'+str(self.step), color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
                                             header=Header(frame_id=frame_id), pose=Pose(textPos, Quaternion(0,0,0,1))))
@@ -385,12 +391,16 @@ class ActionStepMarker:
         mesh.color = ColorRGBA(1.0, 0.5, 0.0, 0.6) #ColorRGBA(0.8, 0.0, 0.4, 0.8);
         return mesh
 
-    def makeGripperMarker(self, control ):
-        angle = 0
+    def makeGripperMarker(self, control, isHandOpen=False):
+        if isHandOpen:
+            angle = 28*numpy.pi/180.0
+        else:
+            angle=0
+
         T1 = tf.transformations.euler_matrix(0, 0, angle)
         T1[:3, 3] = [0.07691-self.offset, 0.01, 0]
         T2 = tf.transformations.euler_matrix(0, 0, -angle) 
-        T2[:3, 3] = [0.09137-self.offset, 0.00495, 0]
+        T2[:3, 3] = [0.09137, 0.00495, 0]
         T_proximal = T1;
         T_distal = tf.transformations.concatenate_matrices(T1, T2)
         
@@ -411,7 +421,7 @@ class ActionStepMarker:
         T1 = tf.transformations.quaternion_matrix(q)
         T1[:3, 3] = [0.07691-self.offset, -0.01, 0]
         T2 = tf.transformations.euler_matrix(0, 0, -angle) 
-        T2[:3, 3] = [0.09137-self.offset, 0.00495, 0]
+        T2[:3, 3] = [0.09137, 0.00495, 0]
         T_proximal = T1;
         T_distal = tf.transformations.concatenate_matrices(T1, T2)
         
