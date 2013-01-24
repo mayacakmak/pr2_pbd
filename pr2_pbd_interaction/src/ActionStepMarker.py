@@ -34,17 +34,23 @@ class ActionStepMarker:
         
         if ActionStepMarker.IMServer == None:
             ActionStepMarker.IMServer = InteractiveMarkerServer('programmed_actions')
-
         self.refNames = refFrameList
         self.aStep = aStep
         self.armIndex = armIndex
         self.step = id
-        self.id = 2*id + self.armIndex
-        self.name = 'step' + str(id) + 'arm' + str(self.armIndex)
+        self.id = 2*self.step + self.armIndex
+        self.name = 'step' + str(self.step) + 'arm' + str(self.armIndex)
         self.isPoseRequested = False
+        self.isDeleteRequested = False
         self.poseControlVisible = False
         self.offset = 0.09
         armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
+        self.updateMenu()
+        
+    def decreaseID(self):
+        self.step -= 1
+        self.id = 2*self.step + self.armIndex
+        self.name = 'step' + str(self.step) + 'arm' + str(self.armIndex)
         self.updateMenu()
 
     def updateReferenceFrameList(self, refFrameList):
@@ -63,6 +69,7 @@ class ActionStepMarker:
         for i in range(len(self.refNames)):
             self.subEntries[i] = self.menuHandler.insert(self.refNames[i], parent=frameEntry, callback=self.changeReferenceFrame)
         self.moveMenuEntry = self.menuHandler.insert('Move here', callback=self.moveToPose)
+        self.deleteMenuEntry = self.menuHandler.insert('Delete step', callback=self.deleteStep)
         for i in range(len(self.refNames)):
             self.menuHandler.setCheckState(self.subEntries[i], MenuHandler.UNCHECKED)
         self.menuHandler.setCheckState(self.getMenuIDFromName(self.getReferenceFrameName()), MenuHandler.CHECKED)
@@ -260,6 +267,9 @@ class ActionStepMarker:
             self.updateVisualization()
         else:
             rospy.loginfo('Unknown event' + str(feedback.event_type))
+
+    def deleteStep(self, feedback):
+        self.isDeleteRequested = True
 
     def moveToPose(self, feedback):
         self.isPoseRequested = True

@@ -38,10 +38,10 @@ class WorldObject:
         self.menuHandler = MenuHandler()
         self.intMarker = None
         self.isRemoved = False
-        
         self.menuHandler.insert('Remove from scene', callback=self.remove)
     
     def remove(self, feedback):
+        print 'wil remove something'
         self.isRemoved = True
     
     def getName(self):
@@ -178,6 +178,7 @@ class World:
     
     def removeObject(self, toRemove):
         obj = self.objects.pop(toRemove)
+        rospy.loginfo('Removing object ' + obj.intMarker.name)
         self.IMServer.erase(obj.intMarker.name)
         self.IMServer.applyChanges()
         if (obj.isRecognized):
@@ -368,7 +369,6 @@ class World:
         else:
             return None
 
-
     @staticmethod
     def poseDistance(poseA, poseB, onTable=True):
         if poseA == [] or poseB == []:
@@ -392,6 +392,7 @@ class World:
 
     def update(self):
         # Visualize the detected object
+        self.lock.acquire()
         if (self.hasObjects()):
             toRemove = None
             for i in range(len(self.objects)):
@@ -400,5 +401,6 @@ class World:
                     toRemove = i
             if toRemove != None:
                 self.removeObject(toRemove)
+        self.lock.release()
                     
                                    

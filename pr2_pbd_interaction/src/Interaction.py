@@ -274,11 +274,17 @@ class Interaction:
         
     def findDominantRefFrame(self, armTraj):
         refFrameNames = self.world.getReferenceFrameNameList()
-        refFrameCounts = [0]*len(refFrameNames)
+        refFrameCounts = dict()
+        for i in range(len(refFrameNames)):
+            refFrameCounts[refFrameNames[i]] = 0
         for i in range(len(armTraj)):
-            refFrameCounts[armTraj[i].refFrame] += 1
-        dominantRefFrameIndex = refFrameCounts.index(max(refFrameCounts))
-        dominantRefFrameName = refFrameNames[dominantRefFrameIndex]
+            if (refFrameCounts.has_key(armTraj[i].refFrameName)):
+                refFrameCounts[armTraj[i].refFrameName] += 1
+            else:
+                rospy.logwarn('Ignoring object with reference frame name ' + armTraj[i].refFrameName 
+                              + ' because the world does not have this object.')
+        dominantRefFrameIndex = refFrameCounts.values().index(max(refFrameCounts.values()))
+        dominantRefFrameName = refFrameCounts.keys()[dominantRefFrameIndex]
         return World.getRefFromName(dominantRefFrameName), dominantRefFrameName
     
     def saveStateToArmTrajectory(self):
@@ -398,6 +404,8 @@ class Interaction:
             if (targetL != None):
                 self.arms.startMovingToArmState(targetL, 1)
                 pAction.resetAllTargets(1)
+
+            pAction.deletePotentialTargets()
 
         self.world.update()
         time.sleep(0.1)

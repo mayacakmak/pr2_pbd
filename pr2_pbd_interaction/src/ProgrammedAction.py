@@ -76,6 +76,7 @@ class ProgrammedAction:
         return 'Action' + str(self.skillIndex)
 
     def addActionStep(self, step, objectList):
+        self.lock.acquire()
         self.seq.seq.append(self.copyActionStep(step))
         
         if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
@@ -84,6 +85,7 @@ class ProgrammedAction:
             if (self.nFrames() > 1):
                 self.rLinks[self.nFrames()-1] = self.getLink(0, self.nFrames()-1)
                 self.lLinks[self.nFrames()-1] = self.getLink(1, self.nFrames()-1)
+        self.lock.release()
             
     def getLink(self, armIndex, toIndex):
         if (armIndex == 0):
@@ -117,6 +119,37 @@ class ProgrammedAction:
         else:
             for i in range(len(self.lMarkers)):
                 self.lMarkers[i].poseReached()
+
+    def deletePotentialTargets(self):
+        # TODO: Complete and test!
+        self.lock.acquire()
+        toDelete = None
+        for i in range(len(self.rMarkers)):
+            if (self.rMarkers[i].isDeleteRequested or
+                self.lMarkers[i].isDeleteRequested):
+                rospy.loginfo('Will delete step ' + str(i+1))
+                self.rMarkers[i].isDeleteRequested = False
+                self.lMarkers[i].isDeleteRequested = False
+                toDelete = i
+                break
+        self.lock.release()
+
+        if (toDelete != None):
+            self.rLinks[self.rLinks.keys()[-1]].action = Marker.DELETE
+            self.lLinks[self.lLinks.keys()[-1]].action = Marker.DELETE
+            self.updateVisualization()
+            self.rMarkers[-1].destroy()
+            self.lMarkers[-1].destroy()
+            for i in range(toDelete+1, self.nFrames()):
+                self.rMarkers[i].decreaseID()
+                self.lMarkers[i].decreaseID()
+            rMarker = self.rMarkers.pop(toDelete)
+            lMarker = self.lMarkers.pop(toDelete)
+            aStep = self.seq.seq.pop(toDelete)
+            self.rLinks.pop(self.rLinks.keys()[-1])
+            self.lLinks.pop(self.lLinks.keys()[-1])
+            self.updateVisualization()
+            self.updateInteractiveMarkers()
 
     def getPotentialTargets(self, armIndex):
         if (armIndex == 0):
