@@ -53,6 +53,22 @@ class WorldObject:
     def decreseIndex(self):
         self.index -= 1
 
+class WorldSurface:
+    def __init__(self, pose, dimensions):
+        self.pose = pose
+        self.dimensions = dimensions
+        self.menuHandler = MenuHandler()
+        self.intMarker = None
+        self.isRemoved = False
+        self.menuHandler.insert('Remove from scene', callback=self.remove)
+    
+    def remove(self, feedback):
+        print 'wil remove something'
+        self.isRemoved = True
+    
+    def getName(self):
+        return 'surface'
+
 class World:
     "Object recognition and localization related stuff"
     
@@ -65,6 +81,7 @@ class World:
 
         self.lock = threading.Lock()
         self.objects = []
+        self.surface = None
         self.nRecognizedObjects = 0
         self.nUnrecognizedObjects = 0
         self.tfBroadcaster = TransformBroadcaster()
@@ -77,16 +94,45 @@ class World:
         self.objectActionClient.wait_for_server()
         rospy.loginfo('Interactive object detection action server has responded.')
         self.clearAllObjects()
+        rospy.Subscriber('tabletop_segmentation_markers', Marker, self.receieveTableMarker)
+
         
     def resetObjects(self):
         for i in range(len(self.objects)):
             self.IMServer.erase(self.objects[i].intMarker.name)
             self.IMServer.applyChanges()
+        if self.surface != None:
+            self.removeSurface()
         self.IMServer.clear()
         self.IMServer.applyChanges()
         self.objects = []
         self.nRecognizedObjects = 0
         self.nUnrecognizedObjects = 0
+    
+    def receieveTableMarker(self, marker):
+        if (marker.type == Marker.LINE_STRIP):
+            if (len(marker.points) == 6):
+                rospy.loginfo('Received a TABLE marker.')
+                xmin = marker.points[0].x
+                ymin = marker.points[0].y
+                xmax = marker.points[2].x
+                ymax = marker.points[2].y
+                depth = xmax - xmin
+                width = ymax - ymin
+                
+                pose = Pose(marker.pose.position, marker.pose.orientation)
+                pose.position.x =  pose.position.x + xmin + depth/2
+                pose.position.y =  pose.position.y + ymin + width/2
+                
+                self.surface = WorldSurface(marker.pose, Vector3(depth, width, 0.01))
+                self.surface.intMarker = self.getSurfaceMarker()
+                self.IMServer.insert(self.surface.intMarker, self.markerFeedback)
+                self.IMServer.applyChanges()
+                self.surface.menuHandler.apply(self.IMServer, self.surface.intMarker.name)
+                self.IMServer.applyChanges()
+                
+        #self.lock.acquire()
+        #self.lock.release()
     
     def receieveRecognizedObjectInfo(self, objectList):
         self.lock.acquire()
@@ -114,7 +160,6 @@ class World:
         else:
             rospy.logwarn('... but the list was empty.')
             
-        print 'len(self.objects)', len(self.objects)
         self.lock.release()
         
     def getMeshMarker(self, marker, mesh):
@@ -192,6 +237,12 @@ class World:
                     self.objects[i].decreseIndex()
             self.nUnrecognizedObjects -= 1
    
+    def removeSurface(self):
+        rospy.loginfo('Removing surface')
+        self.IMServer.erase(self.surface.intMarker.name)
+        self.IMServer.applyChanges()
+        self.surface = None
+
     def getObjectMarker(self, index, mesh=None):
         int_marker = InteractiveMarker()
         int_marker.name = self.objects[index].getName()
@@ -222,7 +273,32 @@ class World:
         
         int_marker.controls.append(buttonControl)
         return int_marker
-
+    
+    
+    def getSurfaceMarker(self):
+        int_marker = InteractiveMarker()
+        int_marker.name = self.surface.getName()
+        int_marker.header.frame_id = 'base_link'
+        int_marker.pose = self.surface.pose
+        int_marker.scale = 1
+        buttonControl = InteractiveMarkerControl()
+        buttonControl.interaction_mode = InteractiveMarkerControl.BUTTON
+        buttonControl.always_visible = True
+        objectMarker = Marker(type=Marker.CUBE, id=2000, lifetime=rospy.Duration(2),
+                              scale=self.surface.dimensions, header=Header(frame_id='base_link'),
+                              color=ColorRGBA(0.8, 0.0, 0.4, 0.4), pose = self.surface.pose) 
+        buttonControl.markers.append(objectMarker)
+        textPos = Point()
+        textPos.x = self.surface.pose.position.x + self.surface.dimensions.x/2 - 0.06
+        textPos.y = self.surface.pose.position.y - self.surface.dimensions.y/2 + 0.06
+        textPos.z = self.surface.pose.position.z + self.surface.dimensions.z/2 + 0.06
+        buttonControl.markers.append(Marker(type=Marker.TEXT_VIEW_FACING, id=2001, scale=Vector3(0,0,0.03),
+                                            text=int_marker.name, color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
+                                            header=Header(frame_id='base_link'), pose=Pose(textPos, Quaternion(0,0,0,1))))
+        int_marker.controls.append(buttonControl)
+        return int_marker
+    
+    
     def getReferenceFrameNameList(self):
         objectNames = ['base_link']
         for i in range(len(self.objects)):
@@ -401,6 +477,8 @@ class World:
                     toRemove = i
             if toRemove != None:
                 self.removeObject(toRemove)
+            if (self.surface!= None and self.surface.isRemoved):
+                self.removeSurface()
         self.lock.release()
                     
                                    
