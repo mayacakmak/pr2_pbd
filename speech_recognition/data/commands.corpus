@@ -16,7 +16,7 @@ create-new-action
 execute-action
 next-action
 previous-action
-save action
+save-action
 edit-action
 save-pose
 start-recording-motion

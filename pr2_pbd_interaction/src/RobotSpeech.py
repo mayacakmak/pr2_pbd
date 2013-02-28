@@ -72,7 +72,8 @@ class RobotSpeech:
         self.speechOutputSoundplay = rospy.Publisher('robotsound', SoundRequest)
         
     def say(self, text, useSpeakeasy=False):
-        if (useSpeakeasy):
+	useSpeakeasy = False        
+	if (useSpeakeasy):
             ttsRequestMsg = SpeakEasyTextToSpeech()
             ttsRequestMsg.command = TTSCommands.SAY
             ttsRequestMsg.text    = text

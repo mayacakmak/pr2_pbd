@@ -96,8 +96,8 @@ class World:
         self.clearAllObjects()
         rospy.Subscriber('tabletop_segmentation_markers', Marker, self.receieveTableMarker)
 
-        
     def resetObjects(self):
+        self.lock.acquire()
         for i in range(len(self.objects)):
             self.IMServer.erase(self.objects[i].intMarker.name)
             self.IMServer.applyChanges()
@@ -108,6 +108,7 @@ class World:
         self.objects = []
         self.nRecognizedObjects = 0
         self.nUnrecognizedObjects = 0
+        self.lock.release()
     
     def receieveTableMarker(self, marker):
         if (marker.type == Marker.LINE_STRIP):
@@ -130,9 +131,6 @@ class World:
                 self.IMServer.applyChanges()
                 self.surface.menuHandler.apply(self.IMServer, self.surface.intMarker.name)
                 self.IMServer.applyChanges()
-                
-        #self.lock.acquire()
-        #self.lock.release()
     
     def receieveRecognizedObjectInfo(self, objectList):
         self.lock.acquire()
@@ -159,7 +157,6 @@ class World:
                         self.addNewObject(clusterPose, bbox.box_dims, False)
         else:
             rospy.logwarn('... but the list was empty.')
-            
         self.lock.release()
         
     def getMeshMarker(self, marker, mesh):
@@ -435,7 +432,7 @@ class World:
         distances = []
         for i in range(len(self.objects)):
             distances.append(World.poseDistance(self.objects[i].pose, armPose))
-        thresholdFar = 0.75
+        thresholdFar = 0.4
         if (len(distances) > 0):
             if (min(distances) < thresholdFar):
                 chosen = distances.index(min(distances))

@@ -1,5 +1,8 @@
 <launch>
 
+  <machine env-loader="/u/mcakmak/ros_workspace/env.sh" name="prp" address="prp"></machine>
+
+
   <!-- This runs the core of the demo -->
   
   <include file="$(find pr2_pbd_interaction)/launch/pbd_demo.launch"/>
@@ -10,7 +13,7 @@
   
   <!-- This adds TTS (speakeasy or soundplay based), add something like machine="prp" if you'd like this to run on the robot -->
 
-  <node name="speakeasy_node" pkg="speakeasy" type="speakeasy_node.py"/>
-  <node name="soundplay_node" pkg="sound_play" type="soundplay_node.py"/>
+  <node name="speakeasy_node" pkg="speakeasy" machine="prp" type="speakeasy_node.py"/>
+  <node name="soundplay_node" pkg="sound_play" machine="prp" type="soundplay_node.py"/>
 
 </launch>
