@@ -64,6 +64,7 @@ class Speech:
     STARTED_RECORDING_MOTION = 'Started recording motion.'
     STOPPED_RECORDING_MOTION = 'Stopped recording motion.'
     MOTION_NOT_RECORDING = 'Not currently recording motion.'
+    STOPPING_EXECUTION = 'Execution stopped.'
 
 class RobotSpeech:
     "Finite state machine for the human interaction"

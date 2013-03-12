@@ -113,7 +113,7 @@ class Interaction:
     def editProgrammedAction(self, param=None):
         if (self.session.nProgrammedActions() > 0):
             if (self.isProgramming):
-                return [Speech.ALREADY_EDITING, GazeGoal.LOOK_FORWARD]
+                return [Speech.ALREADY_EDITING, GazeGoal.SHAKE_ONCE]
             else:
                 self.isProgramming = True
                 return [Speech.SWITCH_TO_EDIT_MODE, GazeGoal.NOD]
@@ -156,9 +156,9 @@ class Interaction:
                     self.undoFunction = self.resumeLastPose
                     return [Speech.LAST_POSE_DELETED, GazeGoal.NOD]
                 else:
-                    return [Speech.SKILL_EMPTY, None]
+                    return [Speech.SKILL_EMPTY, GazeGoal.SHAKE_ONCE]
             else:
-                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.LOOK_FORWARD]
+                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE_ONCE]
         else:
             return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
 
@@ -172,7 +172,7 @@ class Interaction:
                 else:
                     return [Speech.SKILL_EMPTY, None]
             else:
-                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.LOOK_FORWARD]
+                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE_ONCE]
         else:
             return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
 
@@ -193,7 +193,7 @@ class Interaction:
     def stopExecution(self, param=None):
         if (self.arms.isExecuting()):
             self.arms.stopExecution()
-            return [None, None]
+            return [Speech.STOPPING_EXECUTION, GazeGoal.NOD_ONCE]
         else:
             return [Speech.ERROR_NO_EXECUTION, GazeGoal.SHAKE]
         
@@ -202,9 +202,9 @@ class Interaction:
             if (self.session.nFrames() == 0):
                 self.isProgramming = True
                 self.saveArmStep()
-                return [Speech.FIRST_STEP_RECORDED, None]
+                return [Speech.FIRST_STEP_RECORDED, GazeGoal.NOD_ONCE]
             else:
-                return [Speech.ACTION_ALREADY_STARTED, GazeGoal.LOOK_FORWARD]
+                return [Speech.ACTION_ALREADY_STARTED, GazeGoal.SHAKE_ONCE]
         else:
             return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
         
@@ -228,11 +228,11 @@ class Interaction:
                     self.isRecordingMotion = True
                     self.armTrajectory = ArmTrajectory()
                     self.trajectoryStartTime = rospy.Time.now()
-                    return [Speech.STARTED_RECORDING_MOTION, GazeGoal.LOOK_FORWARD]
+                    return [Speech.STARTED_RECORDING_MOTION, GazeGoal.NOD_ONCE]
                 else:
-                    return [Speech.ALREADY_RECORDING_MOTION, GazeGoal.SHAKE]
+                    return [Speech.ALREADY_RECORDING_MOTION, GazeGoal.SHAKE_ONCE]
             else:
-                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.LOOK_FORWARD]
+                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE_ONCE]
         else:
             return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
         
@@ -255,7 +255,7 @@ class Interaction:
             self.session.addStepToProgrammedAction(armTrajectoryStep, self.world.getReferenceFrameNameList())
             self.armTrajectory = None
             self.trajectoryStartTime = None
-            return [Speech.STOPPED_RECORDING_MOTION + ' ' + Speech.STEP_RECORDED, GazeGoal.NOD]
+            return [Speech.STOPPED_RECORDING_MOTION + ' ' + Speech.STEP_RECORDED, GazeGoal.NOD_ONCE]
         else:
             return [Speech.MOTION_NOT_RECORDING, GazeGoal.SHAKE]
         
@@ -304,9 +304,9 @@ class Interaction:
                 step.gripperAction = GripperAction(self.arms.getGripperState(0), self.arms.getGripperState(1))
                 self.session.addStepToProgrammedAction(step, self.world.getReferenceFrameNameList())
                                 
-                return [Speech.STEP_RECORDED, GazeGoal.LOOK_FORWARD]
+                return [Speech.STEP_RECORDED, GazeGoal.NOD_ONCE]
             else:
-                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE]
+                return ['Action ' + str(self.session.currentProgrammedActionIndex) + Speech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE_ONCE]
         else:
             return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
 
@@ -414,15 +414,16 @@ class Interaction:
 
     def completeExecution(self):
         if (self.arms.executionStatus == ExecutionStatus.SUCCEEDED):
-            speechResponse = Speech.EXECUTION_ENDED
+            Response.say(Speech.EXECUTION_ENDED)
+            Response.performGazeAction(GazeGoal.NOD_ONCE)
         elif (self.arms.executionStatus == ExecutionStatus.PREEMPTED):
-            speechResponse = Speech.EXECUTION_PREEMPTED
+            Response.say(Speech.EXECUTION_PREEMPTED)
+            Response.performGazeAction(GazeGoal.SHAKE_ONCE)
         else:
-            speechResponse = Speech.EXECUTION_ERROR_NOIK
+            Response.say(Speech.EXECUTION_ERROR_NOIK)
+            Response.performGazeAction(GazeGoal.SHAKE)
         
         self.arms.executionStatus = ExecutionStatus.NOT_EXECUTING
-        Response.performGazeAction(GazeGoal.LOOK_FORWARD)
-        Response.say(speechResponse)
              
     def recordObjectPose(self, param=None):
         if (self.world.updateTaskObjectPose()):
@@ -433,5 +434,5 @@ class Interaction:
             return [Speech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]
 
     def emptyResponse(self, responses):
-        return responses;
+        return responses
     

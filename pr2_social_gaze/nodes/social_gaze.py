@@ -140,8 +140,16 @@ class SocialGaze:
                 elif (command == GazeGoal.LOOK_DOWN):
                     self.targetLookatPoint = self.downLookatPoint
                 elif (command == GazeGoal.NOD):
+                    self.nNods = 5
                     self.startNod()
                 elif (command == GazeGoal.SHAKE):
+                    self.nShakes = 5
+                    self.startShake()
+                elif (command == GazeGoal.NOD_ONCE):
+                    self.nNods = 2
+                    self.startNod()
+                elif (command == GazeGoal.SHAKE_ONCE):
+                    self.nShakes = 2
                     self.startShake()
                 elif (command == GazeGoal.GLANCE_RIGHT_EE):
                     self.startGlance(0)
