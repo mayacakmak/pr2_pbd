@@ -146,10 +146,10 @@ class SocialGaze:
                     self.nShakes = 5
                     self.startShake()
                 elif (command == GazeGoal.NOD_ONCE):
-                    self.nNods = 2
+                    self.nNods = 5
                     self.startNod()
                 elif (command == GazeGoal.SHAKE_ONCE):
-                    self.nShakes = 2
+                    self.nShakes = 5
                     self.startShake()
                 elif (command == GazeGoal.GLANCE_RIGHT_EE):
                     self.startGlance(0)

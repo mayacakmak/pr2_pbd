@@ -1,10 +1,11 @@
 import roslib
 roslib.load_manifest('actionlib')
 roslib.load_manifest('pr2_pbd_interaction')
-roslib.load_manifest('pr2_interactive_object_detection')
+roslib.load_manifest('object_manipulation_msgs')
 roslib.load_manifest('geometry_msgs')
 roslib.load_manifest('tf')
 roslib.load_manifest('tabletop_collision_map_processing')
+roslib.load_manifest('pr2_interactive_object_detection')
 
 # Generic libraries
 import sys, os, time, threading
@@ -16,7 +17,7 @@ import actionlib
 from actionlib_msgs.msg import *
 from std_msgs.msg import String
 from tf import TransformListener, TransformBroadcaster
-from object_manipulation_msgs.msg import ClusterBoundingBox
+from object_manipulation_msgs.msg import *
 from object_manipulation_msgs.srv import FindClusterBoundingBox
 from pr2_interactive_object_detection.msg import *
 from geometry_msgs.msg import *
