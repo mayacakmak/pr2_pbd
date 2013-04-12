@@ -128,7 +128,7 @@ class Arms:
         # We need to find IK only if the frame is relative to an object
         if (armState.refFrame == ArmState.OBJECT):
             solvedArmState = ArmState()
-            targetPose = World.transform(armState.ee_pose, armState.refFrameName, '/base_link')
+            targetPose = World.transform(armState.ee_pose, armState.refFrameObject.name, '/base_link')
             targetJoints = Arms.arms[armIndex].getIKForEEPose(targetPose, armState.joint_pose)
             if (targetJoints == None):
                 rospy.logerr('Could not find IK for R arm relative pose of action step')

@@ -59,8 +59,9 @@ class ProgrammedAction:
                 aStepCopy.armTrajectory.lArm.append(self.copyArmState(aStep.armTrajectory.lArm[j]))
             aStepCopy.armTrajectory.rRefFrame = int(aStep.armTrajectory.rRefFrame)
             aStepCopy.armTrajectory.lRefFrame = int(aStep.armTrajectory.lRefFrame)
-            aStepCopy.armTrajectory.rRefFrameName = str(aStep.armTrajectory.rRefFrameName)
-            aStepCopy.armTrajectory.lRefFrameName = str(aStep.armTrajectory.lRefFrameName)
+            ## WARNING: the following is not really copying
+            aStepCopy.armTrajectory.rRefFrameObject = aStep.armTrajectory.rRefFrameObject
+            aStepCopy.armTrajectory.lRefFrameObject = aStep.armTrajectory.lRefFrameObject
         aStepCopy.gripperAction = GripperAction(aStep.gripperAction.rGripper, aStep.gripperAction.lGripper)
         return aStepCopy
     
@@ -69,7 +70,8 @@ class ProgrammedAction:
         armStateCopy.refFrame = int(armState.refFrame)
         armStateCopy.joint_pose = armState.joint_pose[:]
         armStateCopy.ee_pose = Pose(armState.ee_pose.position, armState.ee_pose.orientation)
-        armStateCopy.refFrameName = str(armState.refFrameName)
+        ## WARNING: the following is not really copying
+        armStateCopy.refFrameObject = armState.refFrameObject
         return armStateCopy
     
     def getName(self):
@@ -78,7 +80,6 @@ class ProgrammedAction:
     def addActionStep(self, step, objectList):
         self.lock.acquire()
         self.seq.seq.append(self.copyActionStep(step))
-        
         if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
             self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, self.getLastStep(), objectList))
             self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, self.getLastStep(), objectList))
@@ -88,6 +89,7 @@ class ProgrammedAction:
         self.lock.release()
             
     def getLink(self, armIndex, toIndex):
+        self.lock.acquire()
         if (armIndex == 0):
             startPoint = self.rMarkers[toIndex-1].getAbsolutePosition(isStart=True)
             endPoint = self.rMarkers[toIndex].getAbsolutePosition(isStart=False)
@@ -98,27 +100,34 @@ class ProgrammedAction:
         return Marker(type=Marker.ARROW, id=(2*toIndex+armIndex), lifetime=rospy.Duration(2),
                       scale=Vector3(0.01,0.03,0.01), header=Header(frame_id='base_link'),
                       color=ColorRGBA(0.8, 0.8, 0.8, 0.3), points=[startPoint, endPoint])
+        self.lock.release()
 
     def updateObjects(self, objectList):
+        self.lock.acquire()
         self.updateInteractiveMarkers()
         for i in range(len(self.rMarkers)):
             self.rMarkers[i].updateReferenceFrameList(objectList)
         for i in range(len(self.lMarkers)):
             self.lMarkers[i].updateReferenceFrameList(objectList)
+        self.lock.release()
         
     def updateInteractiveMarkers(self):
+        self.lock.acquire()
         for i in range(len(self.rMarkers)):
             self.rMarkers[i].updateVisualization()
         for i in range(len(self.lMarkers)):
             self.lMarkers[i].updateVisualization()
+        self.lock.release()
 
     def resetAllTargets(self, armIndex):
+        self.lock.acquire()
         if (armIndex == 0):
             for i in range(len(self.rMarkers)):
                 self.rMarkers[i].poseReached()
         else:
             for i in range(len(self.lMarkers)):
                 self.lMarkers[i].poseReached()
+        self.lock.release()
 
     def deletePotentialTargets(self):
         # TODO: Complete and test!
@@ -132,8 +141,6 @@ class ProgrammedAction:
                 self.lMarkers[i].isDeleteRequested = False
                 toDelete = i
                 break
-        self.lock.release()
-
         if (toDelete != None):
             self.rLinks[self.rLinks.keys()[-1]].action = Marker.DELETE
             self.lLinks[self.lLinks.keys()[-1]].action = Marker.DELETE
@@ -150,17 +157,21 @@ class ProgrammedAction:
             self.lLinks.pop(self.lLinks.keys()[-1])
             self.updateVisualization()
             self.updateInteractiveMarkers()
+        self.lock.release()
 
     def getPotentialTargets(self, armIndex):
+        requestedPose = None
+        self.lock.acquire()
         if (armIndex == 0):
             for i in range(len(self.rMarkers)):
                 if (self.rMarkers[i].isPoseRequested):
-                    return self.rMarkers[i].getTarget()
+                    requestedPose = self.rMarkers[i].getTarget()
         else:
             for i in range(len(self.lMarkers)):
                 if (self.lMarkers[i].isPoseRequested):
-                    return self.lMarkers[i].getTarget()
-        return None
+                    requestedPose = self.lMarkers[i].getTarget()
+        self.lock.release()
+        return requestedPose
 
     def updateLinks(self):
         for i in self.rLinks.keys():
@@ -181,11 +192,13 @@ class ProgrammedAction:
         
     def clear(self):
         #TODO: get backups before clear
+        self.lock.acquire()
         self.seq = ActionStepSequence()
         self.rMarkers = []
         self.lMarkers = []
         self.rLinks = dict()
         self.lLinks = dict()
+        self.lock.release()
 
     def undoClear(self):
         self.seq = [] #TODO

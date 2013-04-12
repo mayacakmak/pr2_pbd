@@ -31,11 +31,11 @@ class ActionStepMarker:
     
     IMServer = None
 
-    def __init__(self, id, armIndex, aStep, refFrameList):
+    def __init__(self, id, armIndex, aStep, refFrameObjectList):
         
         if ActionStepMarker.IMServer == None:
             ActionStepMarker.IMServer = InteractiveMarkerServer('programmed_actions')
-        self.refNames = refFrameList
+
         self.aStep = aStep
         self.armIndex = armIndex
         self.step = id
@@ -45,20 +45,53 @@ class ActionStepMarker:
         self.isDeleteRequested = False
         self.poseControlVisible = False
         self.offset = 0.09
+
+        self.updateReferenceFrameList(refFrameObjectList)
+        
         armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
         self.updateMenu()
-        
+
     def decreaseID(self):
         self.step -= 1
         self.id = 2*self.step + self.armIndex
         self.name = 'step' + str(self.step) + 'arm' + str(self.armIndex)
         self.updateMenu()
 
-    def updateReferenceFrameList(self, refFrameList):
-        self.refNames = refFrameList
-        armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
+    def updateReferenceFrameList(self, refFrameObjectList):
+        # There is a new list of objects
+        # If the current frames are already assigned to object, we need to figure out the correspondences
+        self.refFrameObjectList = refFrameObjectList
+
+        armPose = self.getTarget()
+        if (armPose.refFrame == ArmState.OBJECT):
+            prevRefObject = armPose.refFrameObject
+            newRefObject = self.getMostSimilarObject(prevRefObject, refFrameObjectList)
+            armPose.refFrameObject = newRefObject
+        
+        self.updateRefFrameNames()
+        armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, armPose)
         self.updateMenu()
+        
+    def getMostSimilarObject(self, refObject, refFrameObjectList):
+        bestDist = 10000
+        chosenObjIndex = -1
+        for i in range(len(refFrameObjectList)):
+            dist = World.objectDissimilarity(refFrameObjectList[i], refObject)
+            if (dist < bestDist):
+                bestDist = dist
+                chosenObjIndex = i
+        if chosenObjIndex==-1:
+            print 'Did not find a similar object..'
+            return None
+        else:
+            print 'Most similar to new object ', chosenObjIndex
+            return refFrameObjectList[chosenObjIndex]
             
+    def updateRefFrameNames(self):
+        self.refNames = ['base_link']
+        for i in range(len(self.refFrameObjectList)):
+            self.refNames.append(self.refFrameObjectList[i].name)
+        
     def destroy(self):
         ActionStepMarker.IMServer.erase(self.name)
         ActionStepMarker.IMServer.applyChanges()
@@ -89,35 +122,54 @@ class ActionStepMarker:
     def getReferenceFrameName(self):
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                return self.aStep.armTarget.rArm.refFrameName
+                if self.aStep.armTarget.rArm.refFrame == ArmState.ROBOT_BASE:
+                    return 'base_link'
+                else:
+                    return self.aStep.armTarget.rArm.refFrameObject.name
             else:
-                return self.aStep.armTarget.lArm.refFrameName
+                if self.aStep.armTarget.lArm.refFrame == ArmState.ROBOT_BASE:
+                    return 'base_link'
+                else:
+                    return self.aStep.armTarget.lArm.refFrameObject.name
+                
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             if self.armIndex == 0:
-                return self.aStep.armTrajectory.rRefFrameName
+                if (self.aStep.armTrajectory.rRefFrame == ArmState.ROBOT_BASE):
+                    return 'base_link'
+                else:
+                    return self.aStep.armTrajectory.rRefFrameOject.name
             else:
-                return self.aStep.armTrajectory.lRefFrameName
+                if (self.aStep.armTrajectory.lRefFrame == ArmState.ROBOT_BASE):
+                    return 'base_link'
+                else:
+                    return self.aStep.armTrajectory.lRefFrameObject.name
         else:
             rospy.logerr('Unhandled marker type: ' + str(self.aStep.type))
         
     def setReferenceFrame(self, newRefName):
         newRef = World.getRefFromName(newRefName)
+        if (newRef != ArmState.ROBOT_BASE):
+            index = self.refNames.index(newRefName)
+            newRefObject = self.refFrameObjectList[index-1]
+        else:
+            newRefObject = Object()
+        
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                self.aStep.armTarget.rArm = World.convertRefFrame(newRef, newRefName, self.aStep.armTarget.rArm)
+                self.aStep.armTarget.rArm = World.convertRefFrame(self.aStep.armTarget.rArm, newRef, newRefObject)
             else:
-                self.aStep.armTarget.lArm = World.convertRefFrame(newRef, newRefName, self.aStep.armTarget.lArm)
+                self.aStep.armTarget.lArm = World.convertRefFrame(self.aStep.armTarget.lArm, newRef, newRefObject)
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             for i in range(len(self.aStep.armTrajectory.timing)):
                 if self.armIndex == 0:
-                    self.aStep.armTrajectory.rArm[i] = World.convertRefFrame(newRef, newRefName, self.aStep.armTrajectory.rArm[i])
+                    self.aStep.armTrajectory.rArm[i] = World.convertRefFrame(self.aStep.armTrajectory.rArm[i], newRef, newRefObject)
                 else:
-                    self.aStep.armTrajectory.lArm[i] = World.convertRefFrame(newRef, newRefName, self.aStep.armTrajectory.lArm[i])
+                    self.aStep.armTrajectory.lArm[i] = World.convertRefFrame(self.aStep.armTrajectory.lArm[i], newRef, newRefObject)
             if self.armIndex == 0:
-                self.aStep.armTrajectory.rRefFrameName = newRefName
+                self.aStep.armTrajectory.rRefFrameObject = newRefObject
                 self.aStep.armTrajectory.rRefFrame = newRef
             else:
-                self.aStep.armTrajectory.lRefFrameName = newRefName
+                self.aStep.armTrajectory.lRefFrameObject = newRefObject
                 self.aStep.armTrajectory.lRefFrame = newRef
 
     def isHandOpen(self):
@@ -141,8 +193,8 @@ class ActionStepMarker:
         if (armState.refFrame == ArmState.OBJECT):
             armStateCopy = ArmState(armState.refFrame, 
                                     Pose(armState.ee_pose.position, armState.ee_pose.orientation), 
-                                    armState.joint_pose[:], armState.refFrameName)
-            World.convertRefFrame(ArmState.ROBOT_BASE, 'base_link', armStateCopy)
+                                    armState.joint_pose[:], armState.refFrameObject)
+            World.convertRefFrame(armStateCopy, ArmState.ROBOT_BASE)
             return armStateCopy.ee_pose
         else:
             return armState.ee_pose

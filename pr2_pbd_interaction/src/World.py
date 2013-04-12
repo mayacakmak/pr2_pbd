@@ -32,24 +32,33 @@ from pr2_pbd_interaction.msg import *
 
 class WorldObject:
     def __init__(self, pose, index, dimensions, isRecognized):
-        self.pose = pose
         self.index = index
+        self.assignedName = None
         self.isRecognized = isRecognized
-        self.dimensions = dimensions
+        
+        self.object = Object(Object.TABLE_TOP, self.getName(), pose, dimensions)
+        
         self.menuHandler = MenuHandler()
         self.intMarker = None
         self.isRemoved = False
         self.menuHandler.insert('Remove from scene', callback=self.remove)
     
     def remove(self, feedback):
-        print 'wil remove something'
+        print 'Will remove object', self.getName()
         self.isRemoved = True
     
+    def assignName(self, name):
+        self.assignedName = name
+        self.object.name = name
+    
     def getName(self):
-        if (self.isRecognized):
-            return 'object' + str(self.index)
+        if (self.assignedName == None):
+            if (self.isRecognized):
+                return 'object' + str(self.index)
+            else:
+                return 'thing' + str(self.index)
         else:
-            return 'thing' + str(self.index)
+            return self.assignedName
         
     def decreseIndex(self):
         self.index -= 1
@@ -64,7 +73,7 @@ class WorldSurface:
         self.menuHandler.insert('Remove from scene', callback=self.remove)
     
     def remove(self, feedback):
-        print 'wil remove something'
+        print 'Will remove the surface.'
         self.isRemoved = True
     
     def getName(self):
@@ -95,6 +104,7 @@ class World:
         self.objectActionClient.wait_for_server()
         rospy.loginfo('Interactive object detection action server has responded.')
         self.clearAllObjects()
+        # The following is to get the table information
         rospy.Subscriber('tabletop_segmentation_markers', Marker, self.receieveTableMarker)
 
     def resetObjects(self):
@@ -180,10 +190,14 @@ class World:
         isSameThreshold = 0.02
         toRemove = None
         if (isRecognized):
+            
+            # Temporary HACK for testing. Will remove all recognition completely if this works.
+            
+            return False
             # Check if there is already an object
             for i in range(len(self.objects)):
-                print 'Distance from previous object',i,':',World.poseDistance(self.objects[i].pose, pose)
-                if (World.poseDistance(self.objects[i].pose, pose) < isSameThreshold):
+                print 'Distance from previous object',i,':',World.poseDistance(self.objects[i].object.pose, pose)
+                if (World.poseDistance(self.objects[i].object.pose, pose) < isSameThreshold):
                     if (self.objects[i].isRecognized):
                         rospy.loginfo('** Previously recognized object at the same location, will not add this object.')
                         return False
@@ -205,8 +219,7 @@ class World:
             return True
         else:
             for i in range(len(self.objects)):
-                print '(unrec)Distance from previous object:', World.poseDistance(self.objects[i].pose, pose)
-                if (World.poseDistance(self.objects[i].pose, pose) < isSameThreshold):
+                if (World.poseDistance(self.objects[i].object.pose, pose) < isSameThreshold):
                     rospy.loginfo('Previously detected object at the same location, will not add this object.')
                     return False
 
@@ -246,7 +259,7 @@ class World:
         int_marker.name = self.objects[index].getName()
         #int_marker.description = self.objects[index].getName()
         int_marker.header.frame_id = 'base_link'
-        int_marker.pose = self.objects[index].pose
+        int_marker.pose = self.objects[index].object.pose
         int_marker.scale = 1
         
         buttonControl = InteractiveMarkerControl()
@@ -254,21 +267,20 @@ class World:
         buttonControl.always_visible = True
 
         objectMarker = Marker(type=Marker.CUBE, id=index, lifetime=rospy.Duration(2),
-                              scale=self.objects[index].dimensions, header=Header(frame_id='base_link'),
-                              color=ColorRGBA(0.2, 0.8, 0.0, 0.6), pose = self.objects[index].pose) 
+                              scale=self.objects[index].object.dimensions, header=Header(frame_id='base_link'),
+                              color=ColorRGBA(0.2, 0.8, 0.0, 0.6), pose = self.objects[index].object.pose) 
 
         if (mesh != None):
             objectMarker = self.getMeshMarker(objectMarker, mesh)
         buttonControl.markers.append(objectMarker)
 
         textPos = Point()
-        textPos.x = self.objects[index].pose.position.x
-        textPos.y = self.objects[index].pose.position.y
-        textPos.z = self.objects[index].pose.position.z + self.objects[index].dimensions.z/2 + 0.06
+        textPos.x = self.objects[index].object.pose.position.x
+        textPos.y = self.objects[index].object.pose.position.y
+        textPos.z = self.objects[index].object.pose.position.z + self.objects[index].object.dimensions.z/2 + 0.06
         buttonControl.markers.append(Marker(type=Marker.TEXT_VIEW_FACING, id=index, scale=Vector3(0,0,0.03),
                                             text=int_marker.name, color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
                                             header=Header(frame_id='base_link'), pose=Pose(textPos, Quaternion(0,0,0,1))))
-        
         int_marker.controls.append(buttonControl)
         return int_marker
     
@@ -297,14 +309,19 @@ class World:
         return int_marker
     
     
-    def getReferenceFrameNameList(self):
-        objectNames = ['base_link']
+    def getReferenceFrameList(self):
+        objects = []
         for i in range(len(self.objects)):
-            objectNames.append(self.objects[i].getName())
-        return objectNames     
+            objects.append(self.objects[i].object)
+        return objects
     
     def hasObjects(self):
         return len(self.objects) > 0
+    
+    @staticmethod
+    def objectDissimilarity(obj1, obj2):
+        return norm(array([obj1.dimensions.x, obj1.dimensions.y, obj1.dimensions.z]) - 
+                    array([obj2.dimensions.x, obj2.dimensions.y, obj2.dimensions.z]))
     
     @staticmethod
     def getRefFromName(refName):
@@ -314,24 +331,33 @@ class World:
             return ArmState.OBJECT
         
     @staticmethod
-    def convertRefFrame(refFrame, refFrameName, armFrame):
-        if (armFrame.refFrame != refFrame):
-            if refFrame == ArmState.ROBOT_BASE:
-                if (armFrame.refFrame == ArmState.OBJECT):
-                    absEEPose = World.transform(armFrame.ee_pose, armFrame.refFrameName, 'base_link')
-                    armFrame.ee_pose = absEEPose
-                    armFrame.refFrame = ArmState.ROBOT_BASE
-                    armFrame.refFrameName = 'base_link'
+    def convertRefFrame(armFrame, refFrame, refFrameObject=Object()):
+        if refFrame == ArmState.ROBOT_BASE:
+            if (armFrame.refFrame == ArmState.ROBOT_BASE):
+                rospy.logwarn('No reference frame transformations needed (both absolute).')
+            elif (armFrame.refFrame == ArmState.OBJECT):
+                absEEPose = World.transform(armFrame.ee_pose, armFrame.refFrameObject.name, 'base_link')
+                armFrame.ee_pose = absEEPose
+                armFrame.refFrame = ArmState.ROBOT_BASE
+                armFrame.refFrameObject = Object()
+            else:
+                rospy.logerr('Unhandled reference frame conversion:' + str(armFrame.refFrame) + ' to ' + str(refFrame))
+        elif refFrame == ArmState.OBJECT:
+            if (armFrame.refFrame == ArmState.ROBOT_BASE):
+                relEEPose = World.transform(armFrame.ee_pose, 'base_link', refFrameObject.name)
+                armFrame.ee_pose = relEEPose
+                armFrame.refFrame = ArmState.OBJECT
+                armFrame.refFrameObject = refFrameObject
+            elif (armFrame.refFrame == ArmState.OBJECT):
+                if (armFrame.refFrameObject.name == refFrameObject.name):
+                    rospy.logwarn('No reference frame transformations needed (same object).')
                 else:
-                    rospy.logerr('Unhandled reference frame conversion:' + str(armFrame.refFrame) + ' to ' + str(refFrame))
-            elif refFrame == ArmState.OBJECT:
-                if (armFrame.refFrame == ArmState.ROBOT_BASE):
-                    relEEPose = World.transform(armFrame.ee_pose, 'base_link', refFrameName)
+                    relEEPose = World.transform(armFrame.ee_pose, armFrame.refFrameObject.name, refFrameObject.name)
                     armFrame.ee_pose = relEEPose
                     armFrame.refFrame = ArmState.OBJECT
-                    armFrame.refFrameName = refFrameName
-                else:
-                    rospy.logerr('Unhandled reference frame conversion:' + str(armFrame.refFrame) + ' to ' + str(refFrame))
+                    armFrame.refFrameObject = refFrameObject
+            else:
+                rospy.logerr('Unhandled reference frame conversion:' + str(armFrame.refFrame) + ' to ' + str(refFrame))
         return armFrame
         
     @staticmethod
@@ -432,12 +458,12 @@ class World:
     def getNearestObject(self, armPose):
         distances = []
         for i in range(len(self.objects)):
-            distances.append(World.poseDistance(self.objects[i].pose, armPose))
+            distances.append(World.poseDistance(self.objects[i].object.pose, armPose))
         thresholdFar = 0.4
         if (len(distances) > 0):
             if (min(distances) < thresholdFar):
                 chosen = distances.index(min(distances))
-                return self.objects[chosen].getName()
+                return self.objects[chosen].object
             else:
                 return None
         else:
@@ -470,7 +496,7 @@ class World:
         if (self.hasObjects()):
             toRemove = None
             for i in range(len(self.objects)):
-                self.publishTFPose(self.objects[i].pose, self.objects[i].getName(), 'base_link')
+                self.publishTFPose(self.objects[i].object.pose, self.objects[i].getName(), 'base_link')
                 if (self.objects[i].isRemoved):
                     toRemove = i
             if toRemove != None:
