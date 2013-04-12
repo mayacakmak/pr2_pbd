@@ -81,15 +81,16 @@ class ProgrammedAction:
         self.lock.acquire()
         self.seq.seq.append(self.copyActionStep(step))
         if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
-            self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, self.getLastStep(), objectList))
-            self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, self.getLastStep(), objectList))
+            lastStep = self.seq.seq[len(self.seq.seq)-1]
+            self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, lastStep, objectList))
+            self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, lastStep, objectList))
             if (self.nFrames() > 1):
                 self.rLinks[self.nFrames()-1] = self.getLink(0, self.nFrames()-1)
                 self.lLinks[self.nFrames()-1] = self.getLink(1, self.nFrames()-1)
         self.lock.release()
-            
+
+    # Private function            
     def getLink(self, armIndex, toIndex):
-        self.lock.acquire()
         if (armIndex == 0):
             startPoint = self.rMarkers[toIndex-1].getAbsolutePosition(isStart=True)
             endPoint = self.rMarkers[toIndex].getAbsolutePosition(isStart=False)
@@ -100,7 +101,6 @@ class ProgrammedAction:
         return Marker(type=Marker.ARROW, id=(2*toIndex+armIndex), lifetime=rospy.Duration(2),
                       scale=Vector3(0.01,0.03,0.01), header=Header(frame_id='base_link'),
                       color=ColorRGBA(0.8, 0.8, 0.8, 0.3), points=[startPoint, endPoint])
-        self.lock.release()
 
     def updateObjects(self, objectList):
         self.lock.acquire()
@@ -110,14 +110,13 @@ class ProgrammedAction:
         for i in range(len(self.lMarkers)):
             self.lMarkers[i].updateReferenceFrameList(objectList)
         self.lock.release()
-        
+
+    # Private function, no need to lock..        
     def updateInteractiveMarkers(self):
-        self.lock.acquire()
         for i in range(len(self.rMarkers)):
             self.rMarkers[i].updateVisualization()
         for i in range(len(self.lMarkers)):
             self.lMarkers[i].updateVisualization()
-        self.lock.release()
 
     def resetAllTargets(self, armIndex):
         self.lock.acquire()
@@ -144,7 +143,7 @@ class ProgrammedAction:
         if (toDelete != None):
             self.rLinks[self.rLinks.keys()[-1]].action = Marker.DELETE
             self.lLinks[self.lLinks.keys()[-1]].action = Marker.DELETE
-            self.updateVisualization()
+            #self.updateVisualization()
             self.rMarkers[-1].destroy()
             self.lMarkers[-1].destroy()
             for i in range(toDelete+1, self.nFrames()):
@@ -155,9 +154,12 @@ class ProgrammedAction:
             aStep = self.seq.seq.pop(toDelete)
             self.rLinks.pop(self.rLinks.keys()[-1])
             self.lLinks.pop(self.lLinks.keys()[-1])
+
+        self.lock.release()
+
+        if (toDelete != None):
             self.updateVisualization()
             self.updateInteractiveMarkers()
-        self.lock.release()
 
     def getPotentialTargets(self, armIndex):
         requestedPose = None
@@ -213,6 +215,7 @@ class ProgrammedAction:
     
     def save(self, dataDir):
         if (self.nFrames() > 0):
+            self.lock.acquire()
             for i in range(len(self.seq.seq)):
                 aStep = self.seq.seq[i]
                 print i, '(R):', aStep.armTarget.rArm.joint_pose 
@@ -220,18 +223,21 @@ class ProgrammedAction:
             demoBag = rosbag.Bag(dataDir + self.getFname(), 'w')
             demoBag.write('sequence', self.seq)
             demoBag.close()
+            self.lock.release()
         else:
             rospy.logwarn('Could not save demonstration because it does not have any frames.')
         
     def load(self, dataDir):
         fname = dataDir + self.getFname()
         if (os.path.exists(fname)):
+            self.lock.acquire()
             demoBag = rosbag.Bag(fname)
             for topic, msg, t in demoBag.read_messages(topics=['sequence']):
                 print 'Reading demo bag file at time ', t.to_sec()
                 self.seq = msg
             print self.seq
             demoBag.close()
+            self.lock.release()
         else:
             rospy.logwarn('File does not exist, cannot load demonstration: '+ fname)
     
@@ -256,6 +262,7 @@ class ProgrammedAction:
         self.lock.release()
         
     def initializeVisualization(self, objectList):
+        self.lock.acquire()
         for i in range(len(self.seq.seq)):
             step = self.seq.seq[i]
             if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
@@ -265,13 +272,19 @@ class ProgrammedAction:
                     self.rLinks[i] = self.getLink(0, i)
                     self.lLinks[i] = self.getLink(1, i)
         self.updateInteractiveMarkers()
+        self.lock.release()
 
     def getLastStep(self):
-        return self.seq.seq[len(self.seq.seq)-1]
+        self.lock.acquire()
+        lastStep = self.seq.seq[len(self.seq.seq)-1]
+        self.lock.release()
+        return lastStep
     
     def deleteLastStep(self):
         # TODO: backup last pose for undo
+        self.lock.acquire()
         self.seq.seq = self.seq.seq[0:len(self.seq.seq)-1]
+        self.lock.release()
         
     def resumeDeletedPose(self):
         self.seq.seq.append(None) #TODO
@@ -281,6 +294,9 @@ class ProgrammedAction:
         return self.seq
     
     def requiresObject(self):
+        isObjRequired = False
+        
+        self.lock.acquire()
         for i in range(len(self.seq.seq)):
             if ((self.seq.seq[i].type == ActionStep.ARM_TARGET and 
                 (self.seq.seq[i].armTarget.rArm.refFrame == ArmState.OBJECT or 
@@ -288,8 +304,17 @@ class ProgrammedAction:
                 (self.seq.seq[i].type == ActionStep.ARM_TRAJECTORY and 
                 (self.seq.seq[i].armTrajectory.rRefFrame == ArmState.OBJECT or 
                  self.seq.seq[i].armTrajectory.lRefFrame == ArmState.OBJECT))):
-                return True
-        return False
+                isObjRequired = True
+        self.lock.release()
+        return isObjRequired
 
     def getStep(self, index):
-        return self.seq.seq[index]
+        self.lock.acquire()
+        requestedStep = self.seq.seq[index]
+        self.lock.release()
+        return requestedStep
+    
+    
+    
+    
+    

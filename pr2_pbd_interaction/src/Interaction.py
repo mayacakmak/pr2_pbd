@@ -365,6 +365,8 @@ class Interaction:
         if command.command in self.responses.keys():
             rospy.loginfo(COLOR_GREEN + 'Calling response for command '+ command.command + COLOR_NORMAL)
             response = self.responses[command.command]
+            
+            # TODO: There should be a time out to responding...
             if (not self.arms.isExecuting()):
                 if (self.undoFunction != None):
                     response.respond()
