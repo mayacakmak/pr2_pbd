@@ -70,7 +70,7 @@ class WorldSurface:
         self.menuHandler = MenuHandler()
         self.intMarker = None
         self.isRemoved = False
-        self.menuHandler.insert('Remove from scene', callback=self.remove)
+        #self.menuHandler.insert('Remove from scene', callback=self.remove)
     
     def remove(self, feedback):
         print 'Will remove the surface.'
@@ -140,8 +140,8 @@ class World:
                 self.surface.intMarker = self.getSurfaceMarker()
                 self.IMServer.insert(self.surface.intMarker, self.markerFeedback)
                 self.IMServer.applyChanges()
-                self.surface.menuHandler.apply(self.IMServer, self.surface.intMarker.name)
-                self.IMServer.applyChanges()
+                #self.surface.menuHandler.apply(self.IMServer, self.surface.intMarker.name)
+                #self.IMServer.applyChanges()
     
     def receieveRecognizedObjectInfo(self, objectList):
         self.lock.acquire()
@@ -492,6 +492,7 @@ class World:
 
     def update(self):
         # Visualize the detected object
+        isWorldChanged = False
         self.lock.acquire()
         if (self.hasObjects()):
             toRemove = None
@@ -501,8 +502,10 @@ class World:
                     toRemove = i
             if toRemove != None:
                 self.removeObject(toRemove)
+                isWorldChanged = True
             if (self.surface!= None and self.surface.isRemoved):
                 self.removeSurface()
         self.lock.release()
+        return isWorldChanged
                     
                                    

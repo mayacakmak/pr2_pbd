@@ -411,7 +411,9 @@ class Interaction:
 
             pAction.deletePotentialTargets()
 
-        self.world.update()
+        isWorldChanged = self.world.update()
+        if (isWorldChanged):
+            self.session.getProgrammedAction().updateObjects(self.world.getReferenceFrameList())
         time.sleep(0.1)
 
 ## Utility/helper functions
