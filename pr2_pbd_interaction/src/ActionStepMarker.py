@@ -31,7 +31,7 @@ class ActionStepMarker:
     
     IMServer = None
 
-    def __init__(self, id, armIndex, aStep, refFrameObjectList):
+    def __init__(self, id, armIndex, aStep, refFrameObjectList, markerClickedCallback):
         
         if ActionStepMarker.IMServer == None:
             ActionStepMarker.IMServer = InteractiveMarkerServer('programmed_actions')
@@ -41,6 +41,7 @@ class ActionStepMarker:
         self.armIndex = armIndex
         self.step = id
         self.id = 2*self.step + self.armIndex
+        self.markerClickedCallback = markerClickedCallback
         self.name = 'step' + str(self.step) + 'arm' + str(self.armIndex)
         self.isPoseRequested = False
         self.isDeleteRequested = False
@@ -337,6 +338,7 @@ class ActionStepMarker:
             else:
                 self.poseControlVisible = True
             self.updateVisualization()
+            self.markerClickedCallback(self.id)
         else:
             rospy.loginfo('Unknown event' + str(feedback.event_type))
 

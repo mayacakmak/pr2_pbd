@@ -82,8 +82,8 @@ class ProgrammedAction:
         self.seq.seq.append(self.copyActionStep(step))
         if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
             lastStep = self.seq.seq[len(self.seq.seq)-1]
-            self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, lastStep, objectList))
-            self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, lastStep, objectList))
+            self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, lastStep, objectList, self.markerClickedCallback))
+            self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, lastStep, objectList, self.markerClickedCallback))
             if (self.nFrames() > 1):
                 self.rLinks[self.nFrames()-1] = self.getLink(0, self.nFrames()-1)
                 self.lLinks[self.nFrames()-1] = self.getLink(1, self.nFrames()-1)
@@ -261,13 +261,24 @@ class ProgrammedAction:
         self.lLinks = dict()
         self.lock.release()
         
+    def markerClickedCallback(self, id):
+        print 'callback called'
+        for i in range(len(self.rMarkers)):
+            if (self.rMarkers[i].id != id and self.rMarkers[i].poseControlVisible):
+                self.rMarkers[i].poseControlVisible = False
+                self.rMarkers[i].updateVisualization()
+        for i in range(len(self.lMarkers)):
+            if (self.lMarkers[i].id != id and self.lMarkers[i].poseControlVisible):
+                self.lMarkers[i].poseControlVisible = False
+                self.lMarkers[i].updateVisualization()
+        
     def initializeVisualization(self, objectList):
         self.lock.acquire()
         for i in range(len(self.seq.seq)):
             step = self.seq.seq[i]
             if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
-                self.rMarkers.append(ActionStepMarker(i+1, 0, step, objectList))
-                self.lMarkers.append(ActionStepMarker(i+1, 1, step, objectList))
+                self.rMarkers.append(ActionStepMarker(i+1, 0, step, objectList, self.markerClickedCallback))
+                self.lMarkers.append(ActionStepMarker(i+1, 1, step, objectList, self.markerClickedCallback))
                 if (i > 0):
                     self.rLinks[i] = self.getLink(0, i)
                     self.lLinks[i] = self.getLink(1, i)
