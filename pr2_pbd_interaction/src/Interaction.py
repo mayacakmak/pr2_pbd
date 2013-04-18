@@ -395,6 +395,7 @@ class Interaction:
         if (self.isRecordingMotion):
             self.saveStateToArmTrajectory()
 
+        isWorldChanged = self.world.update()
         if (self.session.nProgrammedActions() > 0):
             pAction = self.session.getProgrammedAction()
             pAction.updateVisualization()
@@ -411,9 +412,9 @@ class Interaction:
 
             pAction.deletePotentialTargets()
 
-        isWorldChanged = self.world.update()
-        if (isWorldChanged):
-            self.session.getProgrammedAction().updateObjects(self.world.getReferenceFrameList())
+            if (isWorldChanged):
+                self.session.getProgrammedAction().updateObjects(self.world.getReferenceFrameList())
+
         time.sleep(0.1)
 
 ## Utility/helper functions

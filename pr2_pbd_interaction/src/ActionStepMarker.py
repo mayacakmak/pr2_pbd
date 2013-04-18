@@ -37,6 +37,7 @@ class ActionStepMarker:
             ActionStepMarker.IMServer = InteractiveMarkerServer('programmed_actions')
 
         self.aStep = aStep
+#        self.absolutePose = self.getAbsolutePose()
         self.armIndex = armIndex
         self.step = id
         self.id = 2*self.step + self.armIndex
@@ -45,10 +46,9 @@ class ActionStepMarker:
         self.isDeleteRequested = False
         self.poseControlVisible = False
         self.offset = 0.09
-
-        self.updateReferenceFrameList(refFrameObjectList)
-        
+        self.hasObject = True
         armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
+        self.updateReferenceFrameList(refFrameObjectList)
         self.updateMenu()
 
     def decreaseID(self):
@@ -64,12 +64,21 @@ class ActionStepMarker:
 
         armPose = self.getTarget()
         if (armPose.refFrame == ArmState.OBJECT):
+            self.hasObject = False
             prevRefObject = armPose.refFrameObject
             newRefObject = self.getMostSimilarObject(prevRefObject, refFrameObjectList)
-            armPose.refFrameObject = newRefObject
+            if (newRefObject != None):
+                self.hasObject = True
+                armPose.refFrameObject = newRefObject
+                armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, armPose)
+
+#            else:
+#                if (self.aStep.type == ActionStep.ARM_TARGET):
+#                    self.setNewPose(self.absolutePose)
+#                    armPose.refFrame = ArmState.ROBOT_BASE
+#                    armPose.refFrameObject = Object()
         
         self.updateRefFrameNames()
-        armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, armPose)
         self.updateMenu()
         
     def getMostSimilarObject(self, refObject, refFrameObjectList):
@@ -81,11 +90,16 @@ class ActionStepMarker:
                 bestDist = dist
                 chosenObjIndex = i
         if chosenObjIndex==-1:
-            print 'Did not find a similar object..'
+            rospy.logwarn('Did not find a similar object..')
             return None
         else:
-            print 'Most similar to new object ', chosenObjIndex
-            return refFrameObjectList[chosenObjIndex]
+            print 'Objet dissimilarity is --- ', bestDist
+            if bestDist > 0.075:
+                rospy.logwarn('Found some objects, but not similar enough.')
+                return None
+            else:
+                rospy.loginfo('Most similar to new object '+ str(chosenObjIndex))
+                return refFrameObjectList[chosenObjIndex]
             
     def updateRefFrameNames(self):
         self.refNames = ['base_link']
@@ -106,7 +120,8 @@ class ActionStepMarker:
         self.deleteMenuEntry = self.menuHandler.insert('Delete step', callback=self.deleteStep)
         for i in range(len(self.refNames)):
             self.menuHandler.setCheckState(self.subEntries[i], MenuHandler.UNCHECKED)
-        self.menuHandler.setCheckState(self.getMenuIDFromName(self.getReferenceFrameName()), MenuHandler.CHECKED)
+        if (self.hasObject):
+            self.menuHandler.setCheckState(self.getMenuIDFromName(self.getReferenceFrameName()), MenuHandler.CHECKED)
         self.updateVisualizationCore()
         self.menuHandler.apply(ActionStepMarker.IMServer, self.name)
         ActionStepMarker.IMServer.applyChanges()
@@ -198,24 +213,28 @@ class ActionStepMarker:
             return armStateCopy.ee_pose
         else:
             return armState.ee_pose
-            
+
     def getAbsolutePosition(self, isStart=True):
+        pose = self.getAbsolutePose(isStart)
+        return pose.position
+            
+    def getAbsolutePose(self, isStart=True):
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTarget.rArm)).position
+                return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTarget.rArm))
             else:
-                return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTarget.lArm)).position
+                return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTarget.lArm))
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             if self.armIndex == 0:
                 if isStart:
-                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.rArm[len(self.aStep.armTrajectory.rArm)-1])).position
+                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.rArm[len(self.aStep.armTrajectory.rArm)-1]))
                 else:
-                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.rArm[0])).position
+                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.rArm[0]))
             else:
                 if isStart:
-                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.lArm[len(self.aStep.armTrajectory.rArm)-1])).position
+                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.lArm[len(self.aStep.armTrajectory.rArm)-1]))
                 else:
-                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.lArm[0])).position
+                    return self.offsetPose(self.getFrameAbsolutePose(self.aStep.armTrajectory.lArm[0]))
                
     def getPose(self):
         t = self.getTarget()
@@ -453,7 +472,7 @@ class ActionStepMarker:
         mesh.scale.x = 1.0;
         mesh.scale.y = 1.0;
         mesh.scale.z = 1.0;
-        if self.isReachable:
+        if self.isReachable and self.hasObject:
             mesh.color = ColorRGBA(1.0, 0.5, 0.0, 0.6) #ColorRGBA(0.8, 0.0, 0.4, 0.8);
         else:
             mesh.color = ColorRGBA(0.5, 0.5, 0.5, 0.6)
