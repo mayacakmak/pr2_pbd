@@ -46,6 +46,7 @@ class ActionStepMarker:
         self.isPoseRequested = False
         self.isDeleteRequested = False
         self.poseControlVisible = False
+        self.isEditRequested = False
         self.offset = 0.09
         self.hasObject = True
         armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
@@ -72,13 +73,6 @@ class ActionStepMarker:
                 self.hasObject = True
                 armPose.refFrameObject = newRefObject
                 armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, armPose)
-
-#            else:
-#                if (self.aStep.type == ActionStep.ARM_TARGET):
-#                    self.setNewPose(self.absolutePose)
-#                    armPose.refFrame = ArmState.ROBOT_BASE
-#                    armPose.refFrameObject = Object()
-        
         self.updateRefFrameNames()
         self.updateMenu()
         
@@ -117,8 +111,9 @@ class ActionStepMarker:
         self.subEntries = [None]*len(self.refNames)
         for i in range(len(self.refNames)):
             self.subEntries[i] = self.menuHandler.insert(self.refNames[i], parent=frameEntry, callback=self.changeReferenceFrame)
-        self.moveMenuEntry = self.menuHandler.insert('Move here', callback=self.moveToPose)
-        self.deleteMenuEntry = self.menuHandler.insert('Delete step', callback=self.deleteStep)
+        self.moveMenuEntry = self.menuHandler.insert('Move arm here', callback=self.moveToPose)
+        self.movePoseMenuEntry = self.menuHandler.insert('Move to current arm pose', callback=self.movePoseToCurrent)
+        self.deleteMenuEntry = self.menuHandler.insert('Delete', callback=self.deleteStep)
         for i in range(len(self.refNames)):
             self.menuHandler.setCheckState(self.subEntries[i], MenuHandler.UNCHECKED)
         if (self.hasObject):
@@ -204,7 +199,7 @@ class ActionStepMarker:
             self.updateVisualization()
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             rospy.logwarn('Modification of whole trajectory segments is not implemented.')
-
+        
     def getFrameAbsolutePose(self, armState):
         if (armState.refFrame == ArmState.OBJECT):
             armStateCopy = ArmState(armState.refFrame, 
@@ -247,6 +242,17 @@ class ActionStepMarker:
             T = tf.transformations.translation_matrix([const*self.offset, 0, 0])
             Mhand = tf.transformations.concatenate_matrices(M, T)
             return self.getPoseFromMartix(Mhand)
+
+    def setTarget(self, armIndex, target):
+        if (self.aStep.type == ActionStep.ARM_TARGET):
+            if self.armIndex == 0:
+                self.aStep.armTarget.rArm = target
+            else:
+                self.aStep.armTarget.lArm = target
+            self.hasObject = True
+            armState, self.isReachable = Arms.solveIK4ArmState(self.armIndex, self.getTarget())
+            self.updateMenu()
+        self.isEditRequested = False
                         
     def getTarget(self, trajectoryIndex=None):
         if (self.aStep.type == ActionStep.ARM_TARGET):
@@ -347,6 +353,9 @@ class ActionStepMarker:
 
     def moveToPose(self, feedback):
         self.isPoseRequested = True
+
+    def movePoseToCurrent(self, feedback):
+        self.isEditRequested = True
 
     def poseReached(self):
         self.isPoseRequested = False

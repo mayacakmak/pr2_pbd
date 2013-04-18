@@ -129,7 +129,6 @@ class ProgrammedAction:
         self.lock.release()
 
     def deletePotentialTargets(self):
-        # TODO: Complete and test!
         self.lock.acquire()
         toDelete = None
         for i in range(len(self.rMarkers)):
@@ -141,9 +140,12 @@ class ProgrammedAction:
                 toDelete = i
                 break
         if (toDelete != None):
-            self.rLinks[self.rLinks.keys()[-1]].action = Marker.DELETE
-            self.lLinks[self.lLinks.keys()[-1]].action = Marker.DELETE
-            #self.updateVisualization()
+            if (len(self.rLinks) > 0):
+                self.rLinks[self.rLinks.keys()[-1]].action = Marker.DELETE
+                self.lLinks[self.lLinks.keys()[-1]].action = Marker.DELETE
+                self.rLinks.pop(self.rLinks.keys()[-1])
+                self.lLinks.pop(self.lLinks.keys()[-1])
+
             self.rMarkers[-1].destroy()
             self.lMarkers[-1].destroy()
             for i in range(toDelete+1, self.nFrames()):
@@ -152,14 +154,22 @@ class ProgrammedAction:
             rMarker = self.rMarkers.pop(toDelete)
             lMarker = self.lMarkers.pop(toDelete)
             aStep = self.seq.seq.pop(toDelete)
-            self.rLinks.pop(self.rLinks.keys()[-1])
-            self.lLinks.pop(self.lLinks.keys()[-1])
 
         self.lock.release()
 
         if (toDelete != None):
             self.updateVisualization()
             self.updateInteractiveMarkers()
+
+    def changePotentialPoses(self, rArmState, lArmState):
+        self.lock.acquire()
+        for i in range(len(self.rMarkers)):
+            if (self.rMarkers[i].isEditRequested):
+                self.rMarkers[i].setTarget(0, rArmState)
+        for i in range(len(self.lMarkers)):
+            if (self.lMarkers[i].isEditRequested):
+                self.lMarkers[i].setTarget(1, lArmState)
+        self.lock.release()
 
     def getPotentialTargets(self, armIndex):
         requestedPose = None
@@ -194,6 +204,7 @@ class ProgrammedAction:
         
     def clear(self):
         #TODO: get backups before clear
+        self.resetVisualization()
         self.lock.acquire()
         self.seq = ActionStepSequence()
         self.rMarkers = []

@@ -8,7 +8,8 @@
   
   <!-- This is the GUI that lets you send speech commands with buttons and displays what the robot would say -->
   
-  <node name="pr2_pbd_gui" pkg="rqt_gui" type="rqt_gui" output="screen"></node>
+  <node name="pr2_pbd_gui" pkg="rqt_gui" type="rqt_gui" output="screen">
+  </node>
 
   <!-- This makes the robot look around appropriately -->
 

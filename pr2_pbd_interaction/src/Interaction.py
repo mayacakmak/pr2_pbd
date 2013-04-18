@@ -412,6 +412,9 @@ class Interaction:
 
             pAction.deletePotentialTargets()
 
+            states = self.getArmStates()
+            pAction.changePotentialPoses(states[0], states[1])
+                
             if (isWorldChanged):
                 self.session.getProgrammedAction().updateObjects(self.world.getReferenceFrameList())
 
