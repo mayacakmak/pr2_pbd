@@ -8,6 +8,9 @@ import actionlib
 from actionlib_msgs.msg import *
 from speakeasy.msg import SpeakEasyTextToSpeech
 from sound_play.msg import SoundRequest
+from visualization_msgs.msg import *
+from geometry_msgs.msg import *
+from std_msgs.msg import Header,ColorRGBA
 
 class TTSCommands:
     SAY  = 0;
@@ -71,6 +74,7 @@ class RobotSpeech:
     def __init__(self):
         self.speechOutputSpeakeasy = rospy.Publisher('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech)
         self.speechOutputSoundplay = rospy.Publisher('robotsound', SoundRequest)
+        self.markerPublisher = rospy.Publisher('visualization_marker', Marker)
         
     def say(self, text, useSpeakeasy=False):
 	useSpeakeasy = False        
@@ -81,9 +85,18 @@ class RobotSpeech:
             ttsRequestMsg.engineName = 'cepstral'
             ttsRequestMsg.voiceName = 'David'
             self.speechOutputSpeakeasy.publish(ttsRequestMsg)
+            self.sayInRViz(text)
         else:
             self.speechOutputSoundplay.publish(SoundRequest(command=SoundRequest.SAY, arg=text))
+            self.sayInRViz(text)
             
+    def sayInRViz(self, text):
+        m = Marker(type=Marker.TEXT_VIEW_FACING, id=1000, lifetime=rospy.Duration(1.5), 
+                    pose=Pose(Point(0.5,0.5,1.45), Quaternion(0,0,0,1)),
+                    scale=Vector3(0.06,0.06,0.06), header=Header(frame_id='base_link'),
+                    color=ColorRGBA(0.0, 1.0, 0.0, 0.8), text=text)
+        self.markerPublisher.publish(m)
+
     def stopSaying(self):
         ttsRequestMsg = SpeakEasyTextToSpeech()
         ttsRequestMsg.command = TTSCommands.STOP

@@ -364,12 +364,16 @@ class World:
     def transform(pose, fromFrame, toFrame):
         #rospy.loginfo('Making a transformation from ' + fromFrame + " to " + toFrame)
         objPoseStamped = PoseStamped()
-        t = World.tfListener.getLatestCommonTime(fromFrame, toFrame)
-        objPoseStamped.header.stamp = t
-        objPoseStamped.header.frame_id = fromFrame
-        objPoseStamped.pose = pose
-        relEEPose = World.tfListener.transformPose(toFrame, objPoseStamped)
-        return relEEPose.pose
+        try:
+            t = World.tfListener.getLatestCommonTime(fromFrame, toFrame)
+            objPoseStamped.header.stamp = t
+            objPoseStamped.header.frame_id = fromFrame
+            objPoseStamped.pose = pose
+            relEEPose = World.tfListener.transformPose(toFrame, objPoseStamped)
+            return relEEPose.pose
+        except rospy.ServiceException, e:
+            rospy.logerr('Exception during transform.')
+            return None
 
     @staticmethod
     def pose2string(pose):
