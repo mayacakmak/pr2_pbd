@@ -24,17 +24,17 @@ from sound_play.msg import SoundRequest
 
 
 class ClickableLabel(QtGui.QLabel):
-    def __init__(self, parent, name, clickCallback):
+    def __init__(self, parent, index, clickCallback):
         QtGui.QLabel.__init__(self, parent)
-        self.name = name
+        self.index = index
         self.clickCallback = clickCallback
     
     def mousePressEvent(self, event):
         self.emit(QtCore.SIGNAL('clicked()'), "Label pressed")
-        self.clickCallback(self.name)
+        self.clickCallback(self.index)
 
 class ActionIcon(QtGui.QGridLayout):
-    def __init__(self, parent, name, clickCallback):
+    def __init__(self, parent, index, clickCallback):
         QtGui.QGridLayout.__init__(self)
         path = os.popen('rospack find pr2_pbd_gui').read()
         path = path[0:len(path)-1]
@@ -42,19 +42,61 @@ class ActionIcon(QtGui.QGridLayout):
         self.selectedIconPath = path + '/icons/actions1.png'
         self.selected = True
         self.actionIconWidth = 50
-        self.icon = ClickableLabel(parent, name, clickCallback)
+        self.index = index
+        self.icon = ClickableLabel(parent, index, clickCallback)
         self.text = QtGui.QLabel(parent)
-        self.text.setText(name)
+        self.text.setText(self.getName())
         self.updateView()
         self.addWidget(self.icon, 0, 0)
         self.addWidget(self.text, 1, 0)
-        
+    
+    def getName(self):
+        return 'Action' + str(self.index + 1)
+    
     def updateView(self):
         if self.selected:
             pixmap = QtGui.QPixmap(self.selectedIconPath)
         else:
             pixmap = QtGui.QPixmap(self.notSelectedIconPath)
         self.icon.setPixmap(pixmap.scaledToWidth(self.actionIconWidth, QtCore.Qt.SmoothTransformation))
+
+
+class StepIcon(QtGui.QGridLayout):
+    def __init__(self, parent, index, clickCallback):
+        QtGui.QGridLayout.__init__(self)
+        path = os.popen('rospack find pr2_pbd_gui').read()
+        path = path[0:len(path)-1]
+        self.notSelectedIconPath = path + '/icons/node0.png'
+        self.selectedIconPath = path + '/icons/node1.png'
+        self.notSelectedFirstIconPath = path + '/icons/firstnode0.png'
+        self.selectedFirstIconPath = path + '/icons/firstnode1.png'
+        self.selected = True
+        self.actionIconWidth = 50
+        self.index = index
+        self.icon = ClickableLabel(parent, index, clickCallback)
+        self.text = QtGui.QLabel(parent)
+        self.text.setText(self.getName())
+        self.updateView()
+        self.addWidget(self.icon, 0, 0)
+        self.addWidget(self.text, 1, 0)
+    
+    def getName(self):
+        return 'Step' + str(self.index + 1)
+    
+    def updateView(self):
+        if self.index == 0:
+            if self.selected:
+                pixmap = QtGui.QPixmap(self.selectedIconPath)
+            else:
+                pixmap = QtGui.QPixmap(self.notSelectedIconPath)
+        else:
+            if self.selected:
+                pixmap = QtGui.QPixmap(self.selectedFirstIconPath)
+            else:
+                pixmap = QtGui.QPixmap(self.notSelectedFirstIconPath)
+            
+        self.icon.setPixmap(pixmap.scaledToWidth(self.actionIconWidth, QtCore.Qt.SmoothTransformation))
+        
         
         
 class PbDGUI(Plugin):
@@ -72,28 +114,30 @@ class PbDGUI(Plugin):
         self.soundInput = rospy.Subscriber('robotsound', SoundRequest, self.robotSoundReceived)
         self.stateInput = rospy.Subscriber('interaction_state', String, self.robotStateReceived)
         QtGui.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
+        self.newCommand.connect(self.respondToCommand)
         
         self.commandButtons = dict()
         self.commandButtons[Command.CREATE_NEW_ACTION] = 'New action'
+        self.commandButtons[Command.TEST_MICROPHONE] = 'Test microphone'
+        self.commandButtons[Command.NEXT_ACTION] = 'Next action'
+        self.commandButtons[Command.PREV_ACTION] = 'Prev action'
+        self.commandButtons[Command.SAVE_POSE] = 'Save pose'
+        self.currentAction = -1
 
         allWidgetsBox = QtGui.QGridLayout()
 
-        gb1 = QGroupBox('Actions', self._widget)
+        actionBox = QGroupBox('Actions', self._widget)
         self.actionGrid = QtGui.QGridLayout()
         for i in range(6):
-            self.actionGrid.addItem(QtGui.QSpacerItem(60, 60), 0, i)
-        self.actionsIcons = dict()
-        self.createNewAction()
-        self.createNewAction()
-        print self.actionGrid.columnCount()
-        print self.actionGrid.rowCount()
-        gbl1 = QtGui.QHBoxLayout()
-        gbl1.addLayout(self.actionGrid)
-        gb1.setLayout(gbl1)
-        allWidgetsBox.addWidget(gb1, 0, 0)
+            self.actionGrid.addItem(QtGui.QSpacerItem(90, 90), 0, i)
+        self.actionIcons = dict()
+        actionBoxLayout = QtGui.QHBoxLayout()
+        actionBoxLayout.addLayout(self.actionGrid)
+        actionBox.setLayout(actionBoxLayout)
+        allWidgetsBox.addWidget(actionBox, 0, 0)
         
         actionButtonGrid = QtGui.QGridLayout()
-        for i in range(6):
+        for i in range(9):
             actionButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, i)
         actionButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 1, 0)
         btn = QtGui.QPushButton(self.commandButtons[Command.CREATE_NEW_ACTION], self._widget)
@@ -101,9 +145,26 @@ class PbDGUI(Plugin):
         actionButtonGrid.addWidget(btn, 0, 0)
         allWidgetsBox.addLayout(actionButtonGrid, 1, 0)
         
-        self.newCommand.connect(self.respondToCommand)
-
-
+        self.stepsBox = QGroupBox('No actions created yet', self._widget)
+        self.stepsGrid = QtGui.QGridLayout()
+        for i in range(9):
+            self.stepsGrid.addItem(QtGui.QSpacerItem(48, 48), 0, i)
+        self.actionSteps = dict()
+        stepsBoxLayout = QtGui.QHBoxLayout()
+        stepsBoxLayout.addLayout(self.stepsGrid)
+        self.stepsBox.setLayout(stepsBoxLayout)
+        allWidgetsBox.addWidget(self.stepsBox, 2, 0)
+        
+        stepsButtonGrid = QtGui.QGridLayout()
+        for i in range(9):
+            stepsButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, i)
+        stepsButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 1, 0)
+        btn = QtGui.QPushButton(self.commandButtons[Command.SAVE_POSE], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        stepsButtonGrid.addWidget(btn, 0, 0)
+        allWidgetsBox.addLayout(stepsButtonGrid, 3, 0)
+        
+        
         # Add buttons for sending speech commands
 #        commandsGroupBox = QGroupBox('Speech Commands', self._widget)
 #        commandsGroupBox.setObjectName('CommandsGroup')
@@ -143,8 +204,25 @@ class PbDGUI(Plugin):
 
         # Add all children widgets into the main widget
         #allWidgetsBox.addWidget(commandsGroupBox, 1, 0)
-        allWidgetsBox.addWidget(speechGroupBox, 2, 0)
-        allWidgetsBox.addWidget(stateGroupBox, 3, 0)
+        allWidgetsBox.addWidget(speechGroupBox, 5, 0)
+        allWidgetsBox.addWidget(stateGroupBox, 6, 0)
+        
+        
+        miscButtonGrid = QtGui.QGridLayout()
+        for i in range(6):
+            miscButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, i)
+        miscButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 1, 0)
+        btn = QtGui.QPushButton(self.commandButtons[Command.TEST_MICROPHONE], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid.addWidget(btn, 0, 0)
+        btn = QtGui.QPushButton(self.commandButtons[Command.PREV_ACTION], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid.addWidget(btn, 0, 1)
+        btn = QtGui.QPushButton(self.commandButtons[Command.NEXT_ACTION], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid.addWidget(btn, 0, 2)
+        allWidgetsBox.addLayout(miscButtonGrid, 4, 0)
+        
         
         # Fix layout and add main widget to the user interface
         QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('plastique'))
@@ -177,27 +255,38 @@ class PbDGUI(Plugin):
         # Comment in to signal that the plugin has a way to configure it
         # Usually used to open a dialog to offer the user a set of configuration
 
+    def nActions(self):
+        return len(self.actionIcons.keys())
 
     def createNewAction(self):
-        actionNumber = len(self.actionsIcons.keys())
-        actionName = 'Action' + str(actionNumber)
-        for key in self.actionsIcons.keys():
-             self.actionsIcons[key].selected = False
-             self.actionsIcons[key].updateView()
-        actIcon = ActionIcon(self._widget, actionName, self.actionPressed)
-        self.actionGrid.addLayout(actIcon, 0, actionNumber)
-        #actIcon.move(0, actionNumber*60)
-        self.actionsIcons[actionName] = actIcon
+        nColumns = 6
+        actionIndex = self.nActions()
+        for key in self.actionIcons.keys():
+             self.actionIcons[key].selected = False
+             self.actionIcons[key].updateView()
+        actIcon = ActionIcon(self._widget, actionIndex, self.actionPressed)
+        self.actionGrid.addLayout(actIcon, int(actionIndex/nColumns), actionIndex%nColumns)
+        self.actionIcons[actionIndex] = actIcon
+        self.actionSteps[actionIndex] = []
+        self.currentAction = actionIndex
+        self.stepsBox.setTitle('Steps for Action ' + str(self.currentAction+1))
 
-    def actionPressed(self, actionName):
-        for key in self.actionsIcons.keys():
-            if key == actionName:
-                 self.actionsIcons[key].selected = True
-                 self.actionsIcons[key].updateView()
+    def stepPressed(self, stepIndex):
+        print 'pressed step ', stepIndex
+        
+    def actionPressed(self, actionIndex):
+        for i in range(len(self.actionIcons.keys())):
+            key = self.actionIcons.keys()[i]
+            if key == actionIndex:
+                 self.actionIcons[key].selected = True
+                 self.actionIcons[key].updateView()
             else:
-                 self.actionsIcons[key].selected = False
-                 self.actionsIcons[key].updateView()
-        print 'pressed', actionName
+                 self.actionIcons[key].selected = False
+                 self.actionIcons[key].updateView()
+        self.currentAction = actionIndex
+        self.stepsBox.setTitle('Steps for Action ' + str(self.currentAction+1))
+        self.commandOutput.publish(Command('SWITCH_TO_ACTION' + str(actionIndex+1)))
+        print 'pressed Action ', str(actionIndex+1)
         
     def commandButtonPressed(self):
         clickedButtonName = self._widget.sender().text()
@@ -215,8 +304,40 @@ class PbDGUI(Plugin):
     
     def respondToCommand(self, command):
         qWarning('Received signal:' + command.command)
+        nActions = len(self.actionIcons.keys())
         if command.command == Command.CREATE_NEW_ACTION:
             self.createNewAction()
+        
+        elif command.command == Command.NEXT_ACTION:
+            if (self.nActions() > 0):
+                if (self.currentAction < nActions-1):
+                    self.actionPressed(self.currentAction+1)
+                else:
+                    qWarning('No actions after Action ' + str(self.currentAction+1))
+            else:
+                qWarning('No actions created yet.')
+
+        elif command.command == Command.PREV_ACTION:
+            if (self.nActions() > 0):
+                if (self.currentAction > 0):
+                    self.actionPressed(self.currentAction-1)
+                else:
+                    qWarning('No actions before Action ' + str(self.currentAction+1))
+            else:
+                qWarning('No actions created yet.')
+                
+        elif command.command == Command.SAVE_POSE:
+            if (self.nActions() > 0):
+                self.savePose()
+            else:
+                qWarning('No actions created yet.')
+            
+    def savePose(self):
+        nColumns = 10
+        stepIndex = len(self.actionSteps[self.currentAction])
+        stepIcon = StepIcon(self._widget, stepIndex, self.stepPressed)
+        self.stepsGrid.addLayout(stepIcon, int(stepIndex/nColumns), stepIndex%nColumns)
+        self.actionSteps[self.currentAction].append(stepIcon)
     
     def speechCommandReceived(self, command):
         qWarning('Received speech command:' + command.command)

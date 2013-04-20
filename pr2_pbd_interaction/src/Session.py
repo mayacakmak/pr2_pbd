@@ -130,6 +130,18 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
 
+    def moveToProgrammedAction(self, actionNumber, objectList):
+        if (self.nProgrammedActions() > 0):
+            if (actionNumber < self.nProgrammedActions() and actionNumber >= 0):
+                self.getProgrammedAction().resetVisualization()
+                self.currentProgrammedActionIndex = actionNumber
+                self.getProgrammedAction().initializeVisualization(objectList)
+                return True
+            else: 
+                return False
+        else:
+            rospy.logwarn('No skills created yet.')
+
     def nextProgrammedAction(self, objectList):
         if (self.nProgrammedActions() > 0):
             if (self.currentProgrammedActionIndex < self.nProgrammedActions()):

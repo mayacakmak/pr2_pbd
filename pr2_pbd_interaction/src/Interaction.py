@@ -380,8 +380,20 @@ class Interaction:
                 else:
                     rospy.logwarn('Ignoring command sent during execution: '+ command.command)
         else:
-            rospy.logwarn(COLOR_GREEN + 'This command (' + command.command + ') is unknown.' + COLOR_NORMAL);
-
+            switchCommand = 'SWITCH_TO_ACTION'
+            if (switchCommand in command.command):
+                actionNumber = command.command[len(switchCommand):len(command.command)]
+                print 'actionNumber', actionNumber
+                actionNumber = int(actionNumber)
+                print 'actionNumber', actionNumber
+                if (self.session.nProgrammedActions() > 0):
+                    self.session.moveToProgrammedAction(actionNumber, self.world.getReferenceFrameList())
+                    response = Response(self.emptyResponse, [Speech.SWITCH_SKILL+str(actionNumber), GazeGoal.NOD])
+                else:
+                    response = Response(self.emptyResponse, [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
+                response.respond()
+            else:
+                rospy.logwarn(COLOR_GREEN + 'This command (' + command.command + ') is unknown.' + COLOR_NORMAL);
 
 ## Update loop
 
