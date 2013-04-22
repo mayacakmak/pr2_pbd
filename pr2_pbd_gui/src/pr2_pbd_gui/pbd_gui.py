@@ -36,6 +36,7 @@ class ClickableLabel(QtGui.QLabel):
 class ActionIcon(QtGui.QGridLayout):
     def __init__(self, parent, index, clickCallback):
         QtGui.QGridLayout.__init__(self)
+        self.setSpacing(0)
         path = os.popen('rospack find pr2_pbd_gui').read()
         path = path[0:len(path)-1]
         self.notSelectedIconPath = path + '/icons/actions0.png'
@@ -47,8 +48,8 @@ class ActionIcon(QtGui.QGridLayout):
         self.text = QtGui.QLabel(parent)
         self.text.setText(self.getName())
         self.updateView()
-        self.addWidget(self.icon, 0, 0)
-        self.addWidget(self.text, 1, 0)
+        self.addWidget(self.icon, 0, 0, QtCore.Qt.AlignCenter)
+        self.addWidget(self.text, 1, 0, QtCore.Qt.AlignCenter)
     
     def getName(self):
         return 'Action' + str(self.index + 1)
@@ -64,6 +65,7 @@ class ActionIcon(QtGui.QGridLayout):
 class StepIcon(QtGui.QGridLayout):
     def __init__(self, parent, index, clickCallback):
         QtGui.QGridLayout.__init__(self)
+        self.setSpacing(0)
         path = os.popen('rospack find pr2_pbd_gui').read()
         path = path[0:len(path)-1]
         self.notSelectedIconPath = path + '/icons/node0.png'
@@ -71,33 +73,38 @@ class StepIcon(QtGui.QGridLayout):
         self.notSelectedFirstIconPath = path + '/icons/firstnode0.png'
         self.selectedFirstIconPath = path + '/icons/firstnode1.png'
         self.selected = True
-        self.actionIconWidth = 50
+        self.iconWidth = 58
         self.index = index
         self.icon = ClickableLabel(parent, index, clickCallback)
         self.text = QtGui.QLabel(parent)
         self.text.setText(self.getName())
         self.updateView()
-        self.addWidget(self.icon, 0, 0)
-        self.addWidget(self.text, 1, 0)
+        self.addWidget(self.icon, 0, 0, QtCore.Qt.AlignCenter)
+        self.addWidget(self.text, 1, 0, QtCore.Qt.AlignRight)
     
     def getName(self):
-        return 'Step' + str(self.index + 1)
+        return str(self.index + 1)
+    
+    def hide(self):
+        self.icon.hide()
+        self.text.hide()
+    
+    def show(self):
+        self.icon.show()
+        self.text.show()
     
     def updateView(self):
         if self.index == 0:
             if self.selected:
-                pixmap = QtGui.QPixmap(self.selectedIconPath)
-            else:
-                pixmap = QtGui.QPixmap(self.notSelectedIconPath)
-        else:
-            if self.selected:
                 pixmap = QtGui.QPixmap(self.selectedFirstIconPath)
             else:
                 pixmap = QtGui.QPixmap(self.notSelectedFirstIconPath)
-            
-        self.icon.setPixmap(pixmap.scaledToWidth(self.actionIconWidth, QtCore.Qt.SmoothTransformation))
-        
-        
+        else:
+            if self.selected:
+                pixmap = QtGui.QPixmap(self.selectedIconPath)
+            else:
+                pixmap = QtGui.QPixmap(self.notSelectedIconPath)
+        self.icon.setPixmap(pixmap.scaledToWidth(self.iconWidth, QtCore.Qt.SmoothTransformation))
         
 class PbDGUI(Plugin):
 
@@ -123,46 +130,57 @@ class PbDGUI(Plugin):
         self.commandButtons[Command.PREV_ACTION] = 'Prev action'
         self.commandButtons[Command.SAVE_POSE] = 'Save pose'
         self.currentAction = -1
+        self.currentStep = -1
 
-        allWidgetsBox = QtGui.QGridLayout()
+        allWidgetsBox = QtGui.QVBoxLayout()
+        #allWidgetsBox.setColumnStretch(0,0)
+        #allWidgetsBox.setColumnMinimumWidth(0,550)
 
         actionBox = QGroupBox('Actions', self._widget)
         self.actionGrid = QtGui.QGridLayout()
+        self.actionGrid.setHorizontalSpacing(0)
         for i in range(6):
-            self.actionGrid.addItem(QtGui.QSpacerItem(90, 90), 0, i)
+            self.actionGrid.addItem(QtGui.QSpacerItem(90, 90), 0, i, QtCore.Qt.AlignCenter)
+            #self.actionGrid.setColumnMinimumWidth(i,88)
+            self.actionGrid.setColumnStretch(i, 0)
         self.actionIcons = dict()
         actionBoxLayout = QtGui.QHBoxLayout()
         actionBoxLayout.addLayout(self.actionGrid)
         actionBox.setLayout(actionBoxLayout)
-        allWidgetsBox.addWidget(actionBox, 0, 0)
         
         actionButtonGrid = QtGui.QGridLayout()
-        for i in range(9):
+        for i in range(8):
             actionButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, i)
+            actionButtonGrid.setColumnStretch(i, 0)
+        actionButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, 8)
+        actionButtonGrid.setColumnStretch(8, 1)
         actionButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 1, 0)
         btn = QtGui.QPushButton(self.commandButtons[Command.CREATE_NEW_ACTION], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
         actionButtonGrid.addWidget(btn, 0, 0)
-        allWidgetsBox.addLayout(actionButtonGrid, 1, 0)
         
         self.stepsBox = QGroupBox('No actions created yet', self._widget)
         self.stepsGrid = QtGui.QGridLayout()
-        for i in range(9):
-            self.stepsGrid.addItem(QtGui.QSpacerItem(48, 48), 0, i)
+        self.stepsGrid.setHorizontalSpacing(0)
+        self.stepsGrid.setSpacing(0)
+        for i in range(8):
+            self.stepsGrid.addItem(QtGui.QSpacerItem(60, 60), 0, i, QtCore.Qt.AlignCenter)
+            self.stepsGrid.setColumnMinimumWidth(i,20)
+            self.stepsGrid.setColumnStretch(i, 0)
+        self.stepsGrid.addItem(QtGui.QSpacerItem(60, 60), 0, 8)
+        self.stepsGrid.setColumnStretch(8, 1)
         self.actionSteps = dict()
         stepsBoxLayout = QtGui.QHBoxLayout()
         stepsBoxLayout.addLayout(self.stepsGrid)
         self.stepsBox.setLayout(stepsBoxLayout)
-        allWidgetsBox.addWidget(self.stepsBox, 2, 0)
         
         stepsButtonGrid = QtGui.QGridLayout()
-        for i in range(9):
+        for i in range(8):
             stepsButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, i)
         stepsButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 1, 0)
         btn = QtGui.QPushButton(self.commandButtons[Command.SAVE_POSE], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
         stepsButtonGrid.addWidget(btn, 0, 0)
-        allWidgetsBox.addLayout(stepsButtonGrid, 3, 0)
         
         
         # Add buttons for sending speech commands
@@ -181,48 +199,54 @@ class PbDGUI(Plugin):
 #        commandsGroupBox.setLayout(commandBox)
 
         # Add a display of what the robot says
-        speechGroupBox = QGroupBox('Robot Speech', self._widget)
-        speechGroupBox.setObjectName('RobotSpeechGroup')
-        speechBox = QtGui.QHBoxLayout()
-        self.speechLabel = QtGui.QLabel('Robot has not spoken yet')
-        palette = QtGui.QPalette()
-        palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.blue)
-        self.speechLabel.setPalette(palette)
-        speechBox.addWidget(self.speechLabel)
-        speechGroupBox.setLayout(speechBox)
+#        speechGroupBox = QGroupBox('Robot Speech', self._widget)
+#        speechGroupBox.setObjectName('RobotSpeechGroup')
+#        speechBox = QtGui.QHBoxLayout()
+#        self.speechLabel = QtGui.QLabel('Robot has not spoken yet')
+#        palette = QtGui.QPalette()
+#        palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.blue)
+#        self.speechLabel.setPalette(palette)
+#        speechBox.addWidget(self.speechLabel)
+#        speechGroupBox.setLayout(speechBox)
 
         # Add a display of what the robot says
-        stateGroupBox = QGroupBox('Robot State', self._widget)
-        stateGroupBox.setObjectName('RobotStateGroup')
-        stateBox = QtGui.QHBoxLayout()
-        self.stateLabel = QtGui.QLabel('Robot state not received yet.\n\n\n')
-        palette = QtGui.QPalette()
-        palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.red)
-        self.stateLabel.setPalette(palette)
-        stateBox.addWidget(self.stateLabel)
-        stateGroupBox.setLayout(stateBox)
+#        stateGroupBox = QGroupBox('Robot State', self._widget)
+#        stateGroupBox.setObjectName('RobotStateGroup')
+#        stateBox = QtGui.QHBoxLayout()
+#        self.stateLabel = QtGui.QLabel('Robot state not received yet.\n\n\n')
+#        palette = QtGui.QPalette()
+#        palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.red)
+#        self.stateLabel.setPalette(palette)
+#        stateBox.addWidget(self.stateLabel)
+#        stateGroupBox.setLayout(stateBox)
 
         # Add all children widgets into the main widget
         #allWidgetsBox.addWidget(commandsGroupBox, 1, 0)
-        allWidgetsBox.addWidget(speechGroupBox, 5, 0)
-        allWidgetsBox.addWidget(stateGroupBox, 6, 0)
+#        allWidgetsBox.addWidget(speechGroupBox, 5, 0)
+#        allWidgetsBox.addWidget(stateGroupBox, 6, 0)
         
         
-        miscButtonGrid = QtGui.QGridLayout()
-        for i in range(6):
-            miscButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, i)
-        miscButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 1, 0)
+        miscButtonGrid = QtGui.QHBoxLayout()
         btn = QtGui.QPushButton(self.commandButtons[Command.TEST_MICROPHONE], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
-        miscButtonGrid.addWidget(btn, 0, 0)
+        miscButtonGrid.addWidget(btn)
         btn = QtGui.QPushButton(self.commandButtons[Command.PREV_ACTION], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
-        miscButtonGrid.addWidget(btn, 0, 1)
+        miscButtonGrid.addWidget(btn)
         btn = QtGui.QPushButton(self.commandButtons[Command.NEXT_ACTION], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
-        miscButtonGrid.addWidget(btn, 0, 2)
-        allWidgetsBox.addLayout(miscButtonGrid, 4, 0)
+        miscButtonGrid.addWidget(btn)
+        miscButtonGrid.addStretch(1)
         
+        allWidgetsBox.addWidget(actionBox)
+        allWidgetsBox.addLayout(actionButtonGrid)
+        
+        allWidgetsBox.addWidget(self.stepsBox)
+        allWidgetsBox.addLayout(stepsButtonGrid)
+        
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
+        allWidgetsBox.addLayout(miscButtonGrid)
+        allWidgetsBox.addStretch(1)
         
         # Fix layout and add main widget to the user interface
         QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('plastique'))
@@ -261,6 +285,8 @@ class PbDGUI(Plugin):
     def createNewAction(self):
         nColumns = 6
         actionIndex = self.nActions()
+        if (actionIndex > 0):
+            self.hideCurrentAction()
         for key in self.actionIcons.keys():
              self.actionIcons[key].selected = False
              self.actionIcons[key].updateView()
@@ -273,20 +299,29 @@ class PbDGUI(Plugin):
 
     def stepPressed(self, stepIndex):
         print 'pressed step ', stepIndex
+        nSteps = len(self.actionSteps[self.currentAction])
+        for i in range(nSteps):
+            if (stepIndex == i):
+                self.actionSteps[self.currentAction][i].selected = True
+            else:
+                self.actionSteps[self.currentAction][i].selected = False
+            self.actionSteps[self.currentAction][i].updateView()
+        self.currentStep = stepIndex
         
     def actionPressed(self, actionIndex):
+        print 'pressed Action ', str(actionIndex+1)
+        self.hideCurrentAction()
         for i in range(len(self.actionIcons.keys())):
             key = self.actionIcons.keys()[i]
             if key == actionIndex:
                  self.actionIcons[key].selected = True
-                 self.actionIcons[key].updateView()
             else:
                  self.actionIcons[key].selected = False
-                 self.actionIcons[key].updateView()
+            self.actionIcons[key].updateView()
         self.currentAction = actionIndex
         self.stepsBox.setTitle('Steps for Action ' + str(self.currentAction+1))
         self.commandOutput.publish(Command('SWITCH_TO_ACTION' + str(actionIndex+1)))
-        print 'pressed Action ', str(actionIndex+1)
+        self.showCurrentAction()
         
     def commandButtonPressed(self):
         clickedButtonName = self._widget.sender().text()
@@ -333,12 +368,28 @@ class PbDGUI(Plugin):
                 qWarning('No actions created yet.')
             
     def savePose(self):
-        nColumns = 10
+        nColumns = 9
         stepIndex = len(self.actionSteps[self.currentAction])
         stepIcon = StepIcon(self._widget, stepIndex, self.stepPressed)
-        self.stepsGrid.addLayout(stepIcon, int(stepIndex/nColumns), stepIndex%nColumns)
+
+        for i in range(stepIndex):
+             self.actionSteps[self.currentAction][i].selected = False
+             self.actionSteps[self.currentAction][i].updateView()
+
+        self.stepsGrid.addLayout(stepIcon, int(stepIndex/nColumns), stepIndex%nColumns, QtCore.Qt.AlignCenter)
         self.actionSteps[self.currentAction].append(stepIcon)
+        self.currentStep = stepIndex
     
+    def hideCurrentAction(self):
+        nSteps = len(self.actionSteps[self.currentAction])
+        for i in range(nSteps):
+            self.actionSteps[self.currentAction][i].hide()
+
+    def showCurrentAction(self):
+        nSteps = len(self.actionSteps[self.currentAction])
+        for i in range(nSteps):
+            self.actionSteps[self.currentAction][i].show()
+
     def speechCommandReceived(self, command):
         qWarning('Received speech command:' + command.command)
         self.newCommand.emit(command)
