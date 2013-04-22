@@ -134,13 +134,23 @@ class PbDGUI(Plugin):
         self.commandButtons[Command.RELAX_LEFT_ARM] = 'Relax left arm'
         self.commandButtons[Command.FREEZE_RIGHT_ARM] = 'Freeze right arm'
         self.commandButtons[Command.FREEZE_LEFT_ARM] = 'Freeze left arm'
+        
+        self.commandButtons[Command.OPEN_RIGHT_HAND] = 'Open right hand'
+        self.commandButtons[Command.OPEN_LEFT_HAND] = 'Open left hand'
+        self.commandButtons[Command.CLOSE_RIGHT_HAND] = 'Close right hand'
+        self.commandButtons[Command.CLOSE_LEFT_HAND] = 'Close left hand'
+
+        self.commandButtons[Command.CLOSE_LEFT_HAND] = 'Close left hand'
+        
+        self.commandButtons[Command.EXECUTE_ACTION] = 'Execute action'
+        self.commandButtons[Command.STOP_EXECUTION] = 'Stop execution'
+
+        self.commandButtons[Command.RECORD_OBJECT_POSE] = 'Save object states'
+        
         self.currentAction = -1
         self.currentStep = -1
 
         allWidgetsBox = QtGui.QVBoxLayout()
-        #allWidgetsBox.setColumnStretch(0,0)
-        #allWidgetsBox.setColumnMinimumWidth(0,550)
-
         actionBox = QGroupBox('Actions', self._widget)
         self.actionGrid = QtGui.QGridLayout()
         self.actionGrid.setHorizontalSpacing(0)
@@ -153,16 +163,10 @@ class PbDGUI(Plugin):
         actionBoxLayout.addLayout(self.actionGrid)
         actionBox.setLayout(actionBoxLayout)
         
-        actionButtonGrid = QtGui.QGridLayout()
-        for i in range(8):
-            actionButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, i)
-            actionButtonGrid.setColumnStretch(i, 0)
-        actionButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, 8)
-        actionButtonGrid.setColumnStretch(8, 1)
-        actionButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 1, 0)
+        actionButtonGrid = QtGui.QHBoxLayout()
         btn = QtGui.QPushButton(self.commandButtons[Command.CREATE_NEW_ACTION], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
-        actionButtonGrid.addWidget(btn, 0, 0)
+        actionButtonGrid.addWidget(btn)
         
         self.stepsBox = QGroupBox('No actions created yet', self._widget)
         self.stepsGrid = QtGui.QGridLayout()
@@ -179,66 +183,23 @@ class PbDGUI(Plugin):
         stepsBoxLayout.addLayout(self.stepsGrid)
         self.stepsBox.setLayout(stepsBoxLayout)
         
-        stepsButtonGrid = QtGui.QGridLayout()
-        for i in range(8):
-            stepsButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 0, i)
-        stepsButtonGrid.addItem(QtGui.QSpacerItem(60, 20), 1, 0)
+        stepsButtonGrid = QtGui.QHBoxLayout()
         btn = QtGui.QPushButton(self.commandButtons[Command.SAVE_POSE], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
-        stepsButtonGrid.addWidget(btn, 0, 0)
-        
-        
-        # Add buttons for sending speech commands
-#        commandsGroupBox = QGroupBox('Speech Commands', self._widget)
-#        commandsGroupBox.setObjectName('CommandsGroup')
-#        grid = QtGui.QGridLayout()
-#        nColumns = 4
-#        nCommands = len(self.commandList)
-#        for i in range(0, nCommands):
-#            btn = QtGui.QPushButton(self.commandList[i], self._widget)
-#            btn.clicked.connect(self.commandButtonPressed)
-#            grid.addWidget(btn, int(i/nColumns), i%nColumns)        
-#        
-#        commandBox = QtGui.QHBoxLayout()
-#        commandBox.addLayout(grid)
-#        commandsGroupBox.setLayout(commandBox)
+        stepsButtonGrid.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.EXECUTE_ACTION], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        stepsButtonGrid.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.STOP_EXECUTION], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        stepsButtonGrid.addWidget(btn)
 
-        # Add a display of what the robot says
-#        speechGroupBox = QGroupBox('Robot Speech', self._widget)
-#        speechGroupBox.setObjectName('RobotSpeechGroup')
-#        speechBox = QtGui.QHBoxLayout()
-#        self.speechLabel = QtGui.QLabel('Robot has not spoken yet')
-#        palette = QtGui.QPalette()
-#        palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.blue)
-#        self.speechLabel.setPalette(palette)
-#        speechBox.addWidget(self.speechLabel)
-#        speechGroupBox.setLayout(speechBox)
-
-        # Add a display of what the robot says
-#        stateGroupBox = QGroupBox('Robot State', self._widget)
-#        stateGroupBox.setObjectName('RobotStateGroup')
-#        stateBox = QtGui.QHBoxLayout()
-#        self.stateLabel = QtGui.QLabel('Robot state not received yet.\n\n\n')
-#        palette = QtGui.QPalette()
-#        palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.red)
-#        self.stateLabel.setPalette(palette)
-#        stateBox.addWidget(self.stateLabel)
-#        stateGroupBox.setLayout(stateBox)
-
-        # Add all children widgets into the main widget
-        #allWidgetsBox.addWidget(commandsGroupBox, 1, 0)
-#        allWidgetsBox.addWidget(speechGroupBox, 5, 0)
-#        allWidgetsBox.addWidget(stateGroupBox, 6, 0)
-        
         
         miscButtonGrid = QtGui.QHBoxLayout()
         btn = QtGui.QPushButton(self.commandButtons[Command.TEST_MICROPHONE], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
         miscButtonGrid.addWidget(btn)
-        btn = QtGui.QPushButton(self.commandButtons[Command.PREV_ACTION], self._widget)
-        btn.clicked.connect(self.commandButtonPressed)
-        miscButtonGrid.addWidget(btn)
-        btn = QtGui.QPushButton(self.commandButtons[Command.NEXT_ACTION], self._widget)
+        btn = QtGui.QPushButton(self.commandButtons[Command.RECORD_OBJECT_POSE], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
         miscButtonGrid.addWidget(btn)
         miscButtonGrid.addStretch(1)
@@ -246,20 +207,43 @@ class PbDGUI(Plugin):
         miscButtonGrid2 = QtGui.QHBoxLayout()
         btn = QtGui.QPushButton(self.commandButtons[Command.RELAX_RIGHT_ARM], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
-        miscButtonGrid.addWidget(btn)
+        miscButtonGrid2.addWidget(btn)
         btn = QtGui.QPushButton(self.commandButtons[Command.RELAX_LEFT_ARM], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid2.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.FREEZE_RIGHT_ARM], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid2.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.FREEZE_LEFT_ARM], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
         miscButtonGrid2.addWidget(btn)
         miscButtonGrid2.addStretch(1)
 
         miscButtonGrid3 = QtGui.QHBoxLayout()
-        btn = QtGui.QPushButton(self.commandButtons[Command.FREEZE_RIGHT_ARM], self._widget)
+        btn = QtGui.QPushButton(self.commandButtons[Command.OPEN_RIGHT_HAND], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
-        miscButtonGrid.addWidget(btn)
-        btn = QtGui.QPushButton(self.commandButtons[Command.FREEZE_LEFT_ARM], self._widget)
+        miscButtonGrid3.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.OPEN_LEFT_HAND], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid3.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.CLOSE_RIGHT_HAND], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid3.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.CLOSE_LEFT_HAND], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
         miscButtonGrid3.addWidget(btn)
         miscButtonGrid3.addStretch(1)
+        
+        
+        miscButtonGrid4 = QtGui.QHBoxLayout()
+        btn = QtGui.QPushButton(self.commandButtons[Command.PREV_ACTION], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid4.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.NEXT_ACTION], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid4.addWidget(btn)
+        miscButtonGrid4.addWidget(btn)
+        miscButtonGrid4.addStretch(1)
 
         allWidgetsBox.addWidget(actionBox)
         allWidgetsBox.addLayout(actionButtonGrid)
@@ -269,8 +253,11 @@ class PbDGUI(Plugin):
         
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(miscButtonGrid)
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(miscButtonGrid2)
         allWidgetsBox.addLayout(miscButtonGrid3)
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
+        allWidgetsBox.addLayout(miscButtonGrid4)
         allWidgetsBox.addStretch(1)
         
         # Fix layout and add main widget to the user interface
