@@ -129,6 +129,11 @@ class PbDGUI(Plugin):
         self.commandButtons[Command.NEXT_ACTION] = 'Next action'
         self.commandButtons[Command.PREV_ACTION] = 'Prev action'
         self.commandButtons[Command.SAVE_POSE] = 'Save pose'
+        
+        self.commandButtons[Command.RELAX_RIGHT_ARM] = 'Relax right arm'
+        self.commandButtons[Command.RELAX_LEFT_ARM] = 'Relax left arm'
+        self.commandButtons[Command.FREEZE_RIGHT_ARM] = 'Freeze right arm'
+        self.commandButtons[Command.FREEZE_LEFT_ARM] = 'Freeze left arm'
         self.currentAction = -1
         self.currentStep = -1
 
@@ -238,6 +243,24 @@ class PbDGUI(Plugin):
         miscButtonGrid.addWidget(btn)
         miscButtonGrid.addStretch(1)
         
+        miscButtonGrid2 = QtGui.QHBoxLayout()
+        btn = QtGui.QPushButton(self.commandButtons[Command.RELAX_RIGHT_ARM], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.RELAX_LEFT_ARM], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid2.addWidget(btn)
+        miscButtonGrid2.addStretch(1)
+
+        miscButtonGrid3 = QtGui.QHBoxLayout()
+        btn = QtGui.QPushButton(self.commandButtons[Command.FREEZE_RIGHT_ARM], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.FREEZE_LEFT_ARM], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        miscButtonGrid3.addWidget(btn)
+        miscButtonGrid3.addStretch(1)
+
         allWidgetsBox.addWidget(actionBox)
         allWidgetsBox.addLayout(actionButtonGrid)
         
@@ -246,6 +269,8 @@ class PbDGUI(Plugin):
         
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(miscButtonGrid)
+        allWidgetsBox.addLayout(miscButtonGrid2)
+        allWidgetsBox.addLayout(miscButtonGrid3)
         allWidgetsBox.addStretch(1)
         
         # Fix layout and add main widget to the user interface
