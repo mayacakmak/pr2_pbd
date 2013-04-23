@@ -18,7 +18,7 @@ from qt_gui.plugin import Plugin
 from python_qt_binding import QtGui,QtCore
 from python_qt_binding.QtGui import QWidget, QFrame, QGroupBox, QIcon
 from python_qt_binding.QtCore import Slot, qDebug, QSignalMapper, QTimer, qWarning, Signal
-from speakeasy.msg import SpeakEasyTextToSpeech
+#from speakeasy.msg import SpeakEasyTextToSpeech
 from speech_recognition.msg import Command
 from sound_play.msg import SoundRequest
 
@@ -117,7 +117,7 @@ class PbDGUI(Plugin):
         self.getCommandList()
         self.commandOutput = rospy.Publisher('recognized_command', Command)
         rospy.Subscriber('recognized_command', Command, self.speechCommandReceived)
-        self.speechInput = rospy.Subscriber('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech, self.robotSpeechReceived)
+        #self.speechInput = rospy.Subscriber('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech, self.robotSpeechReceived)
         self.soundInput = rospy.Subscriber('robotsound', SoundRequest, self.robotSoundReceived)
         self.stateInput = rospy.Subscriber('interaction_state', String, self.robotStateReceived)
         QtGui.QToolTip.setFont(QtGui.QFont('SansSerif', 10))

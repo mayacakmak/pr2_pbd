@@ -6,7 +6,7 @@ import rospy
 # ROS libraries
 import actionlib
 from actionlib_msgs.msg import *
-from speakeasy.msg import SpeakEasyTextToSpeech
+#from speakeasy.msg import SpeakEasyTextToSpeech
 from sound_play.msg import SoundRequest
 from visualization_msgs.msg import *
 from geometry_msgs.msg import *
@@ -72,19 +72,19 @@ class Speech:
 class RobotSpeech:
     "Finite state machine for the human interaction"
     def __init__(self):
-        self.speechOutputSpeakeasy = rospy.Publisher('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech)
+        #self.speechOutputSpeakeasy = rospy.Publisher('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech)
         self.speechOutputSoundplay = rospy.Publisher('robotsound', SoundRequest)
         self.markerPublisher = rospy.Publisher('visualization_marker', Marker)
         
     def say(self, text, useSpeakeasy=False):
 	useSpeakeasy = False        
 	if (useSpeakeasy):
-            ttsRequestMsg = SpeakEasyTextToSpeech()
-            ttsRequestMsg.command = TTSCommands.SAY
-            ttsRequestMsg.text    = text
-            ttsRequestMsg.engineName = 'cepstral'
-            ttsRequestMsg.voiceName = 'David'
-            self.speechOutputSpeakeasy.publish(ttsRequestMsg)
+#            ttsRequestMsg = SpeakEasyTextToSpeech()
+#            ttsRequestMsg.command = TTSCommands.SAY
+#            ttsRequestMsg.text    = text
+#            ttsRequestMsg.engineName = 'cepstral'
+#            ttsRequestMsg.voiceName = 'David'
+#            self.speechOutputSpeakeasy.publish(ttsRequestMsg)
             self.sayInRViz(text)
         else:
             self.speechOutputSoundplay.publish(SoundRequest(command=SoundRequest.SAY, arg=text))
