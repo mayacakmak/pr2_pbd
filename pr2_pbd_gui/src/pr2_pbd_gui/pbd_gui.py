@@ -234,7 +234,6 @@ class PbDGUI(Plugin):
         miscButtonGrid3.addWidget(btn)
         miscButtonGrid3.addStretch(1)
         
-        
         miscButtonGrid4 = QtGui.QHBoxLayout()
         btn = QtGui.QPushButton(self.commandButtons[Command.PREV_ACTION], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
@@ -244,6 +243,16 @@ class PbDGUI(Plugin):
         miscButtonGrid4.addWidget(btn)
         miscButtonGrid4.addWidget(btn)
         miscButtonGrid4.addStretch(1)
+
+        speechGroupBox = QGroupBox('Robot Speech', self._widget)
+        speechGroupBox.setObjectName('RobotSpeechGroup')
+        speechBox = QtGui.QHBoxLayout()
+        self.speechLabel = QtGui.QLabel('Robot has not spoken yet')
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.blue)
+        self.speechLabel.setPalette(palette)
+        speechBox.addWidget(self.speechLabel)
+        speechGroupBox.setLayout(speechBox)
 
         allWidgetsBox.addWidget(actionBox)
         allWidgetsBox.addLayout(actionButtonGrid)
@@ -258,6 +267,8 @@ class PbDGUI(Plugin):
         allWidgetsBox.addLayout(miscButtonGrid3)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(miscButtonGrid4)
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
+        allWidgetsBox.addWidget(speechGroupBox)
         allWidgetsBox.addStretch(1)
         
         # Fix layout and add main widget to the user interface
@@ -347,7 +358,7 @@ class PbDGUI(Plugin):
     def robotSoundReceived(self, soundReq):
         if (soundReq.command == SoundRequest.SAY):
             qWarning('Robot said: ' + soundReq.arg)
-            self.speechLabel.setText('Robot said: ' + soundReq.arg)
+            self.speechLabel.setText('Robot sound: ' + soundReq.arg)
     
     def respondToCommand(self, command):
         qWarning('Received signal:' + command.command)
