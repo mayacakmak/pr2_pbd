@@ -1,5 +1,5 @@
 import roslib
-roslib.load_manifest('speakeasy');
+#roslib.load_manifest('speakeasy');
 roslib.load_manifest('sound_play');
 import rospy
 
