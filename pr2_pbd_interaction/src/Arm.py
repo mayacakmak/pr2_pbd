@@ -72,6 +72,7 @@ class Arm:
         self.switchController = 'pr2_controller_manager/switch_controller'
         rospy.wait_for_service(self.switchController)
         self.controllerService = rospy.ServiceProxy(self.switchController, SwitchController)
+        rospy.loginfo('Got response form the switch controller for ' + self.side + ' arm.'); 
 
         # Create a trajectory action client.
         self.trajectoryActionClient = actionlib.SimpleActionClient(self.sidePrefix + '_arm_controller/joint_trajectory_action'
