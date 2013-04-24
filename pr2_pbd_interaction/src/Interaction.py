@@ -197,17 +197,6 @@ class Interaction:
         else:
             return [Speech.ERROR_NO_EXECUTION, GazeGoal.SHAKE]
         
-    def startAndSave(self, param=None):
-        if (self.session.nProgrammedActions() > 0):
-            if (self.session.nFrames() == 0):
-                self.isProgramming = True
-                self.saveArmStep()
-                return [Speech.FIRST_STEP_RECORDED, GazeGoal.NOD]
-            else:
-                return [Speech.ACTION_ALREADY_STARTED, GazeGoal.SHAKE]
-        else:
-            return [Speech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
-        
     def saveGripperStep(self, armIndex, gripperState):
         if (self.session.nProgrammedActions() > 0):
             if (self.isProgramming):

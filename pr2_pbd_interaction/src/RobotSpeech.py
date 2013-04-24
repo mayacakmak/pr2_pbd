@@ -27,17 +27,16 @@ class Speech:
     LEFT_ARM_HOLDING = 'Left arm frozen'
     LEFT_HAND_OPENING = 'Opening left hand'
     LEFT_HAND_CLOSING = 'Closing left hand'
-    STEP_RECORDED = 'Action step recorded.'
-    FIRST_STEP_RECORDED = 'First action step recorded.'
+    STEP_RECORDED = 'Pose saved.'
     POSE_DELETED = 'Last pose deleted'
     POSE_RESUMED = 'Pose resumed'
-    SKILL_EMPTY = 'Skill has no poses to delete.'
     DELETED_SKILL = 'Deleted action'
     START_EXECUTION = 'Starting execution of action'
     EXECUTION_ENDED = 'Execution ended'
+    SWITCH_SKILL = 'Switched to action'
+    SKILL_EMPTY = 'Skill has no poses to delete.'
     EXECUTION_ERROR_NOIK = 'Cannot execute action'
     EXECUTION_ERROR_NOPOSES = 'Not enough poses in action'
-    SWITCH_SKILL = 'Switched to action'
     ERROR_NEXT_SKILL = 'No actions after action'
     ERROR_PREV_SKILL = 'No actions before action'
     ERROR_NO_SKILLS = 'No actions created yet.'
@@ -55,7 +54,6 @@ class Speech:
     SKILL_CLEARED = 'All poses deleted. To resume the poses say: undo last command.'
     LAST_POSE_DELETED = 'Last poses deleted. To resume the pose say: undo last command.'
     ALL_POSES_RESUMED = 'All poses resumed.'
-    POSE_RESUMED = 'Pose resumed.'
     START_STATE_RECORDED = 'Start state recorded.'
     OBJECT_NOT_DETECTED = 'No objects were detected.'
     ACTION_SAVED = 'Saved Action '
@@ -70,7 +68,7 @@ class Speech:
     STOPPING_EXECUTION = 'Execution stopped.'
 
 class RobotSpeech:
-    "Finite state machine for the human interaction"
+    "Things that the robot say"
     def __init__(self):
         #self.speechOutputSpeakeasy = rospy.Publisher('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech)
         self.speechOutputSoundplay = rospy.Publisher('robotsound', SoundRequest)
@@ -87,7 +85,7 @@ class RobotSpeech:
 #            self.speechOutputSpeakeasy.publish(ttsRequestMsg)
             self.sayInRViz(text)
         else:
-            self.speechOutputSoundplay.publish(SoundRequest(command=SoundRequest.SAY, arg=text))
+#            self.speechOutputSoundplay.publish(SoundRequest(command=SoundRequest.SAY, arg=text))
             self.sayInRViz(text)
             
     def sayInRViz(self, text):

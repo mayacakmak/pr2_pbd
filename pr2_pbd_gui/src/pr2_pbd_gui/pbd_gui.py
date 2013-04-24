@@ -423,7 +423,7 @@ class PbDGUI(Plugin):
         
     def robotStateReceived(self, speech):
         qWarning('Robot state: ' + speech.data)
-        self.stateLabel.setText(speech.data)
+        #self.stateLabel.setText(speech.data)
 
     def getCommandList(self):
         path = os.popen('rospack find speech_recognition').read()
