@@ -5,9 +5,10 @@ import os, sys, yaml
 class Session:
     "This class holds and maintains experimental data"
     def __init__(self, objectList, isDebug=False):
-        self.reloadState = False
+        self.isReload = rospy.get_param('/pr2_pbd_interaction/isReload')
+        
         if (isDebug):
-            self.expNum = 0
+            self.expNum = rospy.get_param('/pr2_pbd_interaction/experimentNumber')
             self.dataDir = self.getDataDir(self.expNum)
             if (not os.path.exists(self.dataDir)):
                 os.mkdir(self.dataDir)
@@ -19,7 +20,7 @@ class Session:
         self.currentProgrammedActionIndex = 0
         self.backupProgrammedAction = None
 
-        if (self.reloadState):
+        if (self.isReload):
             self.loadStateForSession(objectList)
             rospy.loginfo("Session state loaded.")
         
@@ -42,7 +43,7 @@ class Session:
                 elif (overwrite == 'n'):
                     self.expNum = None
                 elif (overwrite == 'r'):
-                    self.reloadState = True
+                    self.isReload = True
                 else:
                     rospy.logerr('Invalid response, try again.')
     
@@ -132,15 +133,17 @@ class Session:
 
     def moveToProgrammedAction(self, actionNumber, objectList):
         if (self.nProgrammedActions() > 0):
-            if (actionNumber < self.nProgrammedActions() and actionNumber >= 0):
+            if (actionNumber <= self.nProgrammedActions() and actionNumber > 0):
                 self.getProgrammedAction().resetVisualization()
                 self.currentProgrammedActionIndex = actionNumber
                 self.getProgrammedAction().initializeVisualization(objectList)
                 return True
-            else: 
+            else:
+                rospy.logwarn('Cannot switch to action ' + str(actionNumber))
                 return False
         else:
             rospy.logwarn('No skills created yet.')
+            return False
 
     def nextProgrammedAction(self, objectList):
         if (self.nProgrammedActions() > 0):
@@ -153,6 +156,7 @@ class Session:
                 return False
         else:
             rospy.logwarn('No skills created yet.')
+            return False
 
     def previousProgrammedAction(self, objectList):
         if (self.nProgrammedActions() > 0):
@@ -165,6 +169,7 @@ class Session:
                 return False
         else:
             rospy.logwarn('No skills created yet.')
+            return False
     
     def nFrames(self):
         if (self.nProgrammedActions() > 0):

@@ -237,16 +237,16 @@ class World:
         rospy.loginfo('Removing object ' + obj.intMarker.name)
         self.IMServer.erase(obj.intMarker.name)
         self.IMServer.applyChanges()
-        if (obj.isRecognized):
-            for i in range(len(self.objects)):
-                if ((self.objects[i].isRecognized) and self.objects[i].index>obj.index):
-                    self.objects[i].decreseIndex()
-            self.nRecognizedObjects -= 1
-        else:
-            for i in range(len(self.objects)):
-                if ((not self.objects[i].isRecognized) and self.objects[i].index>obj.index):
-                    self.objects[i].decreseIndex()
-            self.nUnrecognizedObjects -= 1
+#        if (obj.isRecognized):
+#            for i in range(len(self.objects)):
+#                if ((self.objects[i].isRecognized) and self.objects[i].index>obj.index):
+#                    self.objects[i].decreseIndex()
+#            self.nRecognizedObjects -= 1
+#        else:
+#            for i in range(len(self.objects)):
+#                if ((not self.objects[i].isRecognized) and self.objects[i].index>obj.index):
+#                    self.objects[i].decreseIndex()
+#            self.nUnrecognizedObjects -= 1
    
     def removeSurface(self):
         rospy.loginfo('Removing surface')

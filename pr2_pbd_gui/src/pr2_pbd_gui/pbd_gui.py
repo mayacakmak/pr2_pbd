@@ -11,7 +11,7 @@ import os
 from subprocess import call
 
 # ROS libraries
-import rospy
+import rospy, yaml
 from std_msgs.msg import String
 #import qt_gui.qt_binding_helper
 from qt_gui.plugin import Plugin
@@ -283,6 +283,23 @@ class PbDGUI(Plugin):
         self._widget.setLayout(hAllBox)
         context.add_widget(self._widget)
 
+        isReload = rospy.get_param('/pr2_pbd_gui/isReload')
+        if isReload:
+            self.loadStateForExperiment()
+
+    def loadStateForExperiment(self):
+        expNum = rospy.get_param('/pr2_pbd_gui/experimentNumber')
+        dataDir = rospy.get_param('/pr2_pbd_gui/dataRoot') + '/data/experiment' + str(expNum) + '/'
+        f = open(dataDir + 'experimentState.yaml', 'r')
+        expState = yaml.load(f)
+        nProgrammedActions = expState['nProgrammedActions']
+        
+        for i in range(nProgrammedActions):
+            self.createNewAction()
+
+        currentAction = expState['currentProgrammedActionIndex']
+        self.actionPressed(currentAction-1, False)
+
     def shutdown_plugin(self):
         # TODO unregister all publishers here
         self.commandOutput.unregister()
@@ -331,7 +348,7 @@ class PbDGUI(Plugin):
             self.actionSteps[self.currentAction][i].updateView()
         self.currentStep = stepIndex
         
-    def actionPressed(self, actionIndex):
+    def actionPressed(self, actionIndex, isPublish=True):
         print 'pressed Action ', str(actionIndex+1)
         self.hideCurrentAction()
         for i in range(len(self.actionIcons.keys())):
@@ -343,7 +360,8 @@ class PbDGUI(Plugin):
             self.actionIcons[key].updateView()
         self.currentAction = actionIndex
         self.stepsBox.setTitle('Steps for Action ' + str(self.currentAction+1))
-        self.commandOutput.publish(Command('SWITCH_TO_ACTION' + str(actionIndex+1)))
+        if isPublish:
+            self.commandOutput.publish(Command('SWITCH_TO_ACTION' + str(actionIndex+1)))
         self.showCurrentAction()
         
     def commandButtonPressed(self):
@@ -368,8 +386,8 @@ class PbDGUI(Plugin):
         
         elif command.command == Command.NEXT_ACTION:
             if (self.nActions() > 0):
-                if (self.currentAction < nActions-1):
-                    self.actionPressed(self.currentAction+1)
+                if (self.currentAction < self.nActions()-1):
+                    self.actionPressed(self.currentAction+1, False)
                 else:
                     qWarning('No actions after Action ' + str(self.currentAction+1))
             else:
@@ -378,7 +396,7 @@ class PbDGUI(Plugin):
         elif command.command == Command.PREV_ACTION:
             if (self.nActions() > 0):
                 if (self.currentAction > 0):
-                    self.actionPressed(self.currentAction-1)
+                    self.actionPressed(self.currentAction-1, False)
                 else:
                     qWarning('No actions before Action ' + str(self.currentAction+1))
             else:

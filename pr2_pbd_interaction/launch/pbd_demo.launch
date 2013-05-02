@@ -1,14 +1,22 @@
 <launch>
 
   <!-- This is the main state machine for interaction and PbD -->
+  <arg name="isReload" value="True" />
+  <arg name="dataRoot" value="$(find pr2_pbd_interaction)" />
+  <arg name="experimentNumber" value="0" />
   
   <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="interaction.py" output="screen">
-    <param name="dataRoot" value="$(find pr2_pbd_interaction)" />
+    <param name="dataRoot" value="$(arg dataRoot)" />
+    <param name="isReload" value="$(arg isReload)" />
+    <param name="experimentNumber" value="$(arg experimentNumber)" />
   </node>
   
   <!-- This is the GUI that lets you send speech commands with buttons and displays what the robot would say -->
   
   <node name="pr2_pbd_gui" pkg="rqt_gui" type="rqt_gui" output="screen">
+    <param name="dataRoot" value="$(arg dataRoot)" />
+    <param name="isReload" value="$(arg isReload)" />
+    <param name="experimentNumber" value="$(arg experimentNumber)" />
   </node>
 
   <!-- This makes the robot look around appropriately -->

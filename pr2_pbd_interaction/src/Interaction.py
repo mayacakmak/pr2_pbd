@@ -61,14 +61,14 @@ class Interaction:
                           Command.EXECUTE_ACTION: Response(self.executeProgrammedAction, None),
                           Command.NEXT_ACTION: Response(self.nextProgrammedAction, None),
                           Command.PREV_ACTION: Response(self.prevProgrammedAction, None),
-                          Command.SAVE_ACTION: Response(self.saveProgrammedAction, None),
-                          Command.EDIT_ACTION: Response(self.editProgrammedAction, None),
+                          #Command.SAVE_ACTION: Response(self.saveProgrammedAction, None),
+                          #Command.EDIT_ACTION: Response(self.editProgrammedAction, None),
                           Command.SAVE_POSE: Response(self.saveArmStep, None),
                           Command.START_RECORDING_MOTION: Response(self.startRecordingMotion, None),
                           Command.STOP_RECORDING_MOTION: Response(self.stopRecordingMotion, None)
                           }
         
-        self.isProgramming = False
+        self.isProgramming = True
         self.isRecordingMotion = False
         self.armTrajectory = None
         self.trajectoryStartTime = None
@@ -78,6 +78,7 @@ class Interaction:
         
 ## Functions for responding to commands
 
+    
     def openHand(self, armIndex):
         if self.arms.setGripperState(armIndex, GripperState.OPEN):
             speechResponse = Response.openResponses[armIndex]
@@ -372,9 +373,7 @@ class Interaction:
             switchCommand = 'SWITCH_TO_ACTION'
             if (switchCommand in command.command):
                 actionNumber = command.command[len(switchCommand):len(command.command)]
-                print 'actionNumber', actionNumber
                 actionNumber = int(actionNumber)
-                print 'actionNumber', actionNumber
                 if (self.session.nProgrammedActions() > 0):
                     self.session.moveToProgrammedAction(actionNumber, self.world.getReferenceFrameList())
                     response = Response(self.emptyResponse, [Speech.SWITCH_SKILL+str(actionNumber), GazeGoal.NOD])
@@ -443,6 +442,9 @@ class Interaction:
             return [Speech.START_STATE_RECORDED, GazeGoal.NOD]
         else:
             return [Speech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]
+    
+    def saveExperimentState(self):
+        self.session.saveProgrammedAction()
 
     def emptyResponse(self, responses):
         return responses
