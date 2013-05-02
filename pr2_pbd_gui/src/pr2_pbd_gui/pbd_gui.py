@@ -144,6 +144,8 @@ class PbDGUI(Plugin):
         
         self.commandButtons[Command.EXECUTE_ACTION] = 'Execute action'
         self.commandButtons[Command.STOP_EXECUTION] = 'Stop execution'
+        self.commandButtons[Command.DELETE_ALL_STEPS] = 'Delete all'
+        self.commandButtons[Command.DELETE_LAST_STEP] = 'Delete last'
 
         self.commandButtons[Command.RECORD_OBJECT_POSE] = 'Save object states'
         
@@ -191,6 +193,12 @@ class PbDGUI(Plugin):
         btn.clicked.connect(self.commandButtonPressed)
         stepsButtonGrid.addWidget(btn)
         btn = QtGui.QPushButton(self.commandButtons[Command.STOP_EXECUTION], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        stepsButtonGrid.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.DELETE_ALL_STEPS], self._widget)
+        btn.clicked.connect(self.commandButtonPressed)
+        stepsButtonGrid.addWidget(btn)
+        btn = QtGui.QPushButton(self.commandButtons[Command.DELETE_LAST_STEP], self._widget)
         btn.clicked.connect(self.commandButtonPressed)
         stepsButtonGrid.addWidget(btn)
 

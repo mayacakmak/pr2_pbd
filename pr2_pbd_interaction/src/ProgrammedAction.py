@@ -140,6 +140,14 @@ class ProgrammedAction:
                 toDelete = i
                 break
         if (toDelete != None):
+            self.deleteFrame(toDelete)
+        self.lock.release()
+
+        if (toDelete != None):
+            self.updateVisualization()
+            self.updateInteractiveMarkers()
+            
+    def deleteFrame(self, toDelete):
             if (len(self.rLinks) > 0):
                 self.rLinks[self.rLinks.keys()[-1]].action = Marker.DELETE
                 self.lLinks[self.lLinks.keys()[-1]].action = Marker.DELETE
@@ -155,11 +163,6 @@ class ProgrammedAction:
             lMarker = self.lMarkers.pop(toDelete)
             aStep = self.seq.seq.pop(toDelete)
 
-        self.lock.release()
-
-        if (toDelete != None):
-            self.updateVisualization()
-            self.updateInteractiveMarkers()
 
     def changePotentialPoses(self, rArmState, lArmState):
         self.lock.acquire()
@@ -305,7 +308,8 @@ class ProgrammedAction:
     def deleteLastStep(self):
         # TODO: backup last pose for undo
         self.lock.acquire()
-        self.seq.seq = self.seq.seq[0:len(self.seq.seq)-1]
+        #self.seq.seq = self.seq.seq[0:len(self.seq.seq)-1]
+        self.deleteFrame(len(self.seq.seq)-1)
         self.lock.release()
         
     def resumeDeletedPose(self):

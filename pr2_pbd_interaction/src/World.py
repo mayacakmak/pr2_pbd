@@ -16,6 +16,7 @@ from numpy.linalg import norm
 import actionlib
 from actionlib_msgs.msg import *
 from std_msgs.msg import String
+import tf
 from tf import TransformListener, TransformBroadcaster
 from object_manipulation_msgs.msg import *
 from object_manipulation_msgs.srv import FindClusterBoundingBox
@@ -371,9 +372,12 @@ class World:
             objPoseStamped.pose = pose
             relEEPose = World.tfListener.transformPose(toFrame, objPoseStamped)
             return relEEPose.pose
+        except tf.Exception, e:
+            rospy.logerr('TF exception during transform.')
+            return pose
         except rospy.ServiceException, e:
             rospy.logerr('Exception during transform.')
-            return None
+            return pose
 
     @staticmethod
     def pose2string(pose):
