@@ -76,7 +76,7 @@ class Session:
     def newProgrammedAction(self):
         if (self.nProgrammedActions() > 0):
             self.getProgrammedAction().resetVisualization()
-        self.currentProgrammedActionIndex += 1
+        self.currentProgrammedActionIndex = self.nProgrammedActions() + 1
         self.allProgrammedActions.update({self.currentProgrammedActionIndex: ProgrammedAction(self.currentProgrammedActionIndex)})
 
     def nProgrammedActions(self):
