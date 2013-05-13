@@ -5,20 +5,16 @@
   <arg name="dataRoot" value="$(find pr2_pbd_interaction)" />
   <arg name="experimentNumber" value="0" />
   
+  <!-- This runs the interactive manipulation -->
+  
+  <include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_robot.launch"/>
+
   <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="interaction.py" output="screen">
     <param name="dataRoot" value="$(arg dataRoot)" />
     <param name="isReload" value="$(arg isReload)" />
     <param name="experimentNumber" value="$(arg experimentNumber)" />
   </node>
   
-  <!-- This is the GUI that lets you send speech commands with buttons and displays what the robot would say -->
-  
-  <node name="pr2_pbd_gui" pkg="rqt_gui" type="rqt_gui" output="screen">
-    <param name="dataRoot" value="$(arg dataRoot)" />
-    <param name="isReload" value="$(arg isReload)" />
-    <param name="experimentNumber" value="$(arg experimentNumber)" />
-  </node>
-
   <!-- This makes the robot look around appropriately -->
 
   <include file="$(find pr2_social_gaze)/launch/gaze.launch"/>
@@ -43,13 +39,5 @@
    <rosparam command="load" file="$(find trajectory_filter_server)/config/joint_limits.yaml"/>
    <rosparam command="load" file="$(find pr2_pbd_interaction)/config/filters.yaml"/>
   </node>
-  
-  <!-- This is the interactive manipulation stuff for visualization (this will run RVIZ) -->
-
-  <include file="$(find pr2_pbd_interaction)/launch/pr2_interactive_manipulation_desktop.launch" >
-    <arg name="sim" value="true" />
-  </include>
-  
-  <node name="soundplay_node" pkg="sound_play" type="soundplay_node.py"/>
-
+      
 </launch>

@@ -291,21 +291,23 @@ class PbDGUI(Plugin):
         self._widget.setLayout(hAllBox)
         context.add_widget(self._widget)
 
-        isReload = rospy.get_param('/pr2_pbd_gui/isReload')
-        if isReload:
-            self.loadStateForExperiment()
+        self.loadStateForExperiment()
 
     def loadStateForExperiment(self):
-        expNum = rospy.get_param('/pr2_pbd_gui/experimentNumber')
-        dataDir = rospy.get_param('/pr2_pbd_gui/dataRoot') + '/data/experiment' + str(expNum) + '/'
-        f = open(dataDir + 'experimentState.yaml', 'r')
-        expState = yaml.load(f)
-        nProgrammedActions = expState['nProgrammedActions']
-        
-        for i in range(nProgrammedActions):
-            self.createNewAction()
 
-        currentAction = expState['currentProgrammedActionIndex']
+        while not rospy.has_param('nProgrammedActions'):
+            time.sleep(0.01)
+        nProgrammedActions = rospy.get_param('nProgrammedActions')
+        
+        for j in range(len(nProgrammedActions.keys())):
+            self.createNewAction()
+            k = nProgrammedActions.keys()[j]
+            for i in range(nProgrammedActions[k]):
+                self.savePose(j)
+
+        while not rospy.has_param('currentProgrammedActionIndex'):
+            time.sleep(0.01)
+        currentAction = rospy.get_param('currentProgrammedActionIndex')
         self.actionPressed(currentAction-1, False)
 
     def shutdown_plugin(self):
@@ -415,18 +417,28 @@ class PbDGUI(Plugin):
                 self.savePose()
             else:
                 qWarning('No actions created yet.')
+                
+        elif command.command == Command.DELETE_ALL_STEPS:
+            nSteps = len(self.actionSteps[self.currentAction])
+            for i in range(nSteps):
+                self.actionSteps[self.currentAction][i].hide()
+                del self.actionSteps[self.currentAction][i]
+            self.actionSteps[self.currentAction] = []
             
-    def savePose(self):
+    def savePose(self, actionIndex=None):
         nColumns = 9
-        stepIndex = len(self.actionSteps[self.currentAction])
+        if actionIndex is None:
+            actionIndex = self.currentAction
+            
+        stepIndex = len(self.actionSteps[actionIndex])
         stepIcon = StepIcon(self._widget, stepIndex, self.stepPressed)
 
         for i in range(stepIndex):
-             self.actionSteps[self.currentAction][i].selected = False
-             self.actionSteps[self.currentAction][i].updateView()
+             self.actionSteps[actionIndex][i].selected = False
+             self.actionSteps[actionIndex][i].updateView()
 
         self.stepsGrid.addLayout(stepIcon, int(stepIndex/nColumns), stepIndex%nColumns, QtCore.Qt.AlignCenter)
-        self.actionSteps[self.currentAction].append(stepIcon)
+        self.actionSteps[actionIndex].append(stepIcon)
         self.currentStep = stepIndex
     
     def hideCurrentAction(self):

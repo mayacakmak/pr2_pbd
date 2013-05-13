@@ -23,6 +23,13 @@ class Session:
         if (self.isReload):
             self.loadStateForSession(objectList)
             rospy.loginfo("Session state loaded.")
+            
+        nProgrammedActions = dict()
+        for k in self.allProgrammedActions.keys():
+            nProgrammedActions[k] = self.allProgrammedActions[k].nFrames()
+            
+        rospy.set_param('nProgrammedActions', nProgrammedActions)
+        rospy.set_param('currentProgrammedActionIndex', self.currentProgrammedActionIndex)
         
     def getParticipantID(self):
         self.expNum = None
