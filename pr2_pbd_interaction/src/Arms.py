@@ -280,8 +280,8 @@ class Arms:
                     
                     rospy.loginfo('Step ' + str(i) + ' of action is complete.')
 
-            Arms.arms[0].updateGripperState()
-            Arms.arms[1].updateGripperState()
+            #Arms.arms[0].updateGripperState()
+            #Arms.arms[1].updateGripperState()
             Arms.arms[0].resetMovementHistory()
             Arms.arms[1].resetMovementHistory()
 
