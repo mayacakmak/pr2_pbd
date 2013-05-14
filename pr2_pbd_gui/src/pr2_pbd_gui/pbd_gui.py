@@ -425,6 +425,12 @@ class PbDGUI(Plugin):
                 del self.actionSteps[self.currentAction][i]
             self.actionSteps[self.currentAction] = []
             
+        elif command.command == Command.DELETE_LAST_STEP:
+            nSteps = len(self.actionSteps[self.currentAction])
+            self.actionSteps[self.currentAction][nSteps-1].hide()
+            del self.actionSteps[self.currentAction][nSteps-1]
+            self.actionSteps[self.currentAction] = self.actionSteps[self.currentAction][range(nSteps-1)]
+
     def savePose(self, actionIndex=None):
         nColumns = 9
         if actionIndex is None:
