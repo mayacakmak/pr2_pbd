@@ -26,7 +26,7 @@ class Session:
             
         nProgrammedActions = dict()
         for k in self.allProgrammedActions.keys():
-            nProgrammedActions[k] = self.allProgrammedActions[k].nFrames()
+            nProgrammedActions[str(k)] = self.allProgrammedActions[k].nFrames()
             
         rospy.set_param('nProgrammedActions', nProgrammedActions)
         rospy.set_param('currentProgrammedActionIndex', self.currentProgrammedActionIndex)

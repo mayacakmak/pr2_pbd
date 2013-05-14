@@ -93,8 +93,8 @@ class Arm:
         rospy.Subscriber('joint_states', JointState, self.jointStatesCallback)
          
     def setupFK(self):
-        fkInfoSrvName = 'pr2_' + self.side + '_arm_kinematics/get_fk_solver_info'
-        fkSrvName = 'pr2_'+self.side +'_arm_kinematics/get_fk'
+        fkInfoSrvName = 'pr2_' + self.side + '_arm_kinematics_simple/get_fk_solver_info'
+        fkSrvName = 'pr2_'+self.side +'_arm_kinematics_simple/get_fk'
         rospy.wait_for_service(fkInfoSrvName)
         self.fkServiceInfoP = rospy.ServiceProxy(fkInfoSrvName, GetKinematicSolverInfo)
         solver_info = self.fkServiceInfoP()
@@ -107,8 +107,8 @@ class Arm:
         self.fkrequest.fk_link_names = [self.endEffector]
     
     def setupIK(self):
-        ikInfoSrvName = 'pr2_'+ self.side +'_arm_kinematics/get_ik_solver_info'
-        ikSrvName = 'pr2_'+ self.side +'_arm_kinematics/get_ik'
+        ikInfoSrvName = 'pr2_'+ self.side +'_arm_kinematics_simple/get_ik_solver_info'
+        ikSrvName = 'pr2_'+ self.side +'_arm_kinematics_simple/get_ik'
         rospy.wait_for_service(ikInfoSrvName)
         self.ikServiceInfoP = rospy.ServiceProxy(ikInfoSrvName, GetKinematicSolverInfo)
         solver_info = self.ikServiceInfoP()
