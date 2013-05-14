@@ -308,7 +308,8 @@ class PbDGUI(Plugin):
         while not rospy.has_param('currentProgrammedActionIndex'):
             time.sleep(0.01)
         currentAction = rospy.get_param('currentProgrammedActionIndex')
-        self.actionPressed(currentAction-1, False)
+        if (len(nProgrammedActions.keys()) > 0):
+            self.actionPressed(currentAction-1, False)
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
