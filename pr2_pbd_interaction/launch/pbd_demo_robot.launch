@@ -20,7 +20,7 @@
   </node>
   
   <include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_robot.launch" >
-    <arg name="sim" value="true" />
+    <arg name="sim" value="false" />
   </include>
 
   <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="interaction.py" output="screen">
