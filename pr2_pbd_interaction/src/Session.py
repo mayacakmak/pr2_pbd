@@ -16,6 +16,7 @@ class Session:
             self.getParticipantID()
         rospy.set_param('data_directory', self.dataDir)
         
+        
         self.allProgrammedActions = dict()
         self.currentProgrammedActionIndex = 0
         self.backupProgrammedAction = None

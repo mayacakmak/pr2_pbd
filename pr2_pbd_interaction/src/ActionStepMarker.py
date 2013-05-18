@@ -7,11 +7,10 @@ roslib.load_manifest('pr2_pbd_interaction')
 roslib.load_manifest('tf')
 
 # Generic libraries
-import time, sys, signal
-import numpy
+import time
+import sys
+import signal
 from numpy import *
-from numpy.linalg import norm
-import os
 from geometry_msgs.msg import *
 
 # ROS Libraries
@@ -80,7 +79,7 @@ class ActionStepMarker:
         bestDist = 10000
         chosenObjIndex = -1
         for i in range(len(refFrameObjectList)):
-            dist = World.objectDissimilarity(refFrameObjectList[i], refObject)
+            dist = World.object_dissimilarity(refFrameObjectList[i], refObject)
             if (dist < bestDist):
                 bestDist = dist
                 chosenObjIndex = i
@@ -158,7 +157,7 @@ class ActionStepMarker:
             rospy.logerr('Unhandled marker type: ' + str(self.aStep.type))
         
     def setReferenceFrame(self, newRefName):
-        newRef = World.getRefFromName(newRefName)
+        newRef = World.get_ref_from_name(newRefName)
         if (newRef != ArmState.ROBOT_BASE):
             index = self.refNames.index(newRefName)
             newRefObject = self.refFrameObjectList[index-1]
@@ -167,15 +166,15 @@ class ActionStepMarker:
         
         if (self.aStep.type == ActionStep.ARM_TARGET):
             if self.armIndex == 0:
-                self.aStep.armTarget.rArm = World.convertRefFrame(self.aStep.armTarget.rArm, newRef, newRefObject)
+                self.aStep.armTarget.rArm = World.convert_ref_frame(self.aStep.armTarget.rArm, newRef, newRefObject)
             else:
-                self.aStep.armTarget.lArm = World.convertRefFrame(self.aStep.armTarget.lArm, newRef, newRefObject)
+                self.aStep.armTarget.lArm = World.convert_ref_frame(self.aStep.armTarget.lArm, newRef, newRefObject)
         elif (self.aStep.type == ActionStep.ARM_TRAJECTORY):
             for i in range(len(self.aStep.armTrajectory.timing)):
                 if self.armIndex == 0:
-                    self.aStep.armTrajectory.rArm[i] = World.convertRefFrame(self.aStep.armTrajectory.rArm[i], newRef, newRefObject)
+                    self.aStep.armTrajectory.rArm[i] = World.convert_ref_frame(self.aStep.armTrajectory.rArm[i], newRef, newRefObject)
                 else:
-                    self.aStep.armTrajectory.lArm[i] = World.convertRefFrame(self.aStep.armTrajectory.lArm[i], newRef, newRefObject)
+                    self.aStep.armTrajectory.lArm[i] = World.convert_ref_frame(self.aStep.armTrajectory.lArm[i], newRef, newRefObject)
             if self.armIndex == 0:
                 self.aStep.armTrajectory.rRefFrameObject = newRefObject
                 self.aStep.armTrajectory.rRefFrame = newRef
@@ -205,7 +204,7 @@ class ActionStepMarker:
             armStateCopy = ArmState(armState.refFrame, 
                                     Pose(armState.ee_pose.position, armState.ee_pose.orientation), 
                                     armState.joint_pose[:], armState.refFrameObject)
-            World.convertRefFrame(armStateCopy, ArmState.ROBOT_BASE)
+            World.convert_ref_frame(armStateCopy, ArmState.ROBOT_BASE)
             return armStateCopy.ee_pose
         else:
             return armState.ee_pose
@@ -304,7 +303,7 @@ class ActionStepMarker:
         else:
             rospy.logerr('Non-handled action step type ' + str(self.aStep.type))
 
-        refFrame = World.getRefFromName(frame_id)
+        refFrame = World.get_ref_from_name(frame_id)
         if (refFrame == ArmState.OBJECT):
             menuControl.markers.append(Marker(type=Marker.ARROW, id=1000+self.id, lifetime=rospy.Duration(2),
                                                      scale=Vector3(0.02,0.03,0.04), header=Header(frame_id=frame_id),

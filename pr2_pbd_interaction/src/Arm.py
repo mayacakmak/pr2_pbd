@@ -134,8 +134,8 @@ class Arm:
 
     def getEndEffectorState(self, refName='base_link'):
         try:
-            t = World.tfListener.getLatestCommonTime(refName, self.endEffector)
-            (position, orientation) = World.tfListener.lookupTransform(refName, self.endEffector, t)
+            t = World.tf_listener.getLatestCommonTime(refName, self.endEffector)
+            (position, orientation) = World.tf_listener.lookupTransform(refName, self.endEffector, t)
             eePose = Pose()
             eePose.position = Point(position[0], position[1], position[2])
             eePose.orientation = Quaternion(orientation[0], orientation[1], orientation[2], orientation[3])
