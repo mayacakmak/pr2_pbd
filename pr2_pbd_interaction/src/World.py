@@ -22,7 +22,8 @@ import tf
 from tf import TransformListener, TransformBroadcaster
 from object_manipulation_msgs.msg import GraspableObjectList
 from object_manipulation_msgs.srv import FindClusterBoundingBox
-from pr2_interactive_object_detection.msg import UserCommandAction, UserCommandGoal
+from pr2_interactive_object_detection.msg import UserCommandAction
+from pr2_interactive_object_detection.msg import UserCommandGoal
 from geometry_msgs.msg import Quaternion, Vector3, Point, Pose, PoseStamped
 from std_msgs.msg import ColorRGBA, Header
 from visualization_msgs.msg import Marker, InteractiveMarker
@@ -37,6 +38,7 @@ import actionlib
 from pr2_pbd_interaction.msg import Object, ArmState
 from pr2_social_gaze.msg import GazeGoal
 from Response import Response
+
 
 class WorldObject:
     '''Class for representing objects'''
@@ -53,7 +55,7 @@ class WorldObject:
         self.is_removed = False
         self.menu_handler.insert('Remove from scene', callback=self.remove)
 
-    def remove(self, feedback):
+    def remove(self, dummy):
         '''Function for removing object from the world'''
         rospy.loginfo('Will remove object' + self.get_name())
         self.is_removed = True
@@ -76,18 +78,6 @@ class WorldObject:
     def decrease_index(self):
         '''Function to decrese object index'''
         self.index -= 1
-
-
-class WorldSurface:
-    '''Class for representing surfaces'''
-
-    def __init__(self, pose, dimensions):
-        '''Initialization of surface'''
-        self.pose = pose
-        self.dimensions = dimensions
-        self.menu_handler = MenuHandler()
-        self.int_marker = None
-        self.is_removed = False
 
 
 class World:
@@ -120,14 +110,14 @@ class World:
         rospy.Subscriber('tabletop_segmentation_markers',
                          Marker, self.receieve_table_marker)
 
-    def reset_objects(self):
+    def _reset_objects(self):
         '''Function that removes all objects'''
         self._lock.acquire()
         for i in range(len(self.objects)):
             self._im_server.erase(self.objects[i].int_marker.name)
             self._im_server.applyChanges()
         if self.surface != None:
-            self.remove_surface()
+            self._remove_surface()
         self._im_server.clear()
         self._im_server.applyChanges()
         self.objects = []
@@ -148,11 +138,9 @@ class World:
                 pose = Pose(marker.pose.position, marker.pose.orientation)
                 pose.position.x = pose.position.x + xmin + depth / 2
                 pose.position.y = pose.position.y + ymin + width / 2
-
-                self.surface = WorldSurface(marker.pose,
-                                    Vector3(depth, width, 0.01))
-                self.surface.int_marker = self._get_surface_marker()
-                self._im_server.insert(self.surface.int_marker,
+                dimensions = Vector3(depth, width, 0.01)
+                self.surface = World._get_surface_marker(pose, dimensions)
+                self._im_server.insert(self.surface,
                                      self.marker_feedback_cb)
                 self._im_server.applyChanges()
 
@@ -191,6 +179,61 @@ class World:
         else:
             rospy.logwarn('... but the list was empty.')
         self._lock.release()
+
+    @staticmethod
+    def get_pose_from_transform(transform):
+        '''Returns pose for transformation matrix'''
+        pos = transform[:3, 3].copy()
+        rot = tf.transformations.quaternion_from_matrix(transform)
+        return Pose(Point(pos[0], pos[1], pos[2]),
+                    Quaternion(rot[0], rot[1], rot[2], rot[3]))
+
+    @staticmethod
+    def get_matrix_from_pose(pose):
+        '''Returns the transformation matrix for given pose'''
+        rotation = [pose.orientation.x, pose.orientation.y,
+                    pose.orientation.z, pose.orientation.w]
+        transformation = tf.transformations.quaternion_matrix(rotation)
+        position = [pose.position.x, pose.position.y, pose.position.z]
+        transformation[:3, 3] = position
+        return transformation
+
+    @staticmethod
+    def get_absolute_pose(arm_state):
+        '''Returns absolute pose of an end effector state'''
+        if (arm_state.refFrame == ArmState.OBJECT):
+            arm_state_copy = ArmState(arm_state.refFrame,
+                            Pose(arm_state.ee_pose.position,
+                                 arm_state.ee_pose.orientation),
+                            arm_state.joint_pose[:],
+                            arm_state.refFrameObject)
+            World.convert_ref_frame(arm_state_copy, ArmState.ROBOT_BASE)
+            return arm_state_copy.ee_pose
+        else:
+            return arm_state.ee_pose
+
+    @staticmethod
+    def get_most_similar_obj(ref_object, ref_frame_list):
+        '''Finds the most similar object in the world'''
+        best_dist = 10000
+        chosen_obj_index = -1
+        for i in range(len(ref_frame_list)):
+            dist = World.object_dissimilarity(ref_frame_list[i], ref_object)
+            if (dist < best_dist):
+                best_dist = dist
+                chosen_obj_index = i
+        if chosen_obj_index == -1:
+            rospy.logwarn('Did not find a similar object..')
+            return None
+        else:
+            print 'Object dissimilarity is --- ', best_dist
+            if best_dist > 0.075:
+                rospy.logwarn('Found some objects, but not similar enough.')
+                return None
+            else:
+                rospy.loginfo('Most similar to new object '
+                                        + str(chosen_obj_index))
+                return ref_frame_list[chosen_obj_index]
 
     @staticmethod
     def _get_mesh_marker(marker, mesh):
@@ -236,7 +279,7 @@ class World:
                         break
 
             if (to_remove != None):
-                self.remove_object(to_remove)
+                self._remove_object(to_remove)
 
             n_objects = len(self.objects)
             self.objects.append(WorldObject(pose, n_objects,
@@ -269,7 +312,7 @@ class World:
             self._im_server.applyChanges()
             return True
 
-    def remove_object(self, to_remove):
+    def _remove_object(self, to_remove):
         '''Function to remove object by index'''
         obj = self.objects.pop(to_remove)
         rospy.loginfo('Removing object ' + obj.int_marker.name)
@@ -288,10 +331,10 @@ class World:
 #                    self.objects[i].decrease_index()
 #            self.n_unrecognized -= 1
 
-    def remove_surface(self):
+    def _remove_surface(self):
         '''Function to request removing surface'''
         rospy.loginfo('Removing surface')
-        self._im_server.erase(self.surface.int_marker.name)
+        self._im_server.erase('surface')
         self._im_server.applyChanges()
         self.surface = None
 
@@ -331,26 +374,27 @@ class World:
         int_marker.controls.append(button_control)
         return int_marker
 
-    def _get_surface_marker(self):
+    @staticmethod
+    def _get_surface_marker(pose, dimensions):
         ''' Function that generates a surface marker'''
         int_marker = InteractiveMarker()
         int_marker.name = 'surface'
         int_marker.header.frame_id = 'base_link'
-        int_marker.pose = self.surface.pose
+        int_marker.pose = pose
         int_marker.scale = 1
         button_control = InteractiveMarkerControl()
         button_control.interaction_mode = InteractiveMarkerControl.BUTTON
         button_control.always_visible = True
         object_marker = Marker(type=Marker.CUBE, id=2000,
                             lifetime=rospy.Duration(2),
-                            scale=self.surface.dimensions,
+                            scale=dimensions,
                             header=Header(frame_id='base_link'),
                             color=ColorRGBA(0.8, 0.0, 0.4, 0.4),
-                            pose=self.surface.pose)
+                            pose=pose)
         button_control.markers.append(object_marker)
         text_pos = Point()
-        position = self.surface.pose.position
-        dimensions = self.surface.dimensions
+        position = pose.position
+        dimensions = dimensions
         text_pos.x = position.x + dimensions.x / 2 - 0.06
         text_pos.y = position.y - dimensions.y / 2 + 0.06
         text_pos.z = position.z + dimensions.z / 2 + 0.06
@@ -441,10 +485,10 @@ class World:
             rel_ee_pose = World.tf_listener.transformPose(to_frame,
                                                            pose_stamped)
             return rel_ee_pose.pose
-        except tf.Exception, exp1:
+        except tf.Exception:
             rospy.logerr('TF exception during transform.')
             return pose
-        except rospy.ServiceException, exp2:
+        except rospy.ServiceException:
             rospy.logerr('Exception during transform.')
             return pose
 
@@ -457,7 +501,7 @@ class World:
                 str(pose.orientation.y) + ', ' + str(pose.orientation.z) +
                 ', ' + str(pose.orientation.w) + '\n')
 
-    def publish_tf_pose(self, pose, name, parent):
+    def _publish_tf_pose(self, pose, name, parent):
         ''' Publishes a TF for object pose'''
         if (pose != None):
             pos = (pose.position.x, pose.position.y, pose.position.z)
@@ -486,7 +530,7 @@ class World:
         rospy.loginfo('Object recognition has been reset.')
         rospy.loginfo('STATUS: ' +
                       self._object_action_client.get_goal_status_text())
-        self.reset_objects()
+        self._reset_objects()
 
         if (self._object_action_client.get_state() != GoalStatus.SUCCEEDED):
             rospy.logerr('Could not reset recognition.')
@@ -513,7 +557,7 @@ class World:
                self._object_action_client.get_state() == GoalStatus.PENDING):
             time.sleep(0.1)
         rospy.loginfo('Objects on the table have been recognized.')
-        rospy.loginfo('STATUS: ' + 
+        rospy.loginfo('STATUS: ' +
                       self._object_action_client.get_goal_status_text())
 
         # Record the result
@@ -546,7 +590,8 @@ class World:
                       self._object_action_client.get_goal_status_text())
         if (self._object_action_client.get_state() == GoalStatus.SUCCEEDED):
             rospy.loginfo('Successfully reset object localization pipeline.')
-            self.reset_objects()
+            self._reset_objects()
+        self._remove_surface()
 
     def get_nearest_object(self, arm_pose):
         '''Gives a pointed to the nearest object'''
@@ -600,14 +645,13 @@ class World:
         if (self.has_objects()):
             to_remove = None
             for i in range(len(self.objects)):
-                self.publish_tf_pose(self.objects[i].object.pose,
+                self._publish_tf_pose(self.objects[i].object.pose,
                     self.objects[i].get_name(), 'base_link')
                 if (self.objects[i].is_removed):
                     to_remove = i
             if to_remove != None:
-                self.remove_object(to_remove)
+                self._remove_object(to_remove)
                 is_world_changed = True
-            if (self.surface != None and self.surface.is_removed):
-                self.remove_surface()
+
         self._lock.release()
         return is_world_changed

@@ -1,4 +1,5 @@
-# Manifests
+'''Classes related to programmed actions'''
+
 import roslib
 roslib.load_manifest('rospy')
 roslib.load_manifest('geometry_msgs')
@@ -6,341 +7,400 @@ roslib.load_manifest('pr2_pbd_interaction')
 roslib.load_manifest('visualization_msgs')
 
 # Generic libraries
-import time, sys, signal, threading
-import numpy
-from numpy import *
-from numpy.linalg import norm
+import threading
 import os
-from geometry_msgs.msg import *
+from geometry_msgs.msg import Vector3, Pose
 from visualization_msgs.msg import MarkerArray, Marker
 
 # ROS Libraries
 import rospy
 import rosbag
-from pr2_pbd_interaction.msg import *
-from ActionStepMarker import *
-from std_msgs.msg import Header,ColorRGBA
+from pr2_pbd_interaction.msg import ArmState, ActionStepSequence
+from pr2_pbd_interaction.msg import ActionStep, ArmTarget
+from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
+from ActionStepMarker import ActionStepMarker
+from std_msgs.msg import Header, ColorRGBA
+
 
 class ProgrammedAction:
-    
-    def __init__(self, skillIndex):
+    '''Class that holds information for one action'''
+
+    _marker_publisher = None
+
+    def __init__(self, action_index):
         self.seq = ActionStepSequence()
-        self.skillIndex = skillIndex
-        self.rMarkers = []
-        self.lMarkers = []
-        self.rLinks = dict()
-        self.lLinks = dict()
-        self.markerOutput = rospy.Publisher('visualization_marker_array', MarkerArray)
+        self.action_index = action_index
+        self.r_markers = []
+        self.l_markers = []
+        self.r_links = dict()
+        self.l_links = dict()
         self.lock = threading.Lock()
-    
-    def copy(self):
-        pAction = ProgrammedAction(self.skillIndex)
-        pAction.seq = ActionStepSequence()
-        for i in range(len(self.seq.seq)):
-            aStep = self.seq.seq[i]
-            aStepCopy = self.copyActionStep(aStep)
-            pAction.seq.seq.append(aStepCopy)
-        return pAction
 
-    def copyActionStep(self, aStep):
-        aStepCopy = ActionStep()
-        aStepCopy.type = int(aStep.type)
-        if (aStepCopy.type == ActionStep.ARM_TARGET):
-            aStepCopy.armTarget = ArmTarget()
-            aStepCopy.armTarget.rArmVelocity = float(aStep.armTarget.rArmVelocity)
-            aStepCopy.armTarget.lArmVelocity = float(aStep.armTarget.lArmVelocity)
-            aStepCopy.armTarget.rArm = self.copyArmState(aStep.armTarget.rArm)
-            aStepCopy.armTarget.lArm = self.copyArmState(aStep.armTarget.lArm)
-        elif (aStepCopy.type == ActionStep.ARM_TRAJECTORY):
-            aStepCopy.armTrajectory = ArmTrajectory()
-            aStepCopy.armTrajectory.timing = aStep.armTrajectory.timing[:]
-            for j in range(len(aStep.armTrajectory.timing)):
-                aStepCopy.armTrajectory.rArm.append(self.copyArmState(aStep.armTrajectory.rArm[j]))
-                aStepCopy.armTrajectory.lArm.append(self.copyArmState(aStep.armTrajectory.lArm[j]))
-            aStepCopy.armTrajectory.rRefFrame = int(aStep.armTrajectory.rRefFrame)
-            aStepCopy.armTrajectory.lRefFrame = int(aStep.armTrajectory.lRefFrame)
-            ## WARNING: the following is not really copying
-            aStepCopy.armTrajectory.rRefFrameObject = aStep.armTrajectory.rRefFrameObject
-            aStepCopy.armTrajectory.lRefFrameObject = aStep.armTrajectory.lRefFrameObject
-        aStepCopy.gripperAction = GripperAction(aStep.gripperAction.rGripper, aStep.gripperAction.lGripper)
-        return aStepCopy
-    
-    def copyArmState(self, armState):
-        armStateCopy = ArmState()
-        armStateCopy.refFrame = int(armState.refFrame)
-        armStateCopy.joint_pose = armState.joint_pose[:]
-        armStateCopy.ee_pose = Pose(armState.ee_pose.position, armState.ee_pose.orientation)
-        ## WARNING: the following is not really copying
-        armStateCopy.refFrameObject = armState.refFrameObject
-        return armStateCopy
-    
-    def getName(self):
-        return 'Action' + str(self.skillIndex)
+        if ProgrammedAction._marker_publisher == None:
+            ProgrammedAction._marker_publisher = rospy.Publisher(
+                    'visualization_marker_array', MarkerArray)
 
-    def addActionStep(self, step, objectList):
+    def get_name(self):
+        '''Returns the name of the action'''
+        return 'Action' + str(self.action_index)
+
+    def add_action_step(self, step, object_list):
+        '''Function to add a new step to the action'''
         self.lock.acquire()
-        self.seq.seq.append(self.copyActionStep(step))
-        if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
-            lastStep = self.seq.seq[len(self.seq.seq)-1]
-            self.rMarkers.append(ActionStepMarker(self.nFrames(), 0, lastStep, objectList, self.markerClickedCallback))
-            self.lMarkers.append(ActionStepMarker(self.nFrames(), 1, lastStep, objectList, self.markerClickedCallback))
-            if (self.nFrames() > 1):
-                self.rLinks[self.nFrames()-1] = self.getLink(0, self.nFrames()-1)
-                self.lLinks[self.nFrames()-1] = self.getLink(1, self.nFrames()-1)
+        self.seq.seq.append(self._copy_action_step(step))
+        if (step.type == ActionStep.ARM_TARGET
+            or step.type == ActionStep.ARM_TRAJECTORY):
+            last_step = self.seq.seq[len(self.seq.seq) - 1]
+            r_marker = ActionStepMarker(self.n_frames(), 0,
+                        last_step, self.marker_click_cb)
+            r_marker.update_ref_frames(object_list)
+            l_marker = ActionStepMarker(self.n_frames(), 1,
+                        last_step, self.marker_click_cb)
+            l_marker.update_ref_frames(object_list)
+            self.r_markers.append(r_marker)
+            self.l_markers.append(l_marker)
+            if (self.n_frames() > 1):
+                self.r_links[self.n_frames() - 1] = self._get_link(0,
+                                                        self.n_frames() - 1)
+                self.l_links[self.n_frames() - 1] = self._get_link(1,
+                                                        self.n_frames() - 1)
         self.lock.release()
 
-    # Private function            
-    def getLink(self, armIndex, toIndex):
-        if (armIndex == 0):
-            startPoint = self.rMarkers[toIndex-1].getAbsolutePosition(isStart=True)
-            endPoint = self.rMarkers[toIndex].getAbsolutePosition(isStart=False)
+    def _get_link(self, arm_index, to_index):
+        '''Returns a marker representing a link b/w two
+        consecutive action steps'''
+        if (arm_index == 0):
+            start = self.r_markers[to_index - 1].get_absolute_position(
+                                                            is_start=True)
+            end = self.r_markers[to_index].get_absolute_position(
+                                                            is_start=False)
         else:
-            startPoint = self.lMarkers[toIndex-1].getAbsolutePosition(isStart=True)
-            endPoint = self.lMarkers[toIndex].getAbsolutePosition(isStart=False)
-            
-        return Marker(type=Marker.ARROW, id=(2*toIndex+armIndex), lifetime=rospy.Duration(2),
-                      scale=Vector3(0.01,0.03,0.01), header=Header(frame_id='base_link'),
-                      color=ColorRGBA(0.8, 0.8, 0.8, 0.3), points=[startPoint, endPoint])
+            start = self.l_markers[to_index - 1].get_absolute_position(
+                                                            is_start=True)
+            end = self.l_markers[to_index].get_absolute_position(
+                                                            is_start=False)
 
-    def updateObjects(self, objectList):
+        return Marker(type=Marker.ARROW, id=(2 * to_index + arm_index),
+                      lifetime=rospy.Duration(2),
+                      scale=Vector3(0.01, 0.03, 0.01),
+                      header=Header(frame_id='base_link'),
+                      color=ColorRGBA(0.8, 0.8, 0.8, 0.3), points=[start, end])
+
+    def update_objects(self, object_list):
+        '''Updates the object list for all action steps'''
         self.lock.acquire()
-        self.updateInteractiveMarkers()
-        for i in range(len(self.rMarkers)):
-            self.rMarkers[i].updateReferenceFrameList(objectList)
-        for i in range(len(self.lMarkers)):
-            self.lMarkers[i].updateReferenceFrameList(objectList)
+        self._update_markers()
+        for i in range(len(self.r_markers)):
+            self.r_markers[i].update_ref_frames(object_list)
+        for i in range(len(self.l_markers)):
+            self.l_markers[i].update_ref_frames(object_list)
         self.lock.release()
 
-    # Private function, no need to lock..        
-    def updateInteractiveMarkers(self):
-        for i in range(len(self.rMarkers)):
-            self.rMarkers[i].updateVisualization()
-        for i in range(len(self.lMarkers)):
-            self.lMarkers[i].updateVisualization()
+    def _update_markers(self):
+        '''Updates the markers after a change'''
+        for i in range(len(self.r_markers)):
+            self.r_markers[i].update_viz()
+        for i in range(len(self.l_markers)):
+            self.l_markers[i].update_viz()
 
-    def resetAllTargets(self, armIndex):
+    def reset_targets(self, arm_index):
+        '''Resets requests after reaching a previous target'''
         self.lock.acquire()
-        if (armIndex == 0):
-            for i in range(len(self.rMarkers)):
-                self.rMarkers[i].poseReached()
+        if (arm_index == 0):
+            for i in range(len(self.r_markers)):
+                self.r_markers[i].pose_reached()
         else:
-            for i in range(len(self.lMarkers)):
-                self.lMarkers[i].poseReached()
+            for i in range(len(self.l_markers)):
+                self.l_markers[i].pose_reached()
         self.lock.release()
 
-    def deletePotentialTargets(self):
+    def delete_requested_steps(self):
+        '''Delete steps that were requested from interactive
+        marker menus'''
         self.lock.acquire()
-        toDelete = None
-        for i in range(len(self.rMarkers)):
-            if (self.rMarkers[i].isDeleteRequested or
-                self.lMarkers[i].isDeleteRequested):
-                rospy.loginfo('Will delete step ' + str(i+1))
-                self.rMarkers[i].isDeleteRequested = False
-                self.lMarkers[i].isDeleteRequested = False
-                toDelete = i
+        to_delete = None
+        for i in range(len(self.r_markers)):
+            if (self.r_markers[i].is_deleted or
+                self.l_markers[i].is_deleted):
+                rospy.loginfo('Will delete step ' + str(i + 1))
+                self.r_markers[i].is_deleted = False
+                self.l_markers[i].is_deleted = False
+                to_delete = i
                 break
-        if (toDelete != None):
-            self.deleteFrame(toDelete)
+        if (to_delete != None):
+            self._delete_step(to_delete)
         self.lock.release()
 
-        if (toDelete != None):
-            self.updateVisualization()
-            self.updateInteractiveMarkers()
-            
-    def deleteFrame(self, toDelete):
-            if (len(self.rLinks) > 0):
-                self.rLinks[self.rLinks.keys()[-1]].action = Marker.DELETE
-                self.lLinks[self.lLinks.keys()[-1]].action = Marker.DELETE
-                self.rLinks.pop(self.rLinks.keys()[-1])
-                self.lLinks.pop(self.lLinks.keys()[-1])
+        if (to_delete != None):
+            self.update_viz()
+            self._update_markers()
 
-            self.rMarkers[-1].destroy()
-            self.lMarkers[-1].destroy()
-            for i in range(toDelete+1, self.nFrames()):
-                self.rMarkers[i].decreaseID()
-                self.lMarkers[i].decreaseID()
-            rMarker = self.rMarkers.pop(toDelete)
-            lMarker = self.lMarkers.pop(toDelete)
-            aStep = self.seq.seq.pop(toDelete)
+    def _delete_step(self, to_delete):
+        '''Deletes a step from the action'''
+        if (len(self.r_links) > 0):
+            self.r_links[self.r_links.keys()[-1]].action = Marker.DELETE
+            self.l_links[self.l_links.keys()[-1]].action = Marker.DELETE
+            self.r_links.pop(self.r_links.keys()[-1])
+            self.l_links.pop(self.l_links.keys()[-1])
 
+        self.r_markers[-1].destroy()
+        self.l_markers[-1].destroy()
+        for i in range(to_delete + 1, self.n_frames()):
+            self.r_markers[i].decrease_id()
+            self.l_markers[i].decrease_id()
+        self.r_markers.pop(to_delete)
+        self.l_markers.pop(to_delete)
+        self.seq.seq.pop(to_delete)
 
-    def changePotentialPoses(self, rArmState, lArmState):
+    def change_requested_steps(self, r_arm, l_arm):
+        '''Change an arm step to the current end effector
+        pose if requested through the interactive marker menu'''
         self.lock.acquire()
-        for i in range(len(self.rMarkers)):
-            if (self.rMarkers[i].isEditRequested):
-                self.rMarkers[i].setTarget(0, rArmState)
-        for i in range(len(self.lMarkers)):
-            if (self.lMarkers[i].isEditRequested):
-                self.lMarkers[i].setTarget(1, lArmState)
+        for i in range(len(self.r_markers)):
+            if (self.r_markers[i].is_edited):
+                self.r_markers[i].set_target(r_arm)
+        for i in range(len(self.l_markers)):
+            if (self.l_markers[i].is_edited):
+                self.l_markers[i].set_target(l_arm)
         self.lock.release()
 
-    def getPotentialTargets(self, armIndex):
-        requestedPose = None
+    def get_requested_targets(self, arm_index):
+        '''Get arm steps that might have been requested from
+        the interactive marker menus'''
+        pose = None
         self.lock.acquire()
-        if (armIndex == 0):
-            for i in range(len(self.rMarkers)):
-                if (self.rMarkers[i].isPoseRequested):
-                    requestedPose = self.rMarkers[i].getTarget()
+        if (arm_index == 0):
+            for i in range(len(self.r_markers)):
+                if (self.r_markers[i].is_requested):
+                    pose = self.r_markers[i].get_target()
         else:
-            for i in range(len(self.lMarkers)):
-                if (self.lMarkers[i].isPoseRequested):
-                    requestedPose = self.lMarkers[i].getTarget()
+            for i in range(len(self.l_markers)):
+                if (self.l_markers[i].is_requested):
+                    pose = self.l_markers[i].get_target()
         self.lock.release()
-        return requestedPose
+        return pose
 
-    def updateLinks(self):
-        for i in self.rLinks.keys():
-            self.rLinks[i] = self.getLink(0, i)
-        for i in self.lLinks.keys():
-            self.lLinks[i] = self.getLink(1, i)
-            
-    def updateVisualization(self):
+    def _update_links(self):
+        '''Updates the visualized links b/w action steps'''
+        for i in self.r_links.keys():
+            self.r_links[i] = self._get_link(0, i)
+        for i in self.l_links.keys():
+            self.l_links[i] = self._get_link(1, i)
+
+    def update_viz(self):
+        '''Update the visualization of the action'''
         self.lock.acquire()
-        mArray = MarkerArray()
-        for i in self.rLinks.keys():
-            mArray.markers.append(self.rLinks[i])
-        for i in self.lLinks.keys():
-            mArray.markers.append(self.lLinks[i])
-        self.markerOutput.publish(mArray)
-        self.updateLinks()
+        m_array = MarkerArray()
+        for i in self.r_links.keys():
+            m_array.markers.append(self.r_links[i])
+        for i in self.l_links.keys():
+            m_array.markers.append(self.l_links[i])
+        self._marker_publisher.publish(m_array)
+        self._update_links()
         self.lock.release()
-        
+
     def clear(self):
-        #TODO: get backups before clear
-        self.resetVisualization()
+        '''Clear the action'''
+        self._reset_viz()
         self.lock.acquire()
         self.seq = ActionStepSequence()
-        self.rMarkers = []
-        self.lMarkers = []
-        self.rLinks = dict()
-        self.lLinks = dict()
+        self.r_markers = []
+        self.l_markers = []
+        self.r_links = dict()
+        self.l_links = dict()
         self.lock.release()
 
-    def undoClear(self):
-        self.seq = [] #TODO
-        
-    def getFname(self, ext='.bag'):
-        if ext[0] != '.' :
-            ext  = '.' + ext
-        return self.getName() + ext
-    
-    def nFrames(self):
+    def undo_clear(self):
+        '''Undo effect of clear'''
+        self.seq = []
+
+    def _get_filename(self, ext='.bag'):
+        '''Returns filename for the bag that holds the action'''
+        if ext[0] != '.':
+            ext = '.' + ext
+        return self.get_name() + ext
+
+    def n_frames(self):
+        '''Returns the number of steps in the action'''
         return len(self.seq.seq)
-    
-    def save(self, dataDir):
-        if (self.nFrames() > 0):
+
+    def save(self, data_dir):
+        '''Saves the action into a file'''
+        if (self.n_frames() > 0):
             self.lock.acquire()
-            for i in range(len(self.seq.seq)):
-                aStep = self.seq.seq[i]
-                print i, '(R):', aStep.armTarget.rArm.joint_pose 
-                print i, '(L):', aStep.armTarget.lArm.joint_pose 
-            demoBag = rosbag.Bag(dataDir + self.getFname(), 'w')
-            demoBag.write('sequence', self.seq)
-            demoBag.close()
+            demo_bag = rosbag.Bag(data_dir + self._get_filename(), 'w')
+            demo_bag.write('sequence', self.seq)
+            demo_bag.close()
             self.lock.release()
         else:
-            rospy.logwarn('Could not save demonstration because it does not have any frames.')
-        
-    def load(self, dataDir):
-        fname = dataDir + self.getFname()
-        if (os.path.exists(fname)):
+            rospy.logwarn('Could not save demonstration because ' +
+                          'it does not have any frames.')
+
+    def load(self, data_dir):
+        '''Loads an action from a file'''
+        filename = data_dir + self._get_filename()
+        if (os.path.exists(filename)):
             self.lock.acquire()
-            demoBag = rosbag.Bag(fname)
-            for topic, msg, t in demoBag.read_messages(topics=['sequence']):
-                print 'Reading demo bag file at time ', t.to_sec()
+            demo_bag = rosbag.Bag(filename)
+            for dummy, msg, bag_time in demo_bag.read_messages(
+                                            topics=['sequence']):
+                rospy.loginfo('Reading demo bag file at time '
+                                + str(bag_time.to_sec()))
                 self.seq = msg
-            print self.seq
-            demoBag.close()
+            demo_bag.close()
             self.lock.release()
         else:
-            rospy.logwarn('File does not exist, cannot load demonstration: '+ fname)
-    
-    def resetVisualization(self):
+            rospy.logwarn('File does not exist, cannot load demonstration: '
+                          + filename)
+
+    def _reset_viz(self):
+        '''Removes all visualization from RViz'''
         self.lock.acquire()
-        for i in range(len(self.rMarkers)):
-            self.rMarkers[i].destroy()
-            self.lMarkers[i].destroy()
-        for i in self.rLinks.keys():
-            self.rLinks[i].action = Marker.DELETE
-            self.lLinks[i].action = Marker.DELETE
-        mArray = MarkerArray()
-        for i in self.rLinks.keys():
-            mArray.markers.append(self.rLinks[i])
-        for i in self.lLinks.keys():
-            mArray.markers.append(self.lLinks[i])
-        self.markerOutput.publish(mArray)
-        self.rMarkers = []
-        self.lMarkers = []
-        self.rLinks = dict()
-        self.lLinks = dict()
+        for i in range(len(self.r_markers)):
+            self.r_markers[i].destroy()
+            self.l_markers[i].destroy()
+        for i in self.r_links.keys():
+            self.r_links[i].action = Marker.DELETE
+            self.l_links[i].action = Marker.DELETE
+        m_array = MarkerArray()
+        for i in self.r_links.keys():
+            m_array.markers.append(self.r_links[i])
+        for i in self.l_links.keys():
+            m_array.markers.append(self.l_links[i])
+        self._marker_publisher.publish(m_array)
+        self.r_markers = []
+        self.l_markers = []
+        self.r_links = dict()
+        self.l_links = dict()
         self.lock.release()
-        
-    def markerClickedCallback(self, id):
-        print 'callback called'
-        for i in range(len(self.rMarkers)):
-            if (self.rMarkers[i].id != id and self.rMarkers[i].poseControlVisible):
-                self.rMarkers[i].poseControlVisible = False
-                self.rMarkers[i].updateVisualization()
-        for i in range(len(self.lMarkers)):
-            if (self.lMarkers[i].id != id and self.lMarkers[i].poseControlVisible):
-                self.lMarkers[i].poseControlVisible = False
-                self.lMarkers[i].updateVisualization()
-        
-    def initializeVisualization(self, objectList):
+
+    def marker_click_cb(self, uid):
+        '''Callback for when one of the markers is clicked.
+        Goes over all markers and unclicks them'''
+        for i in range(len(self.r_markers)):
+            if (self.r_markers[i].get_uid() != uid and
+                            self.r_markers[i].is_control_visible):
+                self.r_markers[i].is_control_visible = False
+                self.r_markers[i].update_viz()
+        for i in range(len(self.l_markers)):
+            if (self.l_markers[i].get_uid() != uid and
+                            self.l_markers[i].is_control_visible):
+                self.l_markers[i].is_control_visible = False
+                self.l_markers[i].update_viz()
+
+    def initialize_viz(self, object_list):
+        '''Initialize visualization'''
         self.lock.acquire()
         for i in range(len(self.seq.seq)):
             step = self.seq.seq[i]
-            if (step.type == ActionStep.ARM_TARGET or step.type == ActionStep.ARM_TRAJECTORY):
-                self.rMarkers.append(ActionStepMarker(i+1, 0, step, objectList, self.markerClickedCallback))
-                self.lMarkers.append(ActionStepMarker(i+1, 1, step, objectList, self.markerClickedCallback))
+            if (step.type == ActionStep.ARM_TARGET or
+                step.type == ActionStep.ARM_TRAJECTORY):
+                self.r_markers.append(ActionStepMarker(i + 1, 0, step,
+                                object_list, self.marker_click_cb))
+                self.l_markers.append(ActionStepMarker(i + 1, 1, step,
+                                object_list, self.marker_click_cb))
                 if (i > 0):
-                    self.rLinks[i] = self.getLink(0, i)
-                    self.lLinks[i] = self.getLink(1, i)
-        self.updateInteractiveMarkers()
+                    self.r_links[i] = self._get_link(0, i)
+                    self.l_links[i] = self._get_link(1, i)
+        self._update_markers()
         self.lock.release()
 
-    def getLastStep(self):
+    def get_last_step(self):
+        '''Returns the last step of the action'''
         self.lock.acquire()
-        lastStep = self.seq.seq[len(self.seq.seq)-1]
+        last_step = self.seq.seq[len(self.seq.seq) - 1]
         self.lock.release()
-        return lastStep
-    
-    def deleteLastStep(self):
-        # TODO: backup last pose for undo
-        self.lock.acquire()
-        #self.seq.seq = self.seq.seq[0:len(self.seq.seq)-1]
-        self.deleteFrame(len(self.seq.seq)-1)
-        self.lock.release()
-        
-    def resumeDeletedPose(self):
-        self.seq.seq.append(None) #TODO
+        return last_step
 
-    ## TODO??        
-    def getTrajectory(self):
-        return self.seq
-    
-    def requiresObject(self):
-        isObjRequired = False
-        
+    def delete_last_step(self):
+        '''Deletes the last step of the action'''
+        self.lock.acquire()
+        self._delete_step(len(self.seq.seq) - 1)
+        self.lock.release()
+
+    def resume_deleted_step(self):
+        '''Resumes the deleted last step'''
+        self.seq.seq.append(None)
+
+    def is_object_required(self):
+        '''Checks if the action has steps that are relative to
+        objects in the world'''
+        is_required = False
         self.lock.acquire()
         for i in range(len(self.seq.seq)):
-            if ((self.seq.seq[i].type == ActionStep.ARM_TARGET and 
-                (self.seq.seq[i].armTarget.rArm.refFrame == ArmState.OBJECT or 
-                 self.seq.seq[i].armTarget.lArm.refFrame == ArmState.OBJECT)) or 
-                (self.seq.seq[i].type == ActionStep.ARM_TRAJECTORY and 
-                (self.seq.seq[i].armTrajectory.rRefFrame == ArmState.OBJECT or 
-                 self.seq.seq[i].armTrajectory.lRefFrame == ArmState.OBJECT))):
-                isObjRequired = True
+            if ((self.seq.seq[i].type == ActionStep.ARM_TARGET and
+            (self.seq.seq[i].armTarget.rArm.refFrame == ArmState.OBJECT or
+            self.seq.seq[i].armTarget.lArm.refFrame == ArmState.OBJECT)) or
+            (self.seq.seq[i].type == ActionStep.ARM_TRAJECTORY and
+            (self.seq.seq[i].armTrajectory.rRefFrame == ArmState.OBJECT or
+            self.seq.seq[i].armTrajectory.lRefFrame == ArmState.OBJECT))):
+                is_required = True
         self.lock.release()
-        return isObjRequired
+        return is_required
 
-    def getStep(self, index):
-        self.lock.acquire()
-        requestedStep = self.seq.seq[index]
-        self.lock.release()
-        return requestedStep
-    
-    
-    
-    
-    
+#     def get_step(self, index):
+#         '''Returns a step of the action'''
+#         self.lock.acquire()
+#         requested_step = self.seq.seq[index]
+#         self.lock.release()
+#         return requested_step
+
+    def copy(self):
+        '''Makes a copy of the instance'''
+        action = ProgrammedAction(self.action_index)
+        action.seq = ActionStepSequence()
+        for i in range(len(self.seq.seq)):
+            action_step = self.seq.seq[i]
+            copy = ProgrammedAction._copy_action_step(action_step)
+            action.seq.seq.append(copy)
+        return action
+
+    @staticmethod
+    def _copy_action_step(action_step):
+        '''Makes a copy of an action step'''
+        copy = ActionStep()
+        copy.type = int(action_step.type)
+        if (copy.type == ActionStep.ARM_TARGET):
+            copy.armTarget = ArmTarget()
+            copy.armTarget.rArmVelocity = float(
+                                    action_step.armTarget.rArmVelocity)
+            copy.armTarget.lArmVelocity = float(
+                                    action_step.armTarget.lArmVelocity)
+            copy.armTarget.rArm = ProgrammedAction._copy_arm_state(
+                                                action_step.armTarget.rArm)
+            copy.armTarget.lArm = ProgrammedAction._copy_arm_state(
+                                                action_step.armTarget.lArm)
+        elif (copy.type == ActionStep.ARM_TRAJECTORY):
+            copy.armTrajectory = ArmTrajectory()
+            copy.armTrajectory.timing = action_step.armTrajectory.timing[:]
+            for j in range(len(action_step.armTrajectory.timing)):
+                copy.armTrajectory.rArm.append(
+                    ProgrammedAction._copy_arm_state(
+                                        action_step.armTrajectory.rArm[j]))
+                copy.armTrajectory.lArm.append(
+                    ProgrammedAction._copy_arm_state(
+                                        action_step.armTrajectory.lArm[j]))
+            copy.armTrajectory.rRefFrame = int(
+                    action_step.armTrajectory.rRefFrame)
+            copy.armTrajectory.lRefFrame = int(
+                    action_step.armTrajectory.lRefFrame)
+            ## WARNING: the following is not really copying
+            r_obj = action_step.armTrajectory.rRefFrameObject
+            l_obj = action_step.armTrajectory.lRefFrameObject
+            copy.armTrajectory.rRefFrameObject = r_obj
+            copy.armTrajectory.lRefFrameObject = l_obj
+        copy.gripperAction = GripperAction(action_step.gripperAction.rGripper,
+                                           action_step.gripperAction.lGripper)
+        return copy
+
+    @staticmethod
+    def _copy_arm_state(arm_state):
+        '''Makes a copy of the arm state'''
+        copy = ArmState()
+        copy.refFrame = int(arm_state.refFrame)
+        copy.joint_pose = arm_state.joint_pose[:]
+        copy.ee_pose = Pose(arm_state.ee_pose.position,
+                            arm_state.ee_pose.orientation)
+        ## WARNING: the following is not really copying
+        copy.refFrameObject = arm_state.refFrameObject
+        return copy

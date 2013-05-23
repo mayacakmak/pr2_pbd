@@ -100,7 +100,7 @@ class Arms:
         thread = threading.Thread(group=None, target=self.executeProgrammedAction, name='skill_execution_thread')
         thread.start()
 
-    def stopExecution(self):
+    def stop_execution(self):
         self.preempt = True
     
     def solveIK4ProgrammedAction(self):
