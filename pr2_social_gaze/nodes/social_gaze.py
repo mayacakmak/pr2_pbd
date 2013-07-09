@@ -91,8 +91,11 @@ class SocialGaze:
         else:
             toFrame = '/l_wrist_roll_link'
         
-        t = self.tfListener.getLatestCommonTime(fromFrame, toFrame)
-        (position, rotation) = self.tfListener.lookupTransform(fromFrame, toFrame, t)
+        try:
+            t = self.tfListener.getLatestCommonTime(fromFrame, toFrame)
+            (position, rotation) = self.tfListener.lookupTransform(fromFrame, toFrame, t)
+        except:
+            rospy.logerr('Could not get the end-effector pose.')
         #objPoseStamped = PoseStamped()
         #objPoseStamped.header.stamp = t
         #objPoseStamped.header.frame_id = '/base_link'

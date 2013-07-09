@@ -52,7 +52,7 @@ class ActionStepMarker:
 
     def _is_reachable(self):
         '''Checks if there is an IK solution for action step'''
-        dummy, is_reachable = Arms.solveIK4ArmState(self.arm_index,
+        dummy, is_reachable = Arms.solve_ik_for_arm(self.arm_index,
                                                     self.get_target())
         return is_reachable
 

@@ -19,11 +19,12 @@ from World import World
 from RobotSpeech import Speech
 from Session import Session
 from Response import Response
-from Arms import Arms, ExecutionStatus
+from Arms import Arms
 from Arm import ArmMode
 from pr2_pbd_interaction.msg import ArmState, GripperState
 from pr2_pbd_interaction.msg import ActionStep, ArmTarget, Object
 from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
+from pr2_pbd_interaction.msg import ExecutionStatus
 from speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 
@@ -78,45 +79,45 @@ class Interaction:
 
     def open_hand(self, arm_index):
         '''Opens gripper on the indicated side'''
-        if self.arms.setGripperState(arm_index, GripperState.OPEN):
-            speech_response = Response.openResponses[arm_index]
+        if self.arms.set_gripper_state(arm_index, GripperState.OPEN):
+            speech_response = Response.open_responses[arm_index]
             if (Interaction._is_programming and self.session.n_actions() > 0):
                 self.save_gripper_step(arm_index, GripperState.OPEN)
                 speech_response = speech_response + ' ' + Speech.STEP_RECORDED
-            return [speech_response, Response.glanceActions[arm_index]]
+            return [speech_response, Response.glance_actions[arm_index]]
         else:
-            return [Response.alreadyOpenResponses[arm_index],
-                    Response.glanceActions[arm_index]]
+            return [Response.already_open_responses[arm_index],
+                    Response.glance_actions[arm_index]]
 
     def close_hand(self, arm_index):
         '''Closes gripper on the indicated side'''
-        if self.arms.setGripperState(arm_index, GripperState.CLOSED):
-            speech_response = Response.closeResponses[arm_index]
+        if Arms.set_gripper_state(arm_index, GripperState.CLOSED):
+            speech_response = Response.close_responses[arm_index]
             if (Interaction._is_programming and self.session.n_actions() > 0):
                 self.save_gripper_step(arm_index, GripperState.CLOSED)
                 speech_response = speech_response + ' ' + Speech.STEP_RECORDED
-            return [speech_response, Response.glanceActions[arm_index]]
+            return [speech_response, Response.glance_actions[arm_index]]
         else:
-            return [Response.alreadyClosedResponses[arm_index],
-                    Response.glanceActions[arm_index]]
+            return [Response.already_closed_responses[arm_index],
+                    Response.glance_actions[arm_index]]
 
     def relax_arm(self, arm_index):
         '''Relaxes arm on the indicated side'''
-        if self.arms.setArmMode(arm_index, ArmMode.RELEASE):
-            return [Response.releaseResponses[arm_index],
-                    Response.glanceActions[arm_index]]
+        if self.arms.set_arm_mode(arm_index, ArmMode.RELEASE):
+            return [Response.release_responses[arm_index],
+                    Response.glance_actions[arm_index]]
         else:
-            return [Response.alreadyReleasedResponses[arm_index],
-                    Response.glanceActions[arm_index]]
+            return [Response.already_released_responses[arm_index],
+                    Response.glance_actions[arm_index]]
 
     def freeze_arm(self, arm_index):
         '''Stiffens arm on the indicated side'''
-        if self.arms.setArmMode(arm_index, ArmMode.HOLD):
-            return [Response.holdResponses[arm_index],
-                    Response.glanceActions[arm_index]]
+        if self.arms.set_arm_mode(arm_index, ArmMode.HOLD):
+            return [Response.hold_responses[arm_index],
+                    Response.glance_actions[arm_index]]
         else:
-            return [Response.alreadyHoldingResponses[arm_index],
-                    Response.glanceActions[arm_index]]
+            return [Response.already_holding_responses[arm_index],
+                    Response.glance_actions[arm_index]]
 
     def edit_action(self, dummy=None):
         '''Goes back to edit mode'''
@@ -218,7 +219,7 @@ class Interaction:
 
     def stop_execution(self, dummy=None):
         '''Stops ongoing execution'''
-        if (self.arms.isExecuting()):
+        if (self.arms.is_executing()):
             self.arms.stop_execution()
             return [Speech.STOPPING_EXECUTION, GazeGoal.NOD]
         else:
@@ -358,10 +359,10 @@ class Interaction:
 
     def _get_arm_states(self):
         '''Returns the current arms states in the right format'''
-        abs_ee_poses = [self.arms.getEndEffectorState(0),
-                      self.arms.getEndEffectorState(1)]
-        joint_poses = [self.arms.getDemoJointState(0),
-                      self.arms.getDemoJointState(1)]
+        abs_ee_poses = [Arms.get_ee_state(0),
+                      Arms.get_ee_state(1)]
+        joint_poses = [Arms.get_joint_state(0),
+                      Arms.get_joint_state(1)]
 
         rel_ee_poses = [None, None]
         states = [None, None]
@@ -400,11 +401,11 @@ class Interaction:
                     if (self.world.update_object_pose()):
                         self.session.get_current_action().update_objects(
                                                 self.world.get_frame_list())
-                        self.arms.startExecution(action)
+                        self.arms.start_execution(action)
                     else:
                         return [Speech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]
                 else:
-                    self.arms.startExecution(action)
+                    self.arms.start_execution(action)
 
                 return [Speech.START_EXECUTION + ' ' +
                         str(self.session.current_action_index), None]
@@ -421,7 +422,7 @@ class Interaction:
                           command.command + '\033[0m')
             response = self.responses[command.command]
 
-            if (not self.arms.isExecuting()):
+            if (not self.arms.is_executing()):
                 if (self._undo_function != None):
                     response.respond()
                     self._undo_function = None
@@ -470,11 +471,11 @@ class Interaction:
             action.update_viz()
             r_target = action.get_requested_targets(0)
             if (r_target != None):
-                self.arms.startMovingToArmState(r_target, 0)
+                self.arms.start_move_to_pose(r_target, 0)
                 action.resetAllTargets(0)
             l_target = action.get_requested_targets(1)
             if (l_target != None):
-                self.arms.startMovingToArmState(l_target, 1)
+                self.arms.start_move_to_pose(l_target, 1)
                 action.resetAllTargets(1)
 
             action.delete_requested_steps()

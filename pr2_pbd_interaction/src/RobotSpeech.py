@@ -1,22 +1,19 @@
+''' Robot speech'''
 import roslib
-#roslib.load_manifest('speakeasy');
-roslib.load_manifest('sound_play');
+roslib.load_manifest('sound_play')
+roslib.load_manifest('visualization_msgs')
+roslib.load_manifest('geometry_msgs')
+roslib.load_manifest('std_msgs')
 import rospy
-
-# ROS libraries
-import actionlib
-from actionlib_msgs.msg import *
-#from speakeasy.msg import SpeakEasyTextToSpeech
 from sound_play.msg import SoundRequest
-from visualization_msgs.msg import *
-from geometry_msgs.msg import *
-from std_msgs.msg import Header,ColorRGBA
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Quaternion, Pose, Point, Vector3
+from std_msgs.msg import Header, ColorRGBA
 
-class TTSCommands:
-    SAY  = 0;
-    STOP = 1;
-   
-class Speech:
+
+class RobotSpeech:
+    ''' The robot's speech responses '''
+
     TEST_RESPONSE = 'Microphone working.'
     SKILL_CREATED = 'Created action'
     RIGHT_ARM_RELEASED = 'Right arm relaxed'
@@ -60,44 +57,31 @@ class Speech:
     ALREADY_EDITING = 'Already in editing mode.'
     SWITCH_TO_EDIT_MODE = 'Switched to edit mode.'
     ERROR_NOT_IN_EDIT = ' has been saved. Say, edit action, to make changes.'
-    ACTION_ALREADY_STARTED = 'Action already started. Say, delete all steps, to start over.'
+    ACTION_ALREADY_STARTED = ('Action already started. ' +
+                             'Say, delete all steps, to start over.')
     ALREADY_RECORDING_MOTION = 'Already recording motion.'
     STARTED_RECORDING_MOTION = 'Started recording motion.'
     STOPPED_RECORDING_MOTION = 'Stopped recording motion.'
     MOTION_NOT_RECORDING = 'Not currently recording motion.'
     STOPPING_EXECUTION = 'Execution stopped.'
 
-class RobotSpeech:
-    "Things that the robot say"
     def __init__(self):
-        #self.speechOutputSpeakeasy = rospy.Publisher('speakeasy_text_to_speech_req', SpeakEasyTextToSpeech)
-        self.speechOutputSoundplay = rospy.Publisher('robotsound', SoundRequest)
-        self.markerPublisher = rospy.Publisher('visualization_marker', Marker)
-        
-    def say(self, text, useSpeakeasy=False):
-	useSpeakeasy = False        
-	if (useSpeakeasy):
-#            ttsRequestMsg = SpeakEasyTextToSpeech()
-#            ttsRequestMsg.command = TTSCommands.SAY
-#            ttsRequestMsg.text    = text
-#            ttsRequestMsg.engineName = 'cepstral'
-#            ttsRequestMsg.voiceName = 'David'
-#            self.speechOutputSpeakeasy.publish(ttsRequestMsg)
-            self.sayInRViz(text)
-        else:
-#            self.speechOutputSoundplay.publish(SoundRequest(command=SoundRequest.SAY, arg=text))
-            self.sayInRViz(text)
-            
-    def sayInRViz(self, text):
-        m = Marker(type=Marker.TEXT_VIEW_FACING, id=1000, lifetime=rospy.Duration(1.5), 
-                    pose=Pose(Point(0.5,0.5,1.45), Quaternion(0,0,0,1)),
-                    scale=Vector3(0.06,0.06,0.06), header=Header(frame_id='base_link'),
-                    color=ColorRGBA(0.0, 1.0, 0.0, 0.8), text=text)
-        self.markerPublisher.publish(m)
+        self.speech_publisher = rospy.Publisher('robotsound', SoundRequest)
+        self.marker_publisher = rospy.Publisher('visualization_marker', Marker)
 
-    def stopSaying(self):
-        ttsRequestMsg = SpeakEasyTextToSpeech()
-        ttsRequestMsg.command = TTSCommands.STOP
-        self.speechOutputSpeakeasy.publish(ttsRequestMsg)
+    def say(self, text, is_using_sounds=False):
+        ''' Send a TTS command'''
+        if (not is_using_sounds):
+            self.speech_publisher.publish(SoundRequest(
+                                        command=SoundRequest.SAY, arg=text))
+        self.say_in_rviz(text)
 
-
+    def say_in_rviz(self, text):
+        ''' Visualizes the text that is uttered by the robot in rviz'''
+        marker = Marker(type=Marker.TEXT_VIEW_FACING, id=1000,
+                   lifetime=rospy.Duration(1.5),
+                   pose=Pose(Point(0.5, 0.5, 1.45), Quaternion(0, 0, 0, 1)),
+                   scale=Vector3(0.06, 0.06, 0.06),
+                   header=Header(frame_id='base_link'),
+                   color=ColorRGBA(0.0, 1.0, 0.0, 0.8), text=text)
+        self.marker_publisher.publish(marker)
