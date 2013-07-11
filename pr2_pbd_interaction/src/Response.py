@@ -19,6 +19,7 @@ class Response:
     # Static stuff
     _gaze_client = None
     _sound_client = None
+    _robot_speech = None
     _sounds_dir = os.popen('rospack find pr2_pbd_interaction').read()
     _sounds_dir = _sounds_dir[0:len(_sounds_dir) - 1] + '/sounds/'
 
@@ -56,8 +57,8 @@ class Response:
                                                        GazeAction)
             Response._gaze_client.wait_for_server()
 
-        if (Response.robotSpeech == None):
-            Response.robotSpeech = RobotSpeech()
+        if (Response._robot_speech == None):
+            Response._robot_speech = RobotSpeech()
 
         if (Response._sound_client == None):
             Response._sound_client = SoundClient()
@@ -89,7 +90,7 @@ class Response:
     @staticmethod
     def say(speech_resp):
         ''' Triggers a speech action'''
-        Response.robotSpeech.say(speech_resp)
+        Response._robot_speech.say(speech_resp)
 
     @staticmethod
     def respond_with_sound(speech_resp):

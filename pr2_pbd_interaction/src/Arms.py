@@ -86,18 +86,18 @@ class Arms:
         in an action'''
 
         # Go over steps of the action
-        for i in range(self.action.nFrames()):
+        for i in range(self.action.n_frames()):
             # For each step check step type
             # If arm target action
             if (self.action.seq.seq[i].type == ActionStep.ARM_TARGET):
                 # Find frames that are relative and convert to absolute
                 r_arm, has_solution_r = Arms.solve_ik_for_arm(0,
-                                        self.action.seq.seq[i].armTarget.r_arm)
+                                        self.action.seq.seq[i].armTarget.rArm)
                 l_arm, has_solution_l = Arms.solve_ik_for_arm(1,
-                                        self.action.seq.seq[i].armTarget.l_arm)
+                                        self.action.seq.seq[i].armTarget.lArm)
 
-                self.action.seq.seq[i].armTarget.r_arm = r_arm
-                self.action.seq.seq[i].armTarget.l_arm = l_arm
+                self.action.seq.seq[i].armTarget.rArm = r_arm
+                self.action.seq.seq[i].armTarget.lArm = l_arm
                 if (not has_solution_r) or (not has_solution_l):
                     return False
 
@@ -189,7 +189,7 @@ class Arms:
         of type ProgrammedAction'''
         self.status = ExecutionStatus.EXECUTING
         # Check if the very first precondition is met
-        action_step = self.action.getStep(0)
+        action_step = self.action.get_step(0)
         if (not Arms.is_condition_met(action_step.preCond)):
             rospy.logwarn('First precond is not met, first make sure ' +
                           'the robot is ready to execute action ' +
@@ -216,9 +216,9 @@ class Arms:
         ''' Goes through the steps of the current action'''
 
         # Go over steps of the action
-        for i in range(self.action.nFrames()):
+        for i in range(self.action.n_frames()):
             rospy.loginfo('Executing step ' + str(i))
-            action_step = self.action.getStep(i)
+            action_step = self.action.get_step(i)
 
             # Check that preconditions are met
             if (not Arms.is_condition_met(action_step.preCond)):
@@ -253,8 +253,8 @@ class Arms:
         if (action_step.type == ActionStep.ARM_TARGET):
             rospy.loginfo('Will perform arm target action step.')
 
-            if (not self.move_to_joints(action_step.armTarget.r_arm,
-                                        action_step.armTarget.l_arm)):
+            if (not self.move_to_joints(action_step.armTarget.rArm,
+                                        action_step.armTarget.lArm)):
                 self.status = ExecutionStatus.OBSTRUCTED
                 return False
 

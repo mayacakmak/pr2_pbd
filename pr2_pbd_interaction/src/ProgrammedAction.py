@@ -338,12 +338,12 @@ class ProgrammedAction:
         self.lock.release()
         return is_required
 
-#     def get_step(self, index):
-#         '''Returns a step of the action'''
-#         self.lock.acquire()
-#         requested_step = self.seq.seq[index]
-#         self.lock.release()
-#         return requested_step
+    def get_step(self, index):
+        '''Returns a step of the action'''
+        self.lock.acquire()
+        requested_step = self.seq.seq[index]
+        self.lock.release()
+        return requested_step
 
     def copy(self):
         '''Makes a copy of the instance'''

@@ -44,7 +44,7 @@ class ActionStepMarker:
         self.is_deleted = False
         self.is_control_visible = False
         self.is_edited = False
-        self.has_object = True
+        self.has_object = False
 
         self._sub_entries = None
         self._menu_handler = None
@@ -78,11 +78,12 @@ class ActionStepMarker:
         ActionStepMarker._ref_object_list = ref_frame_list
 
         arm_pose = self.get_target()
+
         if (arm_pose.refFrame == ArmState.OBJECT):
-            self.has_object = False
             prev_ref_obj = arm_pose.refFrameObject
             new_ref_obj = World.get_most_similar_obj(prev_ref_obj,
                                                     ref_frame_list)
+            self.has_object = False
             if (new_ref_obj != None):
                 self.has_object = True
                 arm_pose.refFrameObject = new_ref_obj
@@ -115,8 +116,7 @@ class ActionStepMarker:
         for i in range(len(ActionStepMarker._ref_names)):
             self._menu_handler.setCheckState(self._sub_entries[i],
                                             MenuHandler.UNCHECKED)
-        if (self.has_object):
-            self._menu_handler.setCheckState(
+        self._menu_handler.setCheckState(
                             self._get_menu_id(self._get_ref_name()),
                             MenuHandler.CHECKED)
         self._update_viz_core()
@@ -159,6 +159,7 @@ class ActionStepMarker:
 
         if (ref_frame == ArmState.ROBOT_BASE):
             ref_name = 'base_link'
+
         return ref_name
 
     def _set_ref(self, new_ref_name):
@@ -315,7 +316,7 @@ class ActionStepMarker:
         pose = self.get_pose()
 
         if (self.action_step.type == ActionStep.ARM_TARGET):
-            menu_control = self.make_gripper_marker(menu_control,
+            menu_control = self._make_gripper_marker(menu_control,
                                                   self._is_hand_open())
         elif (self.action_step.type == ActionStep.ARM_TRAJECTORY):
             point_list = []
@@ -349,12 +350,6 @@ class ActionStepMarker:
                         header=Header(frame_id=frame_id),
                         color=ColorRGBA(1.0, 0.8, 0.2, 0.5),
                         points=[pose.position, Point(0, 0, 0)]))
-        int_marker = InteractiveMarker()
-        int_marker.name = self._get_name()
-        int_marker.header.frame_id = frame_id
-        int_marker.pose = pose
-        int_marker.scale = 0.2
-        self.add_6dof_marker(int_marker, False)
 
         text_pos = Point()
         text_pos.x = pose.position.x
@@ -366,6 +361,13 @@ class ActionStepMarker:
                         color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
                         header=Header(frame_id=frame_id),
                         pose=Pose(text_pos, Quaternion(0, 0, 0, 1))))
+
+        int_marker = InteractiveMarker()
+        int_marker.name = self._get_name()
+        int_marker.header.frame_id = frame_id
+        int_marker.pose = pose
+        int_marker.scale = 0.2
+        self._add_6dof_marker(int_marker, False)
 
         int_marker.controls.append(menu_control)
         ActionStepMarker._im_server.insert(int_marker,
@@ -433,32 +435,32 @@ class ActionStepMarker:
         self._menu_handler.reApply(ActionStepMarker._im_server)
         ActionStepMarker._im_server.applyChanges()
 
-    def add_6dof_marker(self, int_marker, is_fixed):
+    def _add_6dof_marker(self, int_marker, is_fixed=False):
         '''Adds a 6 DoF control marker to the interactive marker'''
-        control = self.make_6dof_control('rotate_x',
+        control = self._make_6dof_control('rotate_x',
                         Quaternion(1, 0, 0, 1), False, is_fixed)
         int_marker.controls.append(control)
-        control = self.make_6dof_control('move_x',
+        control = self._make_6dof_control('move_x',
                         Quaternion(1, 0, 0, 1), True, is_fixed)
         int_marker.controls.append(control)
-        control = self.make_6dof_control('rotate_z',
+        control = self._make_6dof_control('rotate_z',
                         Quaternion(0, 1, 0, 1), False, is_fixed)
         int_marker.controls.append(control)
-        control = self.make_6dof_control('move_z',
+        control = self._make_6dof_control('move_z',
                         Quaternion(0, 1, 0, 1), True, is_fixed)
         int_marker.controls.append(control)
-        control = self.make_6dof_control('rotate_y',
+        control = self._make_6dof_control('rotate_y',
                         Quaternion(0, 0, 1, 1), False, is_fixed)
         int_marker.controls.append(control)
-        control = self.make_6dof_control('move_y',
+        control = self._make_6dof_control('move_y',
                         Quaternion(0, 0, 1, 1), True, is_fixed)
         int_marker.controls.append(control)
 
-    def make_6dof_control(self, name, orientation, is_move, is_fixed):
+    def _make_6dof_control(self, name, orientation, is_move, is_fixed):
         '''Creates one component of the 6dof controller'''
         control = InteractiveMarkerControl()
-        control.orientation = orientation
         control.name = name
+        control.orientation = orientation
         control.always_visible = False
         if (self.is_control_visible):
             if is_move:
@@ -469,8 +471,9 @@ class ActionStepMarker:
             control.interaction_mode = InteractiveMarkerControl.NONE
         if is_fixed:
             control.orientation_mode = InteractiveMarkerControl.FIXED
+        return control
 
-    def make_mesh_marker(self):
+    def _make_mesh_marker(self):
         '''Creates a mesh marker'''
         mesh = Marker()
         mesh.mesh_use_embedded_materials = False
@@ -484,7 +487,7 @@ class ActionStepMarker:
             mesh.color = ColorRGBA(0.5, 0.5, 0.5, 0.6)
         return mesh
 
-    def make_gripper_marker(self, control, is_hand_open=False):
+    def _make_gripper_marker(self, control, is_hand_open=False):
         '''Makes a gripper marker'''
         if is_hand_open:
             angle = 28 * numpy.pi / 180.0
@@ -499,18 +502,18 @@ class ActionStepMarker:
         t_distal = tf.transformations.concatenate_matrices(transform1,
                                                            transform2)
 
-        mesh1 = self.make_mesh_marker()
+        mesh1 = self._make_mesh_marker()
         mesh1.mesh_resource = ('package://pr2_description/meshes/' +
                                 'gripper_v0/gripper_palm.dae')
         mesh1.pose.position.x = -ActionStepMarker._offset
         mesh1.pose.orientation.w = 1
 
-        mesh2 = self.make_mesh_marker()
+        mesh2 = self._make_mesh_marker()
         mesh2.mesh_resource = ('package://pr2_description/meshes/' +
                                'gripper_v0/l_finger.dae')
         mesh2.pose = World.get_pose_from_transform(t_proximal)
 
-        mesh3 = self.make_mesh_marker()
+        mesh3 = self._make_mesh_marker()
         mesh3.mesh_resource = ('package://pr2_description/meshes/' +
                                'gripper_v0/l_finger_tip.dae')
         mesh3.pose = World.get_pose_from_transform(t_distal)
@@ -526,11 +529,11 @@ class ActionStepMarker:
         t_distal = tf.transformations.concatenate_matrices(transform1,
                                                            transform2)
 
-        mesh4 = self.make_mesh_marker()
+        mesh4 = self._make_mesh_marker()
         mesh4.mesh_resource = ('package://pr2_description/meshes/' +
                                'gripper_v0/l_finger.dae')
         mesh4.pose = World.get_pose_from_transform(t_proximal)
-        mesh5 = self.make_mesh_marker()
+        mesh5 = self._make_mesh_marker()
         mesh5.mesh_resource = ('package://pr2_description/meshes/' +
                                'gripper_v0/l_finger_tip.dae')
         mesh5.pose = World.get_pose_from_transform(t_distal)

@@ -70,7 +70,7 @@ class Arm:
         self.switch_service = rospy.ServiceProxy(switch_controller,
                                                  SwitchController)
         rospy.loginfo('Got response form the switch controller for '
-                      + self._side + ' arm.')
+                      + self._side() + ' arm.')
 
         # Create a trajectory action client
         traj_controller_name = (self._side_prefix()
@@ -79,7 +79,7 @@ class Arm:
                         traj_controller_name, JointTrajectoryAction)
         self.traj_action_client.wait_for_server()
         rospy.loginfo('Got response form trajectory action server for '
-                      + self._side + ' arm.')
+                      + self._side() + ' arm.')
 
         # Set up Inversse Kinematics
         self.ik_srv = None
@@ -94,33 +94,33 @@ class Arm:
                                                     Pr2GripperCommandAction)
         self.gripper_client.wait_for_server()
         rospy.loginfo('Got response form gripper server for '
-                      + self._side + ' arm.')
+                      + self._side() + ' arm.')
 
         filter_srv_name = '/trajectory_filter/filter_trajectory'
         rospy.wait_for_service(filter_srv_name)
         self.filter_service = rospy.ServiceProxy(filter_srv_name,
                                                  FilterJointTrajectory)
         rospy.loginfo('Filtering service has responded for ' +
-                      self._side + ' arm.')
+                      self._side() + ' arm.')
 
         self.lock = threading.Lock()
         rospy.Subscriber('joint_states', JointState, self.joint_states_cb)
 
     def _setup_ik(self):
         '''Sets up services for inverse kinematics'''
-        ik_info_srv_name = ('pr2_' + self._side +
+        ik_info_srv_name = ('pr2_' + self._side() +
                             '_arm_kinematics_simple/get_ik_solver_info')
-        ik_srv_name = 'pr2_' + self._side + '_arm_kinematics_simple/get_ik'
+        ik_srv_name = 'pr2_' + self._side() + '_arm_kinematics_simple/get_ik'
         rospy.wait_for_service(ik_info_srv_name)
         ik_info_srv = rospy.ServiceProxy(ik_info_srv_name,
                                          GetKinematicSolverInfo)
         solver_info = ik_info_srv()
         rospy.loginfo('IK info service has responded for '
-                      + self._side + ' arm.')
+                      + self._side() + ' arm.')
         rospy.wait_for_service(ik_srv_name)
         self.ik_srv = rospy.ServiceProxy(ik_srv_name,
                                          GetPositionIK, persistent=True)
-        rospy.loginfo('IK service has responded for ' + self._side + ' arm.')
+        rospy.loginfo('IK service has responded for ' + self._side() + ' arm.')
 
         # Set up common parts of an IK request
         self.ik_request = GetPositionIKRequest()
