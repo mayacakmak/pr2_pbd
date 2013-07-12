@@ -512,12 +512,12 @@ class World:
 
     def update_object_pose(self):
         ''' Function to externally update an object pose'''
-        Response.performGazeAction(GazeGoal.LOOK_DOWN)
-        while (Response.gazeActionClient.get_state() == GoalStatus.PENDING or
-               Response.gazeActionClient.get_state() == GoalStatus.ACTIVE):
+        Response.perform_gaze_action(GazeGoal.LOOK_DOWN)
+        while (Response.gaze_client.get_state() == GoalStatus.PENDING or
+               Response.gaze_client.get_state() == GoalStatus.ACTIVE):
             time.sleep(0.1)
 
-        if (Response.gazeActionClient.get_state() != GoalStatus.SUCCEEDED):
+        if (Response.gaze_client.get_state() != GoalStatus.SUCCEEDED):
             rospy.logerr('Could not look down to take table snapshot')
             return False
 

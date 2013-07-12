@@ -170,7 +170,7 @@ class Session:
         '''Switches to indicated action'''
         if (self.n_actions() > 0):
             if (action_number <= self.n_actions() and action_number > 0):
-                self.get_current_action().resetVisualization()
+                self.get_current_action().reset_viz()
                 self.current_action_index = action_number
                 self.get_current_action().initialize_viz(object_list)
                 return True
@@ -186,7 +186,7 @@ class Session:
         '''Switches to next action'''
         if (self.n_actions() > 0):
             if (self.current_action_index < self.n_actions()):
-                self.get_current_action().resetVisualization()
+                self.get_current_action().reset_viz()
                 self.current_action_index += 1
                 self.get_current_action().initialize_viz(object_list)
                 return True
@@ -200,7 +200,7 @@ class Session:
         '''Switches to previous action'''
         if (self.n_actions() > 0):
             if (self.current_action_index > 1):
-                self.get_current_action().resetVisualization()
+                self.get_current_action().reset_viz()
                 self.current_action_index -= 1
                 self.get_current_action().initialize_viz(object_list)
                 return True

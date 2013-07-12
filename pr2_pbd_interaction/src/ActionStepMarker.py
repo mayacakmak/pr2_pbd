@@ -367,7 +367,7 @@ class ActionStepMarker:
         int_marker.header.frame_id = frame_id
         int_marker.pose = pose
         int_marker.scale = 0.2
-        self._add_6dof_marker(int_marker, False)
+        self._add_6dof_marker(int_marker, True)
 
         int_marker.controls.append(menu_control)
         ActionStepMarker._im_server.insert(int_marker,
@@ -435,7 +435,7 @@ class ActionStepMarker:
         self._menu_handler.reApply(ActionStepMarker._im_server)
         ActionStepMarker._im_server.applyChanges()
 
-    def _add_6dof_marker(self, int_marker, is_fixed=False):
+    def _add_6dof_marker(self, int_marker, is_fixed):
         '''Adds a 6 DoF control marker to the interactive marker'''
         control = self._make_6dof_control('rotate_x',
                         Quaternion(1, 0, 0, 1), False, is_fixed)
@@ -481,7 +481,7 @@ class ActionStepMarker:
         mesh.scale.x = 1.0
         mesh.scale.y = 1.0
         mesh.scale.z = 1.0
-        if self._is_reachable() and self.has_object:
+        if self._is_reachable():
             mesh.color = ColorRGBA(1.0, 0.5, 0.0, 0.6)
         else:
             mesh.color = ColorRGBA(0.5, 0.5, 0.5, 0.6)

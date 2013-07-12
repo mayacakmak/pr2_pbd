@@ -201,7 +201,7 @@ class ProgrammedAction:
 
     def clear(self):
         '''Clear the action'''
-        self._reset_viz()
+        self.reset_viz()
         self.lock.acquire()
         self.seq = ActionStepSequence()
         self.r_markers = []
@@ -253,7 +253,7 @@ class ProgrammedAction:
             rospy.logwarn('File does not exist, cannot load demonstration: '
                           + filename)
 
-    def _reset_viz(self):
+    def reset_viz(self):
         '''Removes all visualization from RViz'''
         self.lock.acquire()
         for i in range(len(self.r_markers)):

@@ -17,7 +17,7 @@ from pr2_pbd_interaction.msg import RobotSound
 class Response:
     "Unit of interaction, explains how to respond to a speech command"
     # Static stuff
-    _gaze_client = None
+    gaze_client = None
     _sound_client = None
     _robot_speech = None
     _sounds_dir = os.popen('rospack find pr2_pbd_interaction').read()
@@ -52,10 +52,10 @@ class Response:
         self.function_to_call = function_to_call
         self.function_param = function_param
 
-        if (Response._gaze_client == None):
-            Response._gaze_client = SimpleActionClient('gaze_action',
+        if (Response.gaze_client == None):
+            Response.gaze_client = SimpleActionClient('gaze_action',
                                                        GazeAction)
-            Response._gaze_client.wait_for_server()
+            Response.gaze_client.wait_for_server()
 
         if (Response._robot_speech == None):
             Response._robot_speech = RobotSpeech()
@@ -79,12 +79,12 @@ class Response:
         ''' Triggers a gaze action'''
         goal = GazeGoal()
         goal.action = gaze_action
-        Response._gaze_client.send_goal(goal)
+        Response.gaze_client.send_goal(goal)
 
     @staticmethod
     def look_at_point(point):
         ''' Looks at a specific point'''
-        Response._gaze_client.send_goal(
+        Response.gaze_client.send_goal(
                         GazeGoal(GazeGoal.LOOK_AT_POINT, point))
 
     @staticmethod
