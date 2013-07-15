@@ -1,0 +1,3 @@
+uint8 n_actions
+uint8 i_current_action
+uint8 n_steps

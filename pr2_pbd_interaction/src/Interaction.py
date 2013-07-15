@@ -11,7 +11,6 @@ roslib.load_manifest('visualization_msgs')
 # Generic libraries
 import rospy
 import time
-from std_msgs.msg import String
 from visualization_msgs.msg import MarkerArray
 
 # Local stuff
@@ -24,7 +23,7 @@ from Arm import ArmMode
 from pr2_pbd_interaction.msg import ArmState, GripperState
 from pr2_pbd_interaction.msg import ActionStep, ArmTarget, Object
 from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
-from pr2_pbd_interaction.msg import ExecutionStatus
+from pr2_pbd_interaction.msg import ExecutionStatus, GuiCommand
 from speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 
@@ -42,10 +41,12 @@ class Interaction:
         self.world = World()
         self.session = Session(object_list=self.world.get_frame_list(),
                                is_debug=True)
-        self._state_publisher = rospy.Publisher('interaction_state', String)
         self._viz_publisher = rospy.Publisher('visualization_marker_array',
                                               MarkerArray)
+
         rospy.Subscriber('recognized_command', Command, self.speech_command_cb)
+        rospy.Subscriber('gui_command', GuiCommand, self.gui_command_cb)
+
         self._undo_function = None
 
         self.responses = {
@@ -433,14 +434,12 @@ class Interaction:
                     self._undo_function = None
                 else:
                     response.respond()
-                self._state_publisher.publish(
-                                    self.session.get_session_status())
             else:
                 if command.command == Command.STOP_EXECUTION:
                     response.respond()
                 else:
-                    rospy.logwarn('Ignoring command sent during execution: ' +
-                                    command.command)
+                    rospy.logwarn('Ignoring speech command during execution: '
+                                  + command.command)
         else:
             switch_command = 'SWITCH_TO_ACTION'
             if (switch_command in command.command):
@@ -460,6 +459,29 @@ class Interaction:
             else:
                 rospy.logwarn('\033[32m This command (' + command.command
                               + ') is unknown. \033[0m')
+
+    def gui_command_cb(self, command):
+        '''Callback for when a GUI command is received'''
+
+        if (command.command == GuiCommand.SWITCH_TO_ACTION):
+            if (not self.arms.is_executing()):
+                action_no = command.param
+                if (self.session.n_actions() > 0):
+                    self.session.switch_to_action(action_no,
+                                                  self.world.get_frame_list())
+                    response = Response(Interaction.empty_response,
+                        [RobotSpeech.SWITCH_SKILL + str(action_no),
+                         GazeGoal.NOD])
+                else:
+                    response = Response(Interaction.empty_response,
+                        [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
+                response.respond()
+            else:
+                rospy.logwarn('Ignoring GUI command during execution: ' +
+                                    command.command)
+        else:
+            rospy.logwarn('\033[32m This command (' + command.command
+                          + ') is unknown. \033[0m')
 
     def update(self):
         '''General update for the main loop'''

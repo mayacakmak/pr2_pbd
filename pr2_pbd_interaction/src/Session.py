@@ -4,6 +4,9 @@ from ProgrammedAction import ProgrammedAction
 import rospy
 import os
 import yaml
+from pr2_pbd_interaction.msg import ExperimentState
+from pr2_pbd_interaction.srv import GetExperimentState
+from pr2_pbd_interaction.srv import GetExperimentStateResponse
 
 
 class Session:
@@ -35,9 +38,25 @@ class Session:
         for k in self.actions.keys():
             n_actions[str(k)] = self.actions[k].n_frames()
 
-        rospy.set_param('nProgrammedActions', n_actions)
-        rospy.set_param('currentProgrammedActionIndex',
-                        self.current_action_index)
+        self._state_publisher = rospy.Publisher('experiment_state',
+                                                ExperimentState)
+        rospy.Service('get_experiment_state', GetExperimentState,
+                      self.get_experiment_state_cb())
+
+    def get_experiment_state_cb(self):
+        ''' Response to the experiment state service call'''
+        return GetExperimentStateResponse(self._get_experiment_state())
+
+    def _update_experiment_state(self):
+        ''' Publishes a message with the latest state'''
+        state = self._get_experiment_state()
+        self._state_publisher.publish(state)
+
+    def _get_experiment_state(self):
+        ''' Creates a message with the latest state'''
+        return ExperimentState(self.n_actions(),
+                    self.current_action_index,
+                    self.n_frames())
 
     def _get_participant_id(self):
         '''Gets the experiment number from the command line'''
@@ -104,6 +123,7 @@ class Session:
         self.current_action_index = self.n_actions() + 1
         self.actions.update({self.current_action_index:
                              ProgrammedAction(self.current_action_index)})
+        self._update_experiment_state()
 
     def n_actions(self):
         '''Returns the number of actions programmed so far'''
@@ -122,6 +142,7 @@ class Session:
             self.actions[self.current_action_index].clear()
         else:
             rospy.logwarn('No skills created yet.')
+        self._update_experiment_state()
 
     def undo_clear(self):
         '''Undo the effect of clear'''
@@ -129,6 +150,7 @@ class Session:
             self.actions[self.current_action_index].undoClear()
         else:
             rospy.logwarn('No skills created yet.')
+        self._update_experiment_state()
 
     def save_current_action(self):
         '''Save current action onto hard drive'''
@@ -145,6 +167,7 @@ class Session:
                                                                 object_list)
         else:
             rospy.logwarn('No skills created yet.')
+        self._update_experiment_state()
 
 #     def getLastStepOfProgrammedAction(self):
 #         if (self.n_actions() > 0 and self.n_frames() > 0):
@@ -158,6 +181,7 @@ class Session:
             self.actions[self.current_action_index].delete_last_step()
         else:
             rospy.logwarn('No skills created yet.')
+        self._update_experiment_state()
 
     def resume_deleted_step(self):
         '''Resumes the deleted step'''
@@ -165,6 +189,7 @@ class Session:
             self.actions[self.current_action_index].resume_deleted_step()
         else:
             rospy.logwarn('No skills created yet.')
+        self._update_experiment_state()
 
     def switch_to_action(self, action_number, object_list):
         '''Switches to indicated action'''
@@ -173,14 +198,16 @@ class Session:
                 self.get_current_action().reset_viz()
                 self.current_action_index = action_number
                 self.get_current_action().initialize_viz(object_list)
-                return True
+                success = True
             else:
                 rospy.logwarn('Cannot switch to action '
                               + str(action_number))
-                return False
+                success = False
         else:
             rospy.logwarn('No skills created yet.')
-            return False
+            success = False
+        self._update_experiment_state()
+        return success
 
     def next_action(self, object_list):
         '''Switches to next action'''
@@ -189,12 +216,14 @@ class Session:
                 self.get_current_action().reset_viz()
                 self.current_action_index += 1
                 self.get_current_action().initialize_viz(object_list)
-                return True
+                success = True
             else:
-                return False
+                success = False
         else:
             rospy.logwarn('No skills created yet.')
-            return False
+            success = False
+        self._update_experiment_state()
+        return success
 
     def previous_action(self, object_list):
         '''Switches to previous action'''
@@ -203,12 +232,14 @@ class Session:
                 self.get_current_action().reset_viz()
                 self.current_action_index -= 1
                 self.get_current_action().initialize_viz(object_list)
-                return True
+                success = True
             else:
-                return False
+                success = False
         else:
             rospy.logwarn('No skills created yet.')
-            return False
+            success = False
+        self._update_experiment_state()
+        return success
 
     def n_frames(self):
         '''Returns the number of frames'''
@@ -217,12 +248,3 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
             return 0
-
-    def get_session_status(self):
-        '''Returns session status as a string'''
-        status_str = ''
-        status_str += 'Total number of skills:' + str(self.n_actions()) + '\n'
-        status_str += ('Current skill: ProgrammedAction' +
-                            str(self.current_action_index) + '\n')
-        status_str += 'Number of poses in skill:' + str(self.n_frames())
-        return status_str

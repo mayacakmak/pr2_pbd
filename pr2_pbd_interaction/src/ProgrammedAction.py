@@ -295,10 +295,17 @@ class ProgrammedAction:
             step = self.seq.seq[i]
             if (step.type == ActionStep.ARM_TARGET or
                 step.type == ActionStep.ARM_TRAJECTORY):
-                self.r_markers.append(ActionStepMarker(i + 1, 0, step,
-                                object_list, self.marker_click_cb))
-                self.l_markers.append(ActionStepMarker(i + 1, 1, step,
-                                object_list, self.marker_click_cb))
+                r_marker = ActionStepMarker(self.n_frames(), 0,
+                                            step, self.marker_click_cb)
+                l_marker = ActionStepMarker(self.n_frames(), 1,
+                                            step, self.marker_click_cb)
+
+                r_marker.update_ref_frames(object_list)
+                l_marker.update_ref_frames(object_list)
+
+                self.r_markers.append(r_marker)
+                self.l_markers.append(l_marker)
+
                 if (i > 0):
                     self.r_links[i] = self._get_link(0, i)
                     self.l_links[i] = self._get_link(1, i)
