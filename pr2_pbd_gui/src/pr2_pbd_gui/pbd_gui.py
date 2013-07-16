@@ -23,7 +23,6 @@ from pr2_pbd_interaction.msg import GuiCommand
 from sound_play.msg import SoundRequest
 from pr2_pbd_interaction.msg import ExperimentState
 from pr2_pbd_interaction.srv import GetExperimentState
-from pr2_pbd_interaction.srv import GetExperimentStateResponse
 
 
 class ClickableLabel(QtGui.QLabel):
@@ -121,21 +120,28 @@ class PbDGUI(Plugin):
         actionBox.setLayout(actionBoxLayout)
         
         actionButtonGrid = QtGui.QHBoxLayout()
-        actionButtonGrid.addWidget(self.create_button(Command.CREATE_NEW_ACTION))
-        
-
+        actionButtonGrid.addWidget(self.create_button(
+                                        Command.CREATE_NEW_ACTION))
         self.stepsBox = QGroupBox('No actions created yet', self._widget)
         self.stepsGrid = QtGui.QGridLayout()
-        self.stepsGrid.setHorizontalSpacing(0)
-        self.stepsGrid.setSpacing(0)
-        self.view = QtGui.QTableView(self._widget)
-        self.stepsGrid.addWidget(self.view, 1, 0, 1, 3)
-        self.model = QtGui.QStandardItemModel(self)
-        self.proxy = QtGui.QSortFilterProxyModel(self)
-        self.proxy.setSourceModel(self.model)
-        self.view.setModel(self.proxy)
-        self.verticalHeader = self.view.verticalHeader()
-        self.verticalHeader.sectionClicked.connect(self.on_view_verticalHeader_sectionClicked)
+        
+        self.l_model = QtGui.QStandardItemModel(self)
+        self.l_view = self._create_table_view(self.l_model,
+                                              self.l_row_clicked_cb)
+        self.r_model = QtGui.QStandardItemModel(self)
+        self.r_view = self._create_table_view(self.r_model,
+                                              self.r_row_clicked_cb)
+
+        self.stepsGrid.addItem(QtGui.QSpacerItem(280, 10), 0, 0, 2, 3)
+        self.stepsGrid.addItem(QtGui.QSpacerItem(10, 10), 0, 1, 2, 3)
+        self.stepsGrid.addItem(QtGui.QSpacerItem(280, 10), 0, 2, 2, 3)
+        
+        self.stepsGrid.addWidget(QtGui.QLabel('Left Arm'), 0, 0)
+        self.stepsGrid.addWidget(QtGui.QLabel('Right Arm'), 0, 2)
+
+        self.stepsGrid.addWidget(self.l_view, 1, 0)
+        self.stepsGrid.addWidget(self.r_view, 1, 2)
+        
         stepsBoxLayout = QtGui.QHBoxLayout()
         stepsBoxLayout.addLayout(self.stepsGrid)
         self.stepsBox.setLayout(stepsBoxLayout)
@@ -214,64 +220,40 @@ class PbDGUI(Plugin):
 
         rospy.loginfo('Will wait for the experiment state service...')
         rospy.wait_for_service('get_experiment_state')
-        self.exp_state_srv = rospy.ServiceProxy('get_experiment_state',
+        exp_state_srv = rospy.ServiceProxy('get_experiment_state',
                                                  GetExperimentState)
         rospy.loginfo('Got response from the experiment state service...')
+
+        response = exp_state_srv()
+        self.update_state(response.state)
         
-    def on_view_verticalHeader_sectionClicked(self, logicalIndex):
-        self.logicalIndex   = logicalIndex
-        self.menuValues     = QtGui.QMenu(self)
-        self.signalMapper   = QtCore.QSignalMapper(self)  
+    def _create_table_view(self, model, row_click_cb):
+        proxy = QtGui.QSortFilterProxyModel(self)
+        proxy.setSourceModel(model)
+        view = QtGui.QTableView(self._widget)
+        verticalHeader = view.verticalHeader()
+        verticalHeader.sectionClicked.connect(row_click_cb)
+        view.setModel(proxy)
+        view.setMaximumWidth(250)
+        view.setSortingEnabled(False)
+        view.setCornerButtonEnabled(False)
+        return view
+    
+    def get_uid(self, arm_index, index):
+        '''Returns a unique id of the marker'''
+        return (2 * (index + 1) + arm_index)
+    
+    def get_arm_and_index(self, uid):
+        '''Returns a unique id of the marker'''
+        arm_index = uid % 2
+        index = (uid - arm_index) / 2
+        return (arm_index, (index - 1))
 
-        self.comboBox.blockSignals(True)
-        self.comboBox.setCurrentIndex(self.logicalIndex)
-        self.comboBox.blockSignals(True)
+    def r_row_clicked_cb(self, logicalIndex):
+        self.step_pressed(self.get_uid(0, logicalIndex))
 
-        valuesUnique = [    self.model.item(row, self.logicalIndex).text()
-                            for row in range(self.model.rowCount())
-                            ]
-
-        actionAll = QtGui.QAction("All", self)
-        actionAll.triggered.connect(self.on_actionAll_triggered)
-        self.menuValues.addAction(actionAll)
-        self.menuValues.addSeparator()
-
-        for actionNumber, actionName in enumerate(sorted(list(set(valuesUnique)))):              
-            action = QtGui.QAction(actionName, self)
-            self.signalMapper.setMapping(action, actionNumber)  
-            action.triggered.connect(self.signalMapper.map)  
-            self.menuValues.addAction(action)
-
-        self.signalMapper.mapped.connect(self.on_signalMapper_mapped)  
-
-        headerPos = self.view.mapToGlobal(self.verticalHeader.pos())        
-
-        posY = headerPos.y() + self.verticalHeader.height()
-        posX = (headerPos.x() + 
-                self.verticalHeader.sectionPosition(self.logicalIndex))
-
-        self.menuValues.exec_(QtCore.QPoint(posX, posY))
-
-    def on_actionAll_triggered(self):
-        filterColumn = self.logicalIndex
-        filterString = QtCore.QRegExp(  "",
-                                        QtCore.Qt.CaseInsensitive,
-                                        QtCore.QRegExp.RegExp
-                                        )
-
-        self.proxy.setFilterRegExp(filterString)
-        self.proxy.setFilterKeyColumn(filterColumn)
-
-    def on_signalMapper_mapped(self, i):
-        stringAction = self.signalMapper.mapping(i).text()
-        filterColumn = self.logicalIndex
-        filterString = QtCore.QRegExp(  stringAction,
-                                        QtCore.Qt.CaseSensitive,
-                                        QtCore.QRegExp.FixedString
-                                        )
-
-        self.proxy.setFilterRegExp(filterString)
-        self.proxy.setFilterKeyColumn(filterColumn)
+    def l_row_clicked_cb(self, logicalIndex):
+        self.step_pressed(self.get_uid(1, logicalIndex))
 
     def create_button(self, command):
         btn = QtGui.QPushButton(self.commands[command], self._widget)
@@ -291,36 +273,59 @@ class PbDGUI(Plugin):
             self.action_pressed(state.i_current_action - 1, False)
 
         n_steps = self.n_steps()
-        print 'current number of steps', n_steps
         if (n_steps < state.n_steps):
             for i in range(n_steps, state.n_steps):
                 self.save_pose()
         elif (n_steps > state.n_steps):
             n_to_remove = n_steps - state.n_steps
-            self.model.invisibleRootItem().removeRows(state.n_steps,
+            self.r_model.invisibleRootItem().removeRows(state.n_steps,
                                                       n_to_remove)
-        print 'new number of steps', self.n_steps()
+            self.l_model.invisibleRootItem().removeRows(state.n_steps,
+                                                      n_to_remove)
+            
+        if (self.currentStep != state.i_current_step):
+            if (self.n_steps() > 0):
+                self.currentStep = state.i_current_step
+                arm_index, index = self.get_arm_and_index(self.currentStep)
+                if (arm_index == 0):
+                    self.r_view.selectRow(index)
+                else:
+                    self.l_view.selectRow(index)
 
     def save_pose(self, actionIndex=None):
         nColumns = 9
         if actionIndex is None:
             actionIndex = self.currentAction
         stepIndex = self.n_steps(actionIndex)
-        stepIcon = [QtGui.QStandardItem('Step' + str(stepIndex)),
+        r_step = [QtGui.QStandardItem('Step' + str(stepIndex + 1)),
                     QtGui.QStandardItem('Go to pose'), 
                     QtGui.QStandardItem('Absolute')]
-        self.model.invisibleRootItem().appendRow(stepIcon)
+        l_step = [QtGui.QStandardItem('Step' + str(stepIndex + 1)),
+                    QtGui.QStandardItem('Go to pose'), 
+                    QtGui.QStandardItem('Absolute')]
+        self.r_model.invisibleRootItem().appendRow(r_step)
+        self.l_model.invisibleRootItem().appendRow(l_step)
+        self.update_table_view()
         self.currentStep = stepIndex
         
+    def update_table_view(self):
+        self.l_view.setColumnWidth(0, 50)
+        self.l_view.setColumnWidth(1, 100)
+        self.l_view.setColumnWidth(2, 70)
+        self.r_view.setColumnWidth(0, 50)
+        self.r_view.setColumnWidth(1, 100)
+        self.r_view.setColumnWidth(2, 70)
+        
     def n_steps(self, actionIndex=None):
-        return self.model.invisibleRootItem().rowCount()
+        return self.l_model.invisibleRootItem().rowCount()
         
     def delete_all_steps(self, actionIndex=None):
         if actionIndex is None:
             actionIndex = self.currentAction
         n_steps = self.n_steps()
         if (n_steps > 0):
-            self.model.invisibleRootItem().removeRows(0, n_steps)
+            self.l_model.invisibleRootItem().removeRows(0, n_steps)
+            self.r_model.invisibleRootItem().removeRows(0, n_steps)
 
     def n_actions(self):
         return len(self.actionIcons.keys())
@@ -335,6 +340,10 @@ class PbDGUI(Plugin):
         self.actionGrid.addLayout(actIcon, int(actionIndex/nColumns), 
                                   actionIndex%nColumns)
         self.actionIcons[actionIndex] = actIcon
+
+    def step_pressed(self, step_index):
+        gui_cmd = GuiCommand(GuiCommand.SELECT_ACTION_STEP, step_index)
+        self.gui_cmd_publisher.publish(gui_cmd)
 
     def action_pressed(self, actionIndex, isPublish=True):
         for i in range(len(self.actionIcons.keys())):

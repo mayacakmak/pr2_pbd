@@ -27,9 +27,10 @@ class ProgrammedAction:
 
     _marker_publisher = None
 
-    def __init__(self, action_index):
+    def __init__(self, action_index, step_click_cb):
         self.seq = ActionStepSequence()
         self.action_index = action_index
+        self.step_click_cb = step_click_cb
         self.r_markers = []
         self.l_markers = []
         self.r_links = dict()
@@ -274,19 +275,34 @@ class ProgrammedAction:
         self.l_links = dict()
         self.lock.release()
 
-    def marker_click_cb(self, uid):
+    def marker_click_cb(self, uid, is_selected):
         '''Callback for when one of the markers is clicked.
-        Goes over all markers and unclicks them'''
+        Goes over all markers and un-selects them'''
         for i in range(len(self.r_markers)):
-            if (self.r_markers[i].get_uid() != uid and
-                            self.r_markers[i].is_control_visible):
-                self.r_markers[i].is_control_visible = False
+            if (self.r_markers[i].get_uid() == uid):
+                self.r_markers[i].is_control_visible = is_selected
                 self.r_markers[i].update_viz()
+            else:
+                if (self.r_markers[i].is_control_visible):
+                    self.r_markers[i].is_control_visible = False
+                    self.r_markers[i].update_viz()
+
         for i in range(len(self.l_markers)):
-            if (self.l_markers[i].get_uid() != uid and
-                            self.l_markers[i].is_control_visible):
-                self.l_markers[i].is_control_visible = False
+            if (self.l_markers[i].get_uid() == uid):
+                self.l_markers[i].is_control_visible = is_selected
                 self.l_markers[i].update_viz()
+            else:
+                if (self.l_markers[i].is_control_visible):
+                    self.l_markers[i].is_control_visible = False
+                    self.l_markers[i].update_viz()
+
+        if is_selected:
+            self.step_click_cb(uid)
+
+    def select_step(self, step_id):
+        ''' Makes the interactive marker for the indicated action
+        step selected, by showing the 6D controls'''
+        self.marker_click_cb(step_id, True)
 
     def initialize_viz(self, object_list):
         '''Initialize visualization'''
@@ -295,10 +311,10 @@ class ProgrammedAction:
             step = self.seq.seq[i]
             if (step.type == ActionStep.ARM_TARGET or
                 step.type == ActionStep.ARM_TRAJECTORY):
-                r_marker = ActionStepMarker(self.n_frames(), 0,
-                                            step, self.marker_click_cb)
-                l_marker = ActionStepMarker(self.n_frames(), 1,
-                                            step, self.marker_click_cb)
+                r_marker = ActionStepMarker(i + 1, 0, step,
+                                            self.marker_click_cb)
+                l_marker = ActionStepMarker(i + 1, 1, step,
+                                            self.marker_click_cb)
 
                 r_marker.update_ref_frames(object_list)
                 l_marker.update_ref_frames(object_list)
@@ -309,6 +325,7 @@ class ProgrammedAction:
                 if (i > 0):
                     self.r_links[i] = self._get_link(0, i)
                     self.l_links[i] = self._get_link(1, i)
+
         self._update_markers()
         self.lock.release()
 
@@ -354,7 +371,7 @@ class ProgrammedAction:
 
     def copy(self):
         '''Makes a copy of the instance'''
-        action = ProgrammedAction(self.action_index)
+        action = ProgrammedAction(self.action_index, self.step_click_cb)
         action.seq = ActionStepSequence()
         for i in range(len(self.seq.seq)):
             action_step = self.seq.seq[i]

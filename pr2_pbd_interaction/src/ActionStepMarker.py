@@ -393,8 +393,8 @@ class ActionStepMarker:
                 self.is_control_visible = False
             else:
                 self.is_control_visible = True
-            self.update_viz()
-            ActionStepMarker._marker_click_cb(self.get_uid())
+            ActionStepMarker._marker_click_cb(self.get_uid(),
+                                              self.is_control_visible)
         else:
             rospy.loginfo('Unknown event' + str(feedback.event_type))
 

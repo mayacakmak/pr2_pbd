@@ -463,25 +463,30 @@ class Interaction:
     def gui_command_cb(self, command):
         '''Callback for when a GUI command is received'''
 
-        if (command.command == GuiCommand.SWITCH_TO_ACTION):
-            if (not self.arms.is_executing()):
-                action_no = command.param
-                if (self.session.n_actions() > 0):
+        if (not self.arms.is_executing()):
+            if (self.session.n_actions() > 0):
+                if (command.command == GuiCommand.SWITCH_TO_ACTION):
+                    action_no = command.param
                     self.session.switch_to_action(action_no,
                                                   self.world.get_frame_list())
                     response = Response(Interaction.empty_response,
                         [RobotSpeech.SWITCH_SKILL + str(action_no),
                          GazeGoal.NOD])
+                    response.respond()
+                elif (command.command == GuiCommand.SELECT_ACTION_STEP):
+                    step_no = command.param
+                    self.session.select_action_step(step_no)
+                    rospy.loginfo('Selected action step ' + str(step_no))
                 else:
-                    response = Response(Interaction.empty_response,
-                        [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
-                response.respond()
+                    rospy.logwarn('\033[32m This command (' + command.command
+                                  + ') is unknown. \033[0m')
             else:
-                rospy.logwarn('Ignoring GUI command during execution: ' +
-                                    command.command)
+                response = Response(Interaction.empty_response,
+                    [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
+                response.respond()
         else:
-            rospy.logwarn('\033[32m This command (' + command.command
-                          + ') is unknown. \033[0m')
+            rospy.logwarn('Ignoring GUI command during execution: ' +
+                                command.command)
 
     def update(self):
         '''General update for the main loop'''

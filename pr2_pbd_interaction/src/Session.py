@@ -16,6 +16,7 @@ class Session:
         self._is_reload = rospy.get_param('/pr2_pbd_interaction/isReload')
 
         self._exp_number = None
+        self._selected_step = 0
 
         if (is_debug):
             self._exp_number = rospy.get_param(
@@ -41,9 +42,17 @@ class Session:
         self._state_publisher = rospy.Publisher('experiment_state',
                                                 ExperimentState)
         rospy.Service('get_experiment_state', GetExperimentState,
-                      self.get_experiment_state_cb())
+                      self.get_experiment_state_cb)
 
-    def get_experiment_state_cb(self):
+        self._update_experiment_state()
+
+    def _selected_step_cb(self, selected_step):
+        '''Updates the selected step when interactive
+        markers are clicked on'''
+        self._selected_step = selected_step
+        self._update_experiment_state()
+
+    def get_experiment_state_cb(self, dummy):
         ''' Response to the experiment state service call'''
         return GetExperimentStateResponse(self._get_experiment_state())
 
@@ -56,7 +65,14 @@ class Session:
         ''' Creates a message with the latest state'''
         return ExperimentState(self.n_actions(),
                     self.current_action_index,
-                    self.n_frames())
+                    self.n_frames(),
+                    self._selected_step)
+
+    def select_action_step(self, step_id):
+        ''' Makes the interactive marker for the indicated action
+        step selected, by showing the 6D controls'''
+        self.actions[self.current_action_index].select_step(step_id)
+        self._selected_step = step_id
 
     def _get_participant_id(self):
         '''Gets the experiment number from the command line'''
@@ -110,7 +126,8 @@ class Session:
         exp_state = yaml.load(state_file)
         n_actions = exp_state['nProgrammedActions']
         for i in range(n_actions):
-            self.actions.update({(i + 1): ProgrammedAction(i + 1)})
+            self.actions.update({(i + 1): ProgrammedAction(i + 1,
+                                            self._selected_step_cb)})
             self.actions[(i + 1)].load(self._data_dir)
         self.current_action_index = exp_state['currentProgrammedActionIndex']
         self.actions[self.current_action_index].initialize_viz(object_list)
@@ -122,7 +139,8 @@ class Session:
             self.get_current_action().reset_viz()
         self.current_action_index = self.n_actions() + 1
         self.actions.update({self.current_action_index:
-                             ProgrammedAction(self.current_action_index)})
+                             ProgrammedAction(self.current_action_index,
+                                              self._selected_step_cb)})
         self._update_experiment_state()
 
     def n_actions(self):
@@ -168,12 +186,6 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
         self._update_experiment_state()
-
-#     def getLastStepOfProgrammedAction(self):
-#         if (self.n_actions() > 0 and self.n_frames() > 0):
-#             return self.actions[self.current_action_index].get_last_step()
-#         else:
-#             rospy.logwarn('No skills created yet. Or no steps yet.')
 
     def delete_last_step(self):
         '''Removes the last step of the action'''
