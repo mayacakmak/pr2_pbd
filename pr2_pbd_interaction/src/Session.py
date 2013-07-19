@@ -17,6 +17,7 @@ class Session:
 
         self._exp_number = None
         self._selected_step = 0
+        self._object_list = object_list
 
         if (is_debug):
             self._exp_number = rospy.get_param(
@@ -66,7 +67,32 @@ class Session:
         return ExperimentState(self.n_actions(),
                     self.current_action_index,
                     self.n_frames(),
-                    self._selected_step)
+                    self._selected_step,
+                    self._get_gripper_states(0),
+                    self._get_gripper_states(1),
+                    self._get_ref_frames(0),
+                    self._get_ref_frames(1),
+                    self._object_list)
+
+    def _get_ref_frames(self, arm_index):
+        ''' Returns the reference frames for the steps of the
+        current action in array format'''
+        ref_frames = []
+        for i in range(self.n_frames()):
+            action = self.actions[self.current_action_index]
+            ref_frame = action.get_step_ref_frame(arm_index, i)
+            ref_frames.append(ref_frame)
+        return ref_frames
+
+    def _get_gripper_states(self, arm_index):
+        ''' Returns the gripper states for current action
+        in array format'''
+        gripper_states = []
+        for i in range(self.n_frames()):
+            action = self.actions[self.current_action_index]
+            gripper_state = action.get_step_gripper_state(arm_index, i)
+            gripper_states.append(gripper_state)
+        return gripper_states
 
     def select_action_step(self, step_id):
         ''' Makes the interactive marker for the indicated action
@@ -185,6 +211,7 @@ class Session:
                                                                 object_list)
         else:
             rospy.logwarn('No skills created yet.')
+        self._object_list = object_list
         self._update_experiment_state()
 
     def delete_last_step(self):
@@ -218,6 +245,7 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
             success = False
+        self._object_list = object_list
         self._update_experiment_state()
         return success
 
@@ -234,6 +262,7 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
             success = False
+        self._object_list = object_list
         self._update_experiment_state()
         return success
 
@@ -250,6 +279,7 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
             success = False
+        self._object_list = object_list
         self._update_experiment_state()
         return success
 

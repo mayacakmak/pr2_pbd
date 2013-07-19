@@ -362,6 +362,24 @@ class ProgrammedAction:
         self.lock.release()
         return is_required
 
+    def get_step_gripper_state(self, arm_index, index):
+        ''' Returns the gripper state of indicated action step,
+        for the indicated side'''
+        action_step = self.get_step(index)
+        if arm_index == 0:
+            return action_step.gripperAction.rGripper
+        else:
+            return action_step.gripperAction.rGripper
+
+    def get_step_ref_frame(self, arm_index, index):
+        ''' Returns the gripper state of indicated action step,
+        for the indicated side'''
+        action_step = self.get_step(index)
+        if arm_index == 0:
+            return action_step.armTarget.rArm.refFrameObject.name
+        else:
+            return action_step.armTarget.lArm.refFrameObject.name
+
     def get_step(self, index):
         '''Returns a step of the action'''
         self.lock.acquire()

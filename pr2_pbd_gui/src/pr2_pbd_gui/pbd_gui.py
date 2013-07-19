@@ -282,6 +282,13 @@ class PbDGUI(Plugin):
                                                       n_to_remove)
             self.l_model.invisibleRootItem().removeRows(state.n_steps,
                                                       n_to_remove)
+        
+        ## TODO: DEAL with the following arrays!!!
+        state.r_gripper_states
+        state.l_gripper_states
+        state.r_ref_frames
+        state.l_ref_frames
+        state.objects
             
         if (self.currentStep != state.i_current_step):
             if (self.n_steps() > 0):

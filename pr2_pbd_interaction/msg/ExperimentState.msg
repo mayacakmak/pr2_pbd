@@ -2,3 +2,8 @@ uint8 n_actions
 uint8 i_current_action
 uint8 n_steps
 uint8 i_current_step
+uint8[] r_gripper_states
+uint8[] l_gripper_states
+string[] r_ref_frames
+string[] l_ref_frames
+pr2_pbd_interaction/Object[] objects
