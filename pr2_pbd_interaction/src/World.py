@@ -474,23 +474,29 @@ class World:
 
     @staticmethod
     def transform(pose, from_frame, to_frame):
-        ''' Function to transform a pose between two ref. frames'''
-        pose_stamped = PoseStamped()
-        try:
-            common_time = World.tf_listener.getLatestCommonTime(from_frame,
-                                                                 to_frame)
-            pose_stamped.header.stamp = common_time
-            pose_stamped.header.frame_id = from_frame
-            pose_stamped.pose = pose
-            rel_ee_pose = World.tf_listener.transformPose(to_frame,
-                                                           pose_stamped)
-            return rel_ee_pose.pose
-        except tf.Exception:
-            rospy.logerr('TF exception during transform.')
-            return pose
-        except rospy.ServiceException:
-            rospy.logerr('Exception during transform.')
-            return pose
+        ''' Function to transform a pose between two ref. frames
+	if there is a TF exception or object does not exist it
+	will return the pose back without any transforms'''
+	if to_frame in self.objects:
+		pose_stamped = PoseStamped()
+		try:
+		    common_time = World.tf_listener.getLatestCommonTime(from_frame,
+		                                                         to_frame)
+		    pose_stamped.header.stamp = common_time
+		    pose_stamped.header.frame_id = from_frame
+		    pose_stamped.pose = pose
+		    rel_ee_pose = World.tf_listener.transformPose(to_frame,
+		                                                   pose_stamped)
+		    return rel_ee_pose.pose
+		except tf.Exception:
+		    rospy.logerr('TF exception during transform.')
+		    return pose
+		except rospy.ServiceException:
+		    rospy.logerr('Exception during transform.')
+		    return pose
+	else:
+		rospy.logwarn('New ref. frame object does not exist: ' + to_frame)
+		return pose
 
     @staticmethod
     def pose_to_string(pose):
