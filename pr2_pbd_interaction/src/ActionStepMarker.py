@@ -117,11 +117,11 @@ class ActionStepMarker:
             self._menu_handler.setCheckState(self._sub_entries[i],
                                             MenuHandler.UNCHECKED)
 
-	menu_id = self._get_menu_id(self._get_ref_name())
-	if menu_id == None:
-		self.has_object = False
-	else:
-        	self._menu_handler.setCheckState(menu_id,
+        menu_id = self._get_menu_id(self._get_ref_name())
+        if menu_id == None:
+            self.has_object = False
+        else:
+            self._menu_handler.setCheckState(menu_id,
                             MenuHandler.CHECKED)
         self._update_viz_core()
         self._menu_handler.apply(ActionStepMarker._im_server, self._get_name())
@@ -129,12 +129,12 @@ class ActionStepMarker:
 
     def _get_menu_id(self, ref_name):
         '''Returns the unique menu id from its name
-	None if the object is not found'''
-	if ref_name in ActionStepMarker._ref_names:      
-		index = ActionStepMarker._ref_names.index(ref_name)
-		return self._sub_entries[index]
-	else:
-		return None
+        None if the object is not found'''
+        if ref_name in ActionStepMarker._ref_names:
+            index = ActionStepMarker._ref_names.index(ref_name)
+            return self._sub_entries[index]
+        else:
+            return None
 
     def _get_menu_name(self, menu_id):
         '''Returns the menu name from its unique menu id'''
@@ -254,8 +254,12 @@ class ActionStepMarker:
                 else:
                     arm_pose = self.action_step.armTrajectory.lArm[0]
 
-        world_pose = World.get_absolute_pose(arm_pose)
-        return ActionStepMarker._offset_pose(world_pose)
+        if (arm_pose.refFrame == ArmState.OBJECT and
+            arm_pose.refFrameObject not in World.objects):
+            return ActionStepMarker._offset_pose(arm_pose)
+        else:
+            world_pose = World.get_absolute_pose(arm_pose)
+            return ActionStepMarker._offset_pose(world_pose)
 
     def get_pose(self):
         '''Returns the pose of the action step'''

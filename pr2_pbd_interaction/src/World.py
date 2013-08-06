@@ -408,14 +408,16 @@ class World:
         int_marker.controls.append(button_control)
         return int_marker
 
-    def get_frame_list(self):
+    @staticmethod
+    def get_frame_list():
         '''Function that returns the list of ref. frames'''
         objects = []
         for i in range(len(World.objects)):
             objects.append(World.objects[i].object)
         return objects
 
-    def has_objects(self):
+    @staticmethod
+    def has_objects():
         '''Function that checks if there are any objects'''
         return len(World.objects) > 0
 
@@ -476,28 +478,28 @@ class World:
     @staticmethod
     def transform(pose, from_frame, to_frame):
         ''' Function to transform a pose between two ref. frames
-	if there is a TF exception or object does not exist it
-	will return the pose back without any transforms'''
-	if to_frame in World.objects:
-		pose_stamped = PoseStamped()
-		try:
-		    common_time = World.tf_listener.getLatestCommonTime(from_frame,
-		                                                         to_frame)
-		    pose_stamped.header.stamp = common_time
-		    pose_stamped.header.frame_id = from_frame
-		    pose_stamped.pose = pose
-		    rel_ee_pose = World.tf_listener.transformPose(to_frame,
-		                                                   pose_stamped)
-		    return rel_ee_pose.pose
-		except tf.Exception:
-		    rospy.logerr('TF exception during transform.')
-		    return pose
-		except rospy.ServiceException:
-		    rospy.logerr('Exception during transform.')
-		    return pose
-	else:
-		rospy.logwarn('New ref. frame object does not exist: ' + to_frame)
-		return pose
+        if there is a TF exception or object does not exist it
+        will return the pose back without any transforms'''
+        if to_frame in World.objects:
+            pose_stamped = PoseStamped()
+            try:
+                common_time = World.tf_listener.getLatestCommonTime(from_frame,
+                                                                    to_frame)
+                pose_stamped.header.stamp = common_time
+                pose_stamped.header.frame_id = from_frame
+                pose_stamped.pose = pose
+                rel_ee_pose = World.tf_listener.transformPose(to_frame,
+                                                              pose_stamped)
+                return rel_ee_pose.pose
+            except tf.Exception:
+                rospy.logerr('TF exception during transform.')
+                return pose
+            except rospy.ServiceException:
+                rospy.logerr('Exception during transform.')
+                return pose
+        else:
+            rospy.logwarn('New ref. frame object does not exist: ' + to_frame)
+            return pose
 
     @staticmethod
     def pose_to_string(pose):
@@ -571,11 +573,11 @@ class World:
         if (self._object_action_client.get_state() == GoalStatus.SUCCEEDED):
             wait_time = 0
             total_wait_time = 5
-            while (not self.has_objects() and wait_time < total_wait_time):
+            while (not World.has_objects() and wait_time < total_wait_time):
                 time.sleep(0.1)
                 wait_time += 0.1
 
-            if (not self.has_objects()):
+            if (not World.has_objects()):
                 rospy.logerr('Timeout waiting for a recognition result.')
                 return False
             else:
@@ -649,7 +651,7 @@ class World:
         # Visualize the detected object
         is_world_changed = False
         self._lock.acquire()
-        if (self.has_objects()):
+        if (World.has_objects()):
             to_remove = None
             for i in range(len(World.objects)):
                 self._publish_tf_pose(World.objects[i].object.pose,

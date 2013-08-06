@@ -191,13 +191,13 @@ class ProgrammedAction:
     def update_viz(self):
         '''Update the visualization of the action'''
         self.lock.acquire()
+        self._update_links()
         m_array = MarkerArray()
         for i in self.r_links.keys():
             m_array.markers.append(self.r_links[i])
         for i in self.l_links.keys():
             m_array.markers.append(self.l_links[i])
         self._marker_publisher.publish(m_array)
-        self._update_links()
         self.lock.release()
 
     def clear(self):

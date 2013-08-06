@@ -142,6 +142,7 @@ class Interaction:
 
     def create_action(self, dummy=None):
         '''Creates a new empty action'''
+        self.world.clear_all_objects()
         self.session.new_action()
         Interaction._is_programming = True
         return [RobotSpeech.SKILL_CREATED + ' ' +
@@ -373,7 +374,7 @@ class Interaction:
         states = [None, None]
 
         for arm_index in [0, 1]:
-            if (not self.world.has_objects()):
+            if (not World.has_objects()):
                 # Absolute
                 states[arm_index] = ArmState(ArmState.ROBOT_BASE,
                     abs_ee_poses[arm_index], joint_poses[arm_index], Object())
@@ -515,7 +516,9 @@ class Interaction:
 
             states = self._get_arm_states()
             action.change_requested_steps(states[0], states[1])
+
             if (is_world_changed):
+                rospy.loginfo('The world has changed.')
                 self.session.get_current_action().update_objects(
                                         self.world.get_frame_list())
 
