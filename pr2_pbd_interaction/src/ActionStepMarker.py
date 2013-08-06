@@ -254,8 +254,12 @@ class ActionStepMarker:
                 else:
                     arm_pose = self.action_step.armTrajectory.lArm[0]
 
-        world_pose = World.get_absolute_pose(arm_pose)
-        return ActionStepMarker._offset_pose(world_pose)
+        if (arm_pose.refFrame == ArmState.OBJECT and
+            World.has_object(arm_pose.refFrameObject.name)):
+            return ActionStepMarker._offset_pose(arm_pose.ee_pose)
+        else:
+            world_pose = World.get_absolute_pose(arm_pose)
+            return ActionStepMarker._offset_pose(world_pose)
 
     def get_pose(self):
         '''Returns the pose of the action step'''

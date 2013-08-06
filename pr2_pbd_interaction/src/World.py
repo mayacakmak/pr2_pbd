@@ -476,11 +476,24 @@ class World:
         return arm_frame
 
     @staticmethod
+    def has_object(object_name):
+        '''Checks if the world contains the object'''
+        for obj in World.objects:
+            if obj.object.name == object_name:
+                return True
+        return False
+
+    @staticmethod
+    def is_frame_valid(object_name):
+        '''Checks if the frame is valid for transforms'''
+        return (object_name == 'base_link') or World.has_object(object_name)
+
+    @staticmethod
     def transform(pose, from_frame, to_frame):
         ''' Function to transform a pose between two ref. frames
         if there is a TF exception or object does not exist it
         will return the pose back without any transforms'''
-        if to_frame in World.objects:
+        if World.is_frame_valid(from_frame) and World.is_frame_valid(to_frame):
             pose_stamped = PoseStamped()
             try:
                 common_time = World.tf_listener.getLatestCommonTime(from_frame,
@@ -498,7 +511,8 @@ class World:
                 rospy.logerr('Exception during transform.')
                 return pose
         else:
-            rospy.logwarn('New ref. frame object does not exist: ' + to_frame)
+            rospy.logwarn('One of the frame objects might not exist: ' +
+                          from_frame + ' or ' + to_frame)
             return pose
 
     @staticmethod
