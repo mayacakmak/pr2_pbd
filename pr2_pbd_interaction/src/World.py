@@ -84,13 +84,13 @@ class World:
     '''Object recognition and localization related stuff'''
 
     tf_listener = None
+    objects = []
 
     def __init__(self):
 
         if World.tf_listener == None:
             World.tf_listener = TransformListener()
         self._lock = threading.Lock()
-        self.objects = []
         self.surface = None
         self._tf_broadcaster = TransformBroadcaster()
         self._im_server = InteractiveMarkerServer('world_objects')
@@ -113,14 +113,14 @@ class World:
     def _reset_objects(self):
         '''Function that removes all objects'''
         self._lock.acquire()
-        for i in range(len(self.objects)):
-            self._im_server.erase(self.objects[i].int_marker.name)
+        for i in range(len(World.object)):
+            self._im_server.erase(World.object[i].int_marker.name)
             self._im_server.applyChanges()
         if self.surface != None:
             self._remove_surface()
         self._im_server.clear()
         self._im_server.applyChanges()
-        self.objects = []
+        World.object = []
         self._lock.release()
 
     def receieve_table_marker(self, marker):
@@ -263,11 +263,11 @@ class World:
             # Will remove all recognition completely if this works.
             return False
             # Check if there is already an object
-            for i in range(len(self.objects)):
-                distance = World.pose_distance(self.objects[i].object.pose,
+            for i in range(len(World.object)):
+                distance = World.pose_distance(World.object[i].object.pose,
                                                pose)
                 if (distance < dist_threshold):
-                    if (self.objects[i].is_recognized):
+                    if (World.object[i].is_recognized):
                         rospy.loginfo('Previously recognized object at ' +
                             'the same location, will not add this object.')
                         return False
@@ -281,54 +281,54 @@ class World:
             if (to_remove != None):
                 self._remove_object(to_remove)
 
-            n_objects = len(self.objects)
-            self.objects.append(WorldObject(pose, n_objects,
+            n_objects = len(World.object)
+            World.object.append(WorldObject(pose, n_objects,
                                             dimensions, is_recognized))
-            int_marker = self._get_object_marker(len(self.objects) - 1, mesh)
-            self.objects[-1].int_marker = int_marker
+            int_marker = self._get_object_marker(len(World.object) - 1, mesh)
+            World.object[-1].int_marker = int_marker
             self._im_server.insert(int_marker, self.marker_feedback_cb)
             self._im_server.applyChanges()
-            self.objects[-1].menu_handler.apply(self._im_server,
+            World.object[-1].menu_handler.apply(self._im_server,
                                                int_marker.name)
             self._im_server.applyChanges()
             return True
         else:
-            for i in range(len(self.objects)):
-                if (World.pose_distance(self.objects[i].object.pose, pose)
+            for i in range(len(World.object)):
+                if (World.pose_distance(World.object[i].object.pose, pose)
                         < dist_threshold):
                     rospy.loginfo('Previously detected object at the same' +
                                   'location, will not add this object.')
                     return False
 
-            n_objects = len(self.objects)
-            self.objects.append(WorldObject(pose, n_objects,
+            n_objects = len(World.object)
+            World.object.append(WorldObject(pose, n_objects,
                                             dimensions, is_recognized))
-            int_marker = self._get_object_marker(len(self.objects) - 1)
-            self.objects[-1].int_marker = int_marker
+            int_marker = self._get_object_marker(len(World.object) - 1)
+            World.object[-1].int_marker = int_marker
             self._im_server.insert(int_marker, self.marker_feedback_cb)
             self._im_server.applyChanges()
-            self.objects[-1].menu_handler.apply(self._im_server,
+            World.object[-1].menu_handler.apply(self._im_server,
                                                int_marker.name)
             self._im_server.applyChanges()
             return True
 
     def _remove_object(self, to_remove):
         '''Function to remove object by index'''
-        obj = self.objects.pop(to_remove)
+        obj = World.object.pop(to_remove)
         rospy.loginfo('Removing object ' + obj.int_marker.name)
         self._im_server.erase(obj.int_marker.name)
         self._im_server.applyChanges()
 #        if (obj.is_recognized):
-#            for i in range(len(self.objects)):
-#                if ((self.objects[i].is_recognized)
-#                    and self.objects[i].index>obj.index):
-#                    self.objects[i].decrease_index()
+#            for i in range(len(World.object)):
+#                if ((World.object[i].is_recognized)
+#                    and World.object[i].index>obj.index):
+#                    World.object[i].decrease_index()
 #            self.n_recognized -= 1
 #        else:
-#            for i in range(len(self.objects)):
-#                if ((not self.objects[i].is_recognized) and
-#                    self.objects[i].index>obj.index):
-#                    self.objects[i].decrease_index()
+#            for i in range(len(World.object)):
+#                if ((not World.object[i].is_recognized) and
+#                    World.object[i].index>obj.index):
+#                    World.object[i].decrease_index()
 #            self.n_unrecognized -= 1
 
     def _remove_surface(self):
@@ -341,9 +341,9 @@ class World:
     def _get_object_marker(self, index, mesh=None):
         '''Generate a marker for world objects'''
         int_marker = InteractiveMarker()
-        int_marker.name = self.objects[index].get_name()
+        int_marker.name = World.object[index].get_name()
         int_marker.header.frame_id = 'base_link'
-        int_marker.pose = self.objects[index].object.pose
+        int_marker.pose = World.object[index].object.pose
         int_marker.scale = 1
 
         button_control = InteractiveMarkerControl()
@@ -352,20 +352,20 @@ class World:
 
         object_marker = Marker(type=Marker.CUBE, id=index,
                 lifetime=rospy.Duration(2),
-                scale=self.objects[index].object.dimensions,
+                scale=World.object[index].object.dimensions,
                 header=Header(frame_id='base_link'),
                 color=ColorRGBA(0.2, 0.8, 0.0, 0.6),
-                pose=self.objects[index].object.pose)
+                pose=World.object[index].object.pose)
 
         if (mesh != None):
             object_marker = World._get_mesh_marker(object_marker, mesh)
         button_control.markers.append(object_marker)
 
         text_pos = Point()
-        text_pos.x = self.objects[index].object.pose.position.x
-        text_pos.y = self.objects[index].object.pose.position.y
-        text_pos.z = (self.objects[index].object.pose.position.z +
-                     self.objects[index].object.dimensions.z / 2 + 0.06)
+        text_pos.x = World.object[index].object.pose.position.x
+        text_pos.y = World.object[index].object.pose.position.y
+        text_pos.z = (World.object[index].object.pose.position.z +
+                     World.object[index].object.dimensions.z / 2 + 0.06)
         button_control.markers.append(Marker(type=Marker.TEXT_VIEW_FACING,
                 id=index, scale=Vector3(0, 0, 0.03),
                 text=int_marker.name, color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
@@ -410,13 +410,13 @@ class World:
     def get_frame_list(self):
         '''Function that returns the list of ref. frames'''
         objects = []
-        for i in range(len(self.objects)):
-            objects.append(self.objects[i].object)
+        for i in range(len(World.object)):
+            objects.append(World.object[i].object)
         return objects
 
     def has_objects(self):
         '''Function that checks if there are any objects'''
-        return len(self.objects) > 0
+        return len(World.object) > 0
 
     @staticmethod
     def object_dissimilarity(obj1, obj2):
@@ -477,7 +477,7 @@ class World:
         ''' Function to transform a pose between two ref. frames
 	if there is a TF exception or object does not exist it
 	will return the pose back without any transforms'''
-	if to_frame in self.objects:
+	if to_frame in World.object:
 		pose_stamped = PoseStamped()
 		try:
 		    common_time = World.tf_listener.getLatestCommonTime(from_frame,
@@ -602,15 +602,15 @@ class World:
     def get_nearest_object(self, arm_pose):
         '''Gives a pointed to the nearest object'''
         distances = []
-        for i in range(len(self.objects)):
-            dist = World.pose_distance(self.objects[i].object.pose,
+        for i in range(len(World.object)):
+            dist = World.pose_distance(World.object[i].object.pose,
                                                             arm_pose)
             distances.append(dist)
         dist_threshold = 0.4
         if (len(distances) > 0):
             if (min(distances) < dist_threshold):
                 chosen = distances.index(min(distances))
-                return self.objects[chosen].object
+                return World.object[chosen].object
             else:
                 return None
         else:
@@ -639,7 +639,7 @@ class World:
         '''Callback for when feedback from a marker is received'''
         if feedback.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
             rospy.loginfo('Clicked on object ' + str(feedback.marker_name))
-            rospy.loginfo('Number of objects ' + str(len(self.objects)))
+            rospy.loginfo('Number of objects ' + str(len(World.object)))
         else:
             rospy.loginfo('Unknown event' + str(feedback.event_type))
 
@@ -650,10 +650,10 @@ class World:
         self._lock.acquire()
         if (self.has_objects()):
             to_remove = None
-            for i in range(len(self.objects)):
-                self._publish_tf_pose(self.objects[i].object.pose,
-                    self.objects[i].get_name(), 'base_link')
-                if (self.objects[i].is_removed):
+            for i in range(len(World.object)):
+                self._publish_tf_pose(World.object[i].object.pose,
+                    World.object[i].get_name(), 'base_link')
+                if (World.object[i].is_removed):
                     to_remove = i
             if to_remove != None:
                 self._remove_object(to_remove)
