@@ -254,10 +254,6 @@ class ActionStepMarker:
                 else:
                     arm_pose = self.action_step.armTrajectory.lArm[0]
 
-#         if (arm_pose.refFrame == ArmState.OBJECT and
-#             arm_pose.refFrameObject not in World.objects):
-#             return ActionStepMarker._offset_pose(arm_pose.ee_pose)
-#         else:
         world_pose = World.get_absolute_pose(arm_pose)
         return ActionStepMarker._offset_pose(world_pose)
 
