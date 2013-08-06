@@ -20,7 +20,8 @@ from numpy import array
 import rospy
 import tf
 from tf import TransformListener, TransformBroadcaster
-from object_manipulation_msgs.msg import GraspableObjectList
+from manipulation_msgs.msg import GraspableObjectList
+#from object_manipulation_msgs.msg import GraspableObjectList
 from object_manipulation_msgs.srv import FindClusterBoundingBox
 from pr2_interactive_object_detection.msg import UserCommandAction
 from pr2_interactive_object_detection.msg import UserCommandGoal
