@@ -1,15 +1,6 @@
 ''' Interface for controlling one arm '''
 import roslib
-roslib.load_manifest('rospy')
-roslib.load_manifest('actionlib')
-roslib.load_manifest('tf')
-roslib.load_manifest('pr2_mechanism_controllers')
-roslib.load_manifest('pr2_mechanism_msgs')
-roslib.load_manifest('pr2_controllers_msgs')
-roslib.load_manifest('kinematics_msgs')
-roslib.load_manifest('pr2_gripper_sensor_msgs')
 roslib.load_manifest('pr2_pbd_interaction')
-roslib.load_manifest('arm_navigation_msgs')
 
 import threading
 import rospy

@@ -8,18 +8,27 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/pr2_pbd</url>
-  <depend package="rospy"/>
+
   <depend package="actionlib"/>
-  <depend package="tf"/>
+  <depend package="arm_navigation_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="interactive_markers"/>
+  <depend package="kinematics_msgs"/>
+  <depend package="object_manipulation_msgs"/>
+  <depend package="pr2_controllers_msgs"/>
+  <depend package="pr2_gripper_sensor_msgs"/>
+  <depend package="pr2_interactive_object_detection"/>
   <depend package="pr2_mechanism_controllers"/>
   <depend package="pr2_mechanism_msgs"/>
-  <depend package="pr2_controllers_msgs"/>
-  <depend package="geometry_msgs"/>
-  <depend package="kinematics_msgs"/>
-  <depend package="arm_navigation_msgs"/>
-  <depend package="pr2_interactive_object_detection"/>
-  <depend package="interactive_markers"/>
+  <depend package="pr2_pbd_speech_recognition"/>
+  <depend package="pr2_social_gaze"/>
+  <depend package="rospy"/>
+  <depend package="sound_play"/>
+  <depend package="std_msgs"/>
+  <depend package="speakeasy"/>
   <depend package="tabletop_collision_map_processing"/>
+  <depend package="tf"/>
+  <depend package="visualization_msgs"/>
 </package>
 
 

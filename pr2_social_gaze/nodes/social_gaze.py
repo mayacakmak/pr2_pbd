@@ -1,18 +1,8 @@
 #!/usr/bin/env python
 
 import roslib
-roslib.load_manifest('rospy')
+roslib.load_manifest('pr2_social_gaze')
 import rospy
-rospy.init_node('social_gaze')
-
-roslib.load_manifest('actionlib')
-roslib.load_manifest('pr2_mechanism_controllers')
-roslib.load_manifest('pr2_mechanism_msgs')
-roslib.load_manifest('pr2_controllers_msgs')
-roslib.load_manifest('kinematics_msgs')
-roslib.load_manifest('tf')
-#roslib.load_manifest('face_detector')
-#roslib.load_manifest('people_msgs')
 
 from std_msgs.msg import String
 import time, sys
@@ -279,6 +269,7 @@ class SocialGaze:
         time.sleep(0.02)
             
 if __name__ == '__main__':
+    rospy.init_node('social_gaze')
     gaze = SocialGaze()
     while not rospy.is_shutdown():
         gaze.update()

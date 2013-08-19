@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 import roslib
-roslib.load_manifest('rospy')
-roslib.load_manifest('speakeasy');
+roslib.load_manifest('pr2_pbd_interaction')
 
 import rospy
 import sys, os

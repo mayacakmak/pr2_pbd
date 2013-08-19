@@ -1,11 +1,7 @@
 '''Control of the two arms for action execution'''
 import roslib
-roslib.load_manifest('rospy')
-import rospy
-
-roslib.load_manifest('kinematics_msgs')
 roslib.load_manifest('pr2_pbd_interaction')
-roslib.load_manifest('pr2_social_gaze')
+import rospy
 
 import time
 import threading

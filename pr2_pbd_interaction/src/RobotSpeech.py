@@ -1,9 +1,6 @@
 ''' Robot speech'''
 import roslib
-roslib.load_manifest('sound_play')
-roslib.load_manifest('visualization_msgs')
-roslib.load_manifest('geometry_msgs')
-roslib.load_manifest('std_msgs')
+roslib.load_manifest('pr2_pbd_interaction')
 import rospy
 from sound_play.msg import SoundRequest
 from visualization_msgs.msg import Marker

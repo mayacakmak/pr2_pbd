@@ -1,13 +1,6 @@
 '''Everything related to perception of the world'''
 import roslib
-roslib.load_manifest('actionlib')
-roslib.load_manifest('object_manipulation_msgs')
-roslib.load_manifest('geometry_msgs')
-roslib.load_manifest('tf')
-roslib.load_manifest('tabletop_collision_map_processing')
-roslib.load_manifest('pr2_interactive_object_detection')
 roslib.load_manifest('pr2_pbd_interaction')
-roslib.load_manifest('pr2_social_gaze')
 
 # Generic libraries
 import time

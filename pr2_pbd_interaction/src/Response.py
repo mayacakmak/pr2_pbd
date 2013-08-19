@@ -1,9 +1,6 @@
 ''' Robot responses in the dialog '''
 import roslib
 roslib.load_manifest('pr2_pbd_interaction')
-roslib.load_manifest('pr2_social_gaze')
-roslib.load_manifest('sound_play')
-roslib.load_manifest('actionlib')
 
 from actionlib import SimpleActionClient
 from RobotSpeech import RobotSpeech

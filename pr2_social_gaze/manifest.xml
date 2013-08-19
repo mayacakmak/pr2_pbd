@@ -9,8 +9,12 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/pr2_social_gaze</url>
   <depend package="actionlib"/>
-  <depend package="rospy"/>
   <depend package="geometry_msgs"/>
+  <depend package="kinematics_msgs"/>
+  <depend package="pr2_mechanism_controllers"/>
+  <depend package="pr2_mechanism_msgs"/>
+  <depend package="pr2_controllers_msgs"/>
+  <depend package="rospy"/>
   <depend package="tf"/>
 
 </package>

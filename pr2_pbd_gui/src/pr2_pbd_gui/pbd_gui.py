@@ -2,10 +2,6 @@
 
 import roslib
 roslib.load_manifest('pr2_pbd_gui')
-roslib.load_manifest('pr2_pbd_speech_recognition')
-roslib.load_manifest('pr2_pbd_interaction')
-#roslib.load_manifest('speakeasy');
-roslib.load_manifest('sound_play');
 
 
 import os

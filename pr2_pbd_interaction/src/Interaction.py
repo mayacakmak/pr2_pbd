@@ -1,12 +1,7 @@
 '''Main interaction loop'''
 
 import roslib
-roslib.load_manifest('actionlib')
-roslib.load_manifest('geometry_msgs')
-roslib.load_manifest('pr2_pbd_speech_recognition')
 roslib.load_manifest('pr2_pbd_interaction')
-roslib.load_manifest('pr2_social_gaze')
-roslib.load_manifest('visualization_msgs')
 
 # Generic libraries
 import rospy

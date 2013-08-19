@@ -1,10 +1,7 @@
 '''Classes related to programmed actions'''
 
 import roslib
-roslib.load_manifest('rospy')
-roslib.load_manifest('geometry_msgs')
 roslib.load_manifest('pr2_pbd_interaction')
-roslib.load_manifest('visualization_msgs')
 
 # Generic libraries
 import threading
