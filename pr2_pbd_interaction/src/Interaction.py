@@ -3,7 +3,7 @@
 import roslib
 roslib.load_manifest('actionlib')
 roslib.load_manifest('geometry_msgs')
-roslib.load_manifest('speech_recognition')
+roslib.load_manifest('pr2_pbd_speech_recognition')
 roslib.load_manifest('pr2_pbd_interaction')
 roslib.load_manifest('pr2_social_gaze')
 roslib.load_manifest('visualization_msgs')
@@ -24,7 +24,7 @@ from pr2_pbd_interaction.msg import ArmState, GripperState
 from pr2_pbd_interaction.msg import ActionStep, ArmTarget, Object
 from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
 from pr2_pbd_interaction.msg import ExecutionStatus, GuiCommand
-from speech_recognition.msg import Command
+from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 
 

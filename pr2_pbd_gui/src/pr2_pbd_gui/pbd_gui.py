@@ -2,7 +2,7 @@
 
 import roslib
 roslib.load_manifest('pr2_pbd_gui')
-roslib.load_manifest('speech_recognition')
+roslib.load_manifest('pr2_pbd_speech_recognition')
 roslib.load_manifest('pr2_pbd_interaction')
 #roslib.load_manifest('speakeasy');
 roslib.load_manifest('sound_play');
@@ -18,7 +18,7 @@ from python_qt_binding import QtGui,QtCore
 from python_qt_binding.QtGui import QWidget, QFrame
 from python_qt_binding.QtGui import QGroupBox, QIcon, QTableView
 from python_qt_binding.QtCore import Slot, qDebug, QSignalMapper, QTimer, qWarning, Signal
-from speech_recognition.msg import Command
+from pr2_pbd_speech_recognition.msg import Command
 from pr2_pbd_interaction.msg import GuiCommand
 from sound_play.msg import SoundRequest
 from pr2_pbd_interaction.msg import ExperimentState

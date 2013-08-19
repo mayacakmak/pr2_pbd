@@ -2,11 +2,11 @@
 
 import roslib
 roslib.load_manifest('rospy')
-roslib.load_manifest('speech_recognition')
+roslib.load_manifest('pr2_pbd_speech_recognition')
 import rospy
 rospy.init_node('command_recognizer')
 from std_msgs.msg import String
-from speech_recognition.msg import Command
+from pr2_pbd_speech_recognition.msg import Command
 
 class CommandRecognizer:
     def __init__(self):
