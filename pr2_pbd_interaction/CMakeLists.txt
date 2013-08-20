@@ -9,11 +9,6 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 set(ROS_BUILD_TYPE Debug)
 
-# Automatically detect the action messages
-# rosbuild_find_ros_package(actionlib_msgs)
-# include(${actionlib_msgs_PACKAGE_PATH}/cmake/actionbuild.cmake)
-# genaction()
-
 # Init
 rosbuild_init()
 
@@ -22,15 +17,10 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-# uncomment if you have defined messages
 rosbuild_genmsg()
-# uncomment if you have defined services
 rosbuild_gensrv()
 
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+rosbuild_add_roslaunch_check( launch/pbd_demo_desktop.launch )
+rosbuild_add_roslaunch_check( launch/pbd_demo_robot.launch ROBOT=sim )
+rosbuild_add_roslaunch_check( launch/pr2_interactive_manipulation_desktop.launch )
+rosbuild_add_roslaunch_check( launch/simulated_robot.launch ROBOT=sim ROS_ENV_LOADER=/etc/ros/env.sh )

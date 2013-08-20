@@ -15,19 +15,27 @@
   <depend package="interactive_markers"/>
   <depend package="kinematics_msgs"/>
   <depend package="object_manipulation_msgs"/>
+  <depend package="pr2_arm_kinematics"/>
   <depend package="pr2_controllers_msgs"/>
+  <depend package="pr2_gazebo"/>
   <depend package="pr2_gripper_sensor_msgs"/>
+  <depend package="pr2_interactive_manipulation"/>
+  <depend package="pr2_interactive_manipulation_frontend"/>
+  <depend package="rviz"/>
   <depend package="pr2_interactive_object_detection"/>
   <depend package="pr2_mechanism_controllers"/>
   <depend package="pr2_mechanism_msgs"/>
   <depend package="pr2_pbd_speech_recognition"/>
   <depend package="pr2_social_gaze"/>
   <depend package="rospy"/>
+  <depend package="rqt_gui"/>
   <depend package="sound_play"/>
   <depend package="std_msgs"/>
   <depend package="speakeasy"/>
   <depend package="tabletop_collision_map_processing"/>
   <depend package="tf"/>
+  <depend package="tf_throttle"/>
+  <depend package="trajectory_filter_server"/>
   <depend package="visualization_msgs"/>
 </package>
 

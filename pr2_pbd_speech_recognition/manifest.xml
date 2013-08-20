@@ -16,7 +16,7 @@
   <url>http://ros.org/wiki/pr2_pbd_speech_recognition</url>
   <depend package="std_msgs"/>
   <depend package="rospy"/>
-  <!-- <depend package="pocketsphinx"/> -->
+  <depend package="pocketsphinx"/>
 
 </package>
 

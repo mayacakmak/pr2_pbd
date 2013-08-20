@@ -8,9 +8,7 @@
 
   <!-- This is the interactive manipulation stuff for visualization (this will run RVIZ) -->
 
-  <include file="$(find pr2_pbd_interaction)/launch/pr2_interactive_manipulation_desktop.launch" >
-    <arg name="sim" value="false" />
-  </include>
+  <include file="$(find pr2_pbd_interaction)/launch/pr2_interactive_manipulation_desktop.launch" />
   
   <node name="soundplay_node" pkg="sound_play" type="soundplay_node.py"/>
   
