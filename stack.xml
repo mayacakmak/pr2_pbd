@@ -1,0 +1,29 @@
+<stack>
+  <description brief="PR2 Programming by Demonstration">
+     Programming by Demonstration demos for the PR2
+  </description>
+  <author>Maintained by Maya Cakmak</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pr2_pbd</url>
+
+  <depend stack="actionlib"/> <!-- actionlib -->
+  <depend stack="arm_navigation"/> <!-- arm_navigation_msgs, kinematics_msgs, trajectory_filter_server -->
+  <depend stack="common_msgs"/> <!-- geometry_msgs, visualization_msgs -->
+  <depend stack="interactive_markers"/> <!-- interactive_markers -->
+  <depend stack="object_manipulation"/> <!-- object_manipulation_msgs -->
+  <depend stack="pocketsphinx"/> <!-- pocketsphinx -->
+  <depend stack="pr2_kinematics"/> <!-- pr2_arm_kinematics -->
+  <depend stack="pr2_controllers"/> <!-- pr2_controllers_msgs, pr2_mechanism_controllers -->
+  <depend stack="pr2_simulator"/> <!-- pr2_gazebo -->
+  <depend stack="pr2_object_manipulation"/> <!-- pr2_gripper_sensor_msgs, pr2_interactive_manipulation, pr2_interactive_manipulation_frontend, pr2_interactive_object_detection, tf_throttle, tabletop_collision_map_processing -->
+  <depend stack="pr2_mechanism_msgs"/> <!-- pr2_mechanism_msgs -->
+  <depend stack="ros_comm"/> <!-- rospy -->
+  <depend stack="rqt"/> <!-- rqt_gui, rqt_gui_py -->
+  <depend stack="rviz"/> <!-- rviz -->
+  <depend stack="audio_common"/> <!-- sound_play -->
+  <depend stack="speakeasy"/> <!-- speakeasy -->
+  <depend stack="std_msgs"/> <!-- std_msgs -->
+  <depend stack="geometry"/> <!-- tf -->
+
+</stack>
