@@ -25,9 +25,7 @@ from actionlib import SimpleActionClient
 from pr2_controllers_msgs.msg import PointHeadAction, PointHeadGoal
 from geometry_msgs.msg import *
 from tf import TransformListener
-#from face_detector.msg import *
 
-roslib.load_manifest('pr2_social_gaze')
 from pr2_social_gaze.msg import *
 
 class SocialGaze:
