@@ -1,8 +1,8 @@
 <launch>
 
   <!-- This is the main state machine for interaction and PbD -->
-  <arg name="isReload" value="True" />
-  <arg name="dataRoot" value="$(find pr2_pbd_interaction)" />
+  <arg name="isReload" value="False" />
+  <arg name="dataRoot" value="$(env HOME)" />
   <arg name="experimentNumber" value="0" />
   
   <!-- This runs the interactive manipulation -->
