@@ -18,8 +18,7 @@ class Response:
     _sound_client = None
     _robot_speech = None
     _sounds_dir = os.popen('rospack find pr2_pbd_interaction').read()
-    _sounds_dir = '/u' + _sounds_dir[5:len(_sounds_dir) - 1] + '/sounds/'
-    #_sounds_dir = _sounds_dir[0:len(_sounds_dir) - 1] + '/sounds/'
+    _sounds_dir = os.path.join(_sounds_dir, 'sounds', '')
     glance_actions = [GazeGoal.GLANCE_RIGHT_EE, GazeGoal.GLANCE_LEFT_EE]
     follow_actions = [GazeGoal.FOLLOW_RIGHT_EE, GazeGoal.FOLLOW_LEFT_EE]
     open_responses = [RobotSpeech.RIGHT_HAND_OPENING,
@@ -136,8 +135,9 @@ class Response:
     def play_sound(requested_sound):
         ''' Plays the requested sound'''
         if (requested_sound in Response.all_sounds):
-            Response._sound_client.playWave(Response._sounds_dir +
-                                              requested_sound + '.wav')
+            Response._sound_client.playWave(os.path.join(Response._sounds_dir,
+                                              requested_sound + '.wav'))
         else:
-            Response._sound_client.playWave(Response._sounds_dir + 'OTHER.wav')
+            Response._sound_client.playWave(os.path.join(Response._sounds_dir, 
+                                                         'OTHER.wav'))
 
