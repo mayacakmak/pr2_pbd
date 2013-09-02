@@ -17,7 +17,7 @@ class Response:
     gaze_client = None
     _sound_client = None
     _robot_speech = None
-    _sounds_dir = os.popen('rospack find pr2_pbd_interaction').read()
+    _sounds_dir = roslib.packages.get_pkg_dir('pr2_pbd_interaction')
     _sounds_dir = os.path.join(_sounds_dir, 'sounds', '')
     glance_actions = [GazeGoal.GLANCE_RIGHT_EE, GazeGoal.GLANCE_LEFT_EE]
     follow_actions = [GazeGoal.FOLLOW_RIGHT_EE, GazeGoal.FOLLOW_LEFT_EE]
