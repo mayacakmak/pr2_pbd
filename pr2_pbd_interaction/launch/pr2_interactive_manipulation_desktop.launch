@@ -7,7 +7,13 @@
 	  name="rviz_config_adjuster" output="screen" />
     
     <!-- tf republish; the throttler gets launched on the robot side and the republisher on the desktop side -->
-    <include file="$(find tf_throttle)/launch/tf_republished.launch"/>
+    <node pkg="tf_throttle" name="$(anon tf_republish)" type="tf_republish" respawn="true" output="screen">
+    	<!-- the rate at which everything gets republished -->
+	<param name="rate" value="100.0" />
+
+	<!-- time before dropping a transform that has not been received in a while -->
+	<param name="expiration_time" value="2.0" />
+    </node>
 
     <!-- rviz -->
     <node pkg="rviz" name="$(anon rviz-1)" type="rviz" respawn="false" output="screen"
