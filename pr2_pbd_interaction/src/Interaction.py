@@ -383,6 +383,7 @@ class Interaction:
                                         joint_poses[arm_index], Object())
                 else:
                     # Relative
+		    #rospy.loginfo('Pose is relative for arm ' + str(arm_index))
                     rel_ee_poses[arm_index] = World.transform(
                                         abs_ee_poses[arm_index],
                                         'base_link', nearest_obj.name)
