@@ -85,6 +85,10 @@ class PbDGUI(Plugin):
         self.commands[Command.NEXT_ACTION] = 'Next action'
         self.commands[Command.PREV_ACTION] = 'Previous action'
         self.commands[Command.SAVE_POSE] = 'Save pose'
+        #adding record motion
+        self.commands[Command.START_RECORDING_MOTION] = 'Record motion'
+        self.commands[Command.STOP_RECORDING_MOTION] = 'Stop recording motion'
+        
         self.commands[Command.RELAX_RIGHT_ARM] = 'Relax right arm'
         self.commands[Command.RELAX_LEFT_ARM] = 'Relax left arm'
         self.commands[Command.FREEZE_RIGHT_ARM] = 'Freeze right arm'
@@ -144,6 +148,8 @@ class PbDGUI(Plugin):
 
         stepsButtonGrid = QtGui.QHBoxLayout()
         stepsButtonGrid.addWidget(self.create_button(Command.SAVE_POSE))
+        stepsButtonGrid.addWidget(self.create_button(Command.START_RECORDING_MOTION))
+        stepsButtonGrid.addWidget(self.create_button(Command.STOP_RECORDING_MOTION))
         stepsButtonGrid.addWidget(self.create_button(Command.EXECUTE_ACTION))
         stepsButtonGrid.addWidget(self.create_button(Command.STOP_EXECUTION))
         stepsButtonGrid.addWidget(self.create_button(Command.DELETE_ALL_STEPS))

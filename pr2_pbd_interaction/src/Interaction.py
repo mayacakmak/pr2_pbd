@@ -330,6 +330,7 @@ class Interaction:
 
     def _save_arm_to_trajectory(self):
         '''Saves current arm state into continuous trajectory'''
+        rospy.loginfo("trajectory being saved")
         if (Interaction._arm_trajectory != None):
             states = self._get_arm_states()
             Interaction._arm_trajectory.rArm.append(states[0])
@@ -459,7 +460,6 @@ class Interaction:
 
     def gui_command_cb(self, command):
         '''Callback for when a GUI command is received'''
-
         if (not self.arms.is_executing()):
             if (self.session.n_actions() > 0):
                 if (command.command == GuiCommand.SWITCH_TO_ACTION):
