@@ -611,20 +611,13 @@ class World:
 
     def get_nearest_object(self, arm_pose):
         '''Gives a pointed to the nearest object'''
-        distances = []
-        for i in range(len(World.objects)):
-            dist = World.pose_distance(World.objects[i].object.pose,
-                                                            arm_pose)
-            distances.append(dist)
         dist_threshold = 0.4
-        if (len(distances) > 0):
-            if (min(distances) < dist_threshold):
-                chosen = distances.index(min(distances))
-                return World.objects[chosen].object
-            else:
-                return None
-        else:
-            return None
+        
+        def chObj(cur, obj):
+            dist = World.pose_distance(World.objects[i].object.pose, arm_pose)
+            return (dist, obj) if (dist < cur[0]) else cur
+        
+        return reduce(chObj, World.objects, (dist_threshold, None))[1]
 
     @staticmethod
     def pose_distance(pose1, pose2, is_on_table=True):

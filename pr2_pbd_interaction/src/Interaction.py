@@ -295,44 +295,37 @@ class Interaction:
 
     def _fix_trajectory_ref(self):
         '''Makes the reference frame of continuous trajectories uniform'''
-        '''r_ref, r_ref_name = self._find_dominant_ref(
-                                        Interaction._arm_trajectory.rArm)
-        l_ref, l_ref_name = self._find_dominant_ref(
-                                        Interaction._arm_trajectory.lArm)'''
-        '''for i in range(len(Interaction._arm_trajectory.timing)):  commenting out ref frame transform
+        (r_ref, _), (_, r_ref_obj) = self._find_dominant_ref(
+                                                Interaction._arm_trajectory.rArm)
+        (l_ref, _), (_, l_ref_obj) = self._find_dominant_ref(
+                                                Interaction._arm_trajectory.lArm)
+        for i in range(len(Interaction._arm_trajectory.timing)):
             Interaction._arm_trajectory.rArm[i] = World.convert_ref_frame(
                             Interaction._arm_trajectory.rArm[i],
-                            r_ref, r_ref_name)
+                            r_ref, r_ref_obj)
             Interaction._arm_trajectory.lArm[i] = World.convert_ref_frame(
                             Interaction._arm_trajectory.lArm[i],
-                            l_ref, l_ref_name)'''
-        Interaction._arm_trajectory.rRefFrame = ArmState.ROBOT_BASE
-        Interaction._arm_trajectory.lRefFrame = ArmState.ROBOT_BASE
+                            l_ref, l_ref_obj)
         
-        '''Interaction._arm_trajectory.r_ref_name = r_ref_name
-        Interaction._arm_trajectory.l_ref_name = l_ref_name'''
+        Interaction._arm_trajectory.rRefFrame = r_ref
+        Interaction._arm_trajectory.rRefFrameObject = r_ref_obj
+        Interaction._arm_trajectory.lRefFrame = l_ref
+        Interaction._arm_trajectory.lRefFrameObject = l_ref_obj
 
     def _find_dominant_ref(self, arm_traj):
         '''Finds the most dominant reference frame
         in a continuous trajectory'''
-        
-        '''commenting out, temporarily replacing with absolute ref frame
-        ref_names = self.world.get_frame_list()
-        ref_counts = dict()
-        for i in range(len(ref_names)):
-            ref_counts[ref_names[i]] = 0
-        for i in range(len(arm_traj)):
-            if (arm_traj[i].refFrameName in ref_counts.keys()):
-                ref_counts[arm_traj[i].refFrameName] += 1
+        def addEnt(dic, ent):
+            key = (ent.refFrame, ent.refFrameObject.get_name())
+            if (key in dic):
+                dic[key] = (1 + dic[key][0], dic[key][1])
             else:
-                rospy.logwarn('Ignoring object with reference frame name '
-                    + arm_traj[i].refFrameName
-                    + ' because the world does not have this object.')
-        dominant_ref = ref_counts.values().index(
-                                                max(ref_counts.values()))
-        dominant_ref_name = ref_counts.keys()[dominant_ref]
-        return World.get_ref_from_name(dominant_ref_name), dominant_ref_name'''
-        return ArmState.ROBOT_BASE
+                dic[key] = (1, ent.refFrameObject)
+            return dic
+
+        cnt = reduce(addEnt, arm_traj, {})
+
+        return reduce(lambda a, b: a if a[1][0] > b[1][0] else b, cnt.items())
 
     def _save_arm_to_trajectory(self):
         '''Saves current arm state into continuous trajectory'''
@@ -371,31 +364,24 @@ class Interaction:
         joint_poses = [Arms.get_joint_state(0),
                       Arms.get_joint_state(1)]
 
-        rel_ee_poses = [None, None]
         states = [None, None]
 
         for arm_index in [0, 1]:
-            if (not World.has_objects()):
-                # Absolute
-                states[arm_index] = ArmState(ArmState.ROBOT_BASE,
-                    abs_ee_poses[arm_index], joint_poses[arm_index], Object())
-            else:
-                nearest_obj = self.world.get_nearest_object(
-                                                    abs_ee_poses[arm_index])
+            nearest_obj = self.world.get_nearest_object(
+                                                abs_ee_poses[arm_index])
 
-                if (nearest_obj == None):
-                    states[arm_index] = ArmState(ArmState.ROBOT_BASE,
-                                        abs_ee_poses[arm_index],
-                                        joint_poses[arm_index], Object())
-                else:
-                    # Relative
-		    #rospy.loginfo('Pose is relative for arm ' + str(arm_index))
-                    rel_ee_poses[arm_index] = World.transform(
-                                        abs_ee_poses[arm_index],
-                                        'base_link', nearest_obj.name)
-                    states[arm_index] = ArmState(ArmState.OBJECT,
-                                        rel_ee_poses[arm_index],
-                                        joint_poses[arm_index], nearest_obj)
+            if (nearest_obj == None):
+                states[arm_index] = ArmState(ArmState.ROBOT_BASE,
+                                    abs_ee_poses[arm_index],
+                                    joint_poses[arm_index], Object())
+            else:
+                # Relative
+                rel_ee_pose = World.transform(
+                                    abs_ee_poses[arm_index],
+                                    'base_link', nearest_obj.name)
+                states[arm_index] = ArmState(ArmState.OBJECT,
+                                    rel_ee_pose,
+                                    joint_poses[arm_index], nearest_obj)
         return states
 
     def execute_action(self, dummy=None):
