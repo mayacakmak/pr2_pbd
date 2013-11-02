@@ -221,7 +221,11 @@ class ProgrammedAction:
     def n_frames(self):
         '''Returns the number of steps in the action'''
         return len(self.seq.seq)
-
+    
+    def frame_types(self):
+        '''Returns an array of the frame types'''
+        return map(lambda act_step: act_step.type, self.seq.seq)
+    
     def save(self, data_dir):
         '''Saves the action into a file'''
         if (self.n_frames() > 0):

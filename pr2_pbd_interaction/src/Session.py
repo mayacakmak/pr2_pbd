@@ -67,6 +67,7 @@ class Session:
         return ExperimentState(self.n_actions(),
                     self.current_action_index,
                     self.n_frames(),
+                    self.frame_types(),
                     self._selected_step,
                     self._get_gripper_states(0),
                     self._get_gripper_states(1),
@@ -290,3 +291,11 @@ class Session:
         else:
             rospy.logwarn('No skills created yet.')
             return 0
+    
+    def frame_types(self):
+        '''returns frame types'''
+        if (self.n_actions() > 0):
+            return self.actions[self.current_action_index].frame_types()
+        else:
+            rospy.logwarn('No skills created yet.')
+            return []

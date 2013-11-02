@@ -101,11 +101,11 @@ class Arms:
                 n_frames = len(self.action.seq.seq[i].armTrajectory.timing)
                 for j in range(n_frames):
                     r_arm, has_solution_r = Arms.solve_ik_for_arm(0,
-                            self.action.seq.seq[i].armTrajectory.r_arm[j])
+                            self.action.seq.seq[i].armTrajectory.rArm[j])
                     l_arm, has_solution_l = Arms.solve_ik_for_arm(1,
-                            self.action.seq.seq[i].armTrajectory.l_arm[j])
-                    self.action.seq.seq[i].armTrajectory.r_arm[j] = r_arm
-                    self.action.seq.seq[i].armTrajectory.l_arm[j] = l_arm
+                            self.action.seq.seq[i].armTrajectory.lArm[j])
+                    self.action.seq.seq[i].armTrajectory.rArm[j] = r_arm
+                    self.action.seq.seq[i].armTrajectory.lArm[j] = l_arm
                     if (not has_solution_r) or (not has_solution_l):
                         return False
         return True
@@ -262,15 +262,15 @@ class Arms:
             rospy.loginfo('Will perform arm trajectory action step.')
 
             # First move to the start frame
-            if (not self.move_to_joints(action_step.armTrajectory.r_arm[0],
-                                        action_step.armTrajectory.l_arm[0])):
+            if (not self.move_to_joints(action_step.armTrajectory.rArm[0],
+                                        action_step.armTrajectory.lArm[0])):
                 self.status = ExecutionStatus.OBSTRUCTED
                 return False
 
             #  Then execute the trajectory
-            Arms.arms[0].exectute_joint_traj(action_step.armTrajectory.r_arm,
+            Arms.arms[0].exectute_joint_traj(action_step.armTrajectory.rArm,
                                              action_step.armTrajectory.timing)
-            Arms.arms[1].exectute_joint_traj(action_step.armTrajectory.l_arm,
+            Arms.arms[1].exectute_joint_traj(action_step.armTrajectory.lArm,
                                              action_step.armTrajectory.timing)
 
             # Wait until both arms complete the trajectory

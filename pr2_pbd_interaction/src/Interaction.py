@@ -269,23 +269,25 @@ class Interaction:
             for i in range(len(Interaction._arm_trajectory.timing)):
                 Interaction._arm_trajectory.timing[i] -= waited_time
                 Interaction._arm_trajectory.timing[i] += rospy.Duration(0.1)
-
             self._fix_trajectory_ref()
-            traj_step.arm_trajectory = ArmTrajectory(
+            traj_step.armTrajectory = ArmTrajectory(
                 Interaction._arm_trajectory.rArm[:],
                 Interaction._arm_trajectory.lArm[:],
                 Interaction._arm_trajectory.timing[:],
-                Interaction._arm_trajectory.r_ref,
-                Interaction._arm_trajectory.l_ref,
-                Interaction._arm_trajectory.r_ref_name,
-                Interaction._arm_trajectory.l_ref_name)
+                Interaction._arm_trajectory.rRefFrame,
+                Interaction._arm_trajectory.lRefFrame,
+                Interaction._arm_trajectory.rRefFrameObject,
+                Interaction._arm_trajectory.lRefFrameObject)
             traj_step.gripperAction = GripperAction(
                                         self.arms.get_gripper_state(0),
                                         self.arms.get_gripper_state(1))
+                                        
             self.session.add_step_to_action(traj_step,
                                         self.world.get_frame_list())
+            
             Interaction._arm_trajectory = None
             Interaction._trajectory_start_time = None
+            
             return [RobotSpeech.STOPPED_RECORDING_MOTION + ' ' +
                     RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
         else:
@@ -293,25 +295,28 @@ class Interaction:
 
     def _fix_trajectory_ref(self):
         '''Makes the reference frame of continuous trajectories uniform'''
-        r_ref, r_ref_name = self._find_dominant_ref(
+        '''r_ref, r_ref_name = self._find_dominant_ref(
                                         Interaction._arm_trajectory.rArm)
         l_ref, l_ref_name = self._find_dominant_ref(
-                                        Interaction._arm_trajectory.lArm)
-        for i in range(len(Interaction._arm_trajectory.timing)):
+                                        Interaction._arm_trajectory.lArm)'''
+        '''for i in range(len(Interaction._arm_trajectory.timing)):  commenting out ref frame transform
             Interaction._arm_trajectory.rArm[i] = World.convert_ref_frame(
                             Interaction._arm_trajectory.rArm[i],
                             r_ref, r_ref_name)
             Interaction._arm_trajectory.lArm[i] = World.convert_ref_frame(
                             Interaction._arm_trajectory.lArm[i],
-                            l_ref, l_ref_name)
-        Interaction._arm_trajectory.r_ref = r_ref
-        Interaction._arm_trajectory.l_ref = l_ref
-        Interaction._arm_trajectory.r_ref_name = r_ref_name
-        Interaction._arm_trajectory.l_ref_name = l_ref_name
+                            l_ref, l_ref_name)'''
+        Interaction._arm_trajectory.rRefFrame = ArmState.ROBOT_BASE
+        Interaction._arm_trajectory.lRefFrame = ArmState.ROBOT_BASE
+        
+        '''Interaction._arm_trajectory.r_ref_name = r_ref_name
+        Interaction._arm_trajectory.l_ref_name = l_ref_name'''
 
     def _find_dominant_ref(self, arm_traj):
         '''Finds the most dominant reference frame
         in a continuous trajectory'''
+        
+        '''commenting out, temporarily replacing with absolute ref frame
         ref_names = self.world.get_frame_list()
         ref_counts = dict()
         for i in range(len(ref_names)):
@@ -326,11 +331,11 @@ class Interaction:
         dominant_ref = ref_counts.values().index(
                                                 max(ref_counts.values()))
         dominant_ref_name = ref_counts.keys()[dominant_ref]
-        return World.get_ref_from_name(dominant_ref_name), dominant_ref_name
+        return World.get_ref_from_name(dominant_ref_name), dominant_ref_name'''
+        return ArmState.ROBOT_BASE
 
     def _save_arm_to_trajectory(self):
         '''Saves current arm state into continuous trajectory'''
-        rospy.loginfo("trajectory being saved")
         if (Interaction._arm_trajectory != None):
             states = self._get_arm_states()
             Interaction._arm_trajectory.rArm.append(states[0])

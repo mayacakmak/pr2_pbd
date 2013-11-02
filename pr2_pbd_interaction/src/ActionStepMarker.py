@@ -154,10 +154,10 @@ class ActionStepMarker:
         elif (self.action_step.type == ActionStep.ARM_TRAJECTORY):
             if self.arm_index == 0:
                 ref_frame = self.action_step.armTrajectory.rRefFrame
-                ref_name = self.action_step.armTrajectory.rRefFrameOject.name
+                ref_name = self.action_step.armTrajectory.rRefFrameObject.name
             else:
                 ref_frame = self.action_step.armTrajectory.lRefFrame
-                ref_name = self.action_step.armTrajectory.lRefFrameOject.name
+                ref_name = self.action_step.armTrajectory.lRefFrameObject.name
         else:
             rospy.logerr('Unhandled marker type: ' +
                                         str(self.action_step.type))

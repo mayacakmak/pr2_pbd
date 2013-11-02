@@ -1,6 +1,7 @@
 uint8 n_actions
 uint8 i_current_action
 uint8 n_steps
+uint8[] frame_types
 uint8 i_current_step
 uint8[] r_gripper_states
 uint8[] l_gripper_states

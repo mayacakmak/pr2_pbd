@@ -17,7 +17,7 @@ from python_qt_binding.QtCore import Slot, qDebug, QSignalMapper, QTimer, qWarni
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_pbd_interaction.msg import GuiCommand
 from sound_play.msg import SoundRequest
-from pr2_pbd_interaction.msg import ExperimentState
+from pr2_pbd_interaction.msg import ExperimentState, ActionStep
 from pr2_pbd_interaction.srv import GetExperimentState
 
 
@@ -277,7 +277,7 @@ class PbDGUI(Plugin):
         n_steps = self.n_steps()
         if (n_steps < state.n_steps):
             for i in range(n_steps, state.n_steps):
-                self.save_pose()
+                self.save_pose(frameType=ord(state.frame_types[i]))
         elif (n_steps > state.n_steps):
             n_to_remove = n_steps - state.n_steps
             self.r_model.invisibleRootItem().removeRows(state.n_steps,
@@ -301,16 +301,23 @@ class PbDGUI(Plugin):
                 else:
                     self.l_view.selectRow(index)
 
-    def save_pose(self, actionIndex=None):
+    def get_frame_type(self, fr_type):
+        if (fr_type > 1):
+            rospy.logwarn("Invalid frame type @ save_pose -> get_frame_type: " + str(fr_type))
+        return ["Go to pose", "Maneuver"][fr_type]
+    
+    
+    def save_pose(self, actionIndex=None, frameType=0):
         nColumns = 9
         if actionIndex is None:
             actionIndex = self.currentAction
         stepIndex = self.n_steps(actionIndex)
+        
         r_step = [QtGui.QStandardItem('Step' + str(stepIndex + 1)),
-                    QtGui.QStandardItem('Go to pose'), 
+                    QtGui.QStandardItem(self.get_frame_type(frameType)), 
                     QtGui.QStandardItem('Absolute')]
         l_step = [QtGui.QStandardItem('Step' + str(stepIndex + 1)),
-                    QtGui.QStandardItem('Go to pose'), 
+                    QtGui.QStandardItem(self.get_frame_type(frameType)), 
                     QtGui.QStandardItem('Absolute')]
         self.r_model.invisibleRootItem().appendRow(r_step)
         self.l_model.invisibleRootItem().appendRow(l_step)
@@ -401,4 +408,3 @@ class PbDGUI(Plugin):
         # TODO restore intrinsic configuration, usually using:
         # v = instance_settings.value(k)
         pass
-
