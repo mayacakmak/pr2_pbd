@@ -342,6 +342,12 @@ class ProgrammedAction:
         self.lock.acquire()
         self._delete_step(len(self.seq.seq) - 1)
         self.lock.release()
+    
+    def repeat_step(self):
+        '''repeats last step of the action'''
+        self.lock.acquire()
+        self._copy_step(len(self.seq.seq) - 1)
+        self.lock.release()
 
     def resume_deleted_step(self):
         '''Resumes the deleted last step'''

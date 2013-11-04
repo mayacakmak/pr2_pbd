@@ -87,6 +87,7 @@ class PbDGUI(Plugin):
         self.commands[Command.SAVE_POSE] = 'Save pose'
         #adding record motion
         self.commands[Command.START_RECORDING_MOTION] = 'Record motion'
+        self.commands[Command.START_RECORDING_RELATIVE_MOTION] = 'Record relative motion'
         self.commands[Command.STOP_RECORDING_MOTION] = 'Stop recording motion'
         
         self.commands[Command.RELAX_RIGHT_ARM] = 'Relax right arm'
@@ -102,6 +103,7 @@ class PbDGUI(Plugin):
         self.commands[Command.STOP_EXECUTION] = 'Stop execution'
         self.commands[Command.DELETE_ALL_STEPS] = 'Delete all'
         self.commands[Command.DELETE_LAST_STEP] = 'Delete last'
+        self.commands[Command.REPEAT_LAST_STEP] = 'Repeat last step'
         self.commands[Command.RECORD_OBJECT_POSE] = 'Record object poses'
         
         self.currentAction = -1
@@ -148,12 +150,16 @@ class PbDGUI(Plugin):
 
         stepsButtonGrid = QtGui.QHBoxLayout()
         stepsButtonGrid.addWidget(self.create_button(Command.SAVE_POSE))
-        stepsButtonGrid.addWidget(self.create_button(Command.START_RECORDING_MOTION))
-        stepsButtonGrid.addWidget(self.create_button(Command.STOP_RECORDING_MOTION))
         stepsButtonGrid.addWidget(self.create_button(Command.EXECUTE_ACTION))
         stepsButtonGrid.addWidget(self.create_button(Command.STOP_EXECUTION))
         stepsButtonGrid.addWidget(self.create_button(Command.DELETE_ALL_STEPS))
         stepsButtonGrid.addWidget(self.create_button(Command.DELETE_LAST_STEP))
+        stepsButtonGrid.addWidget(self.create_button(Command.REPEAT_LAST_STEP))
+        
+        motionButtonGrid = QtGui.QHBoxLayout()
+        motionButtonGrid.addWidget(self.create_button(Command.START_RECORDING_MOTION))
+        motionButtonGrid.addWidget(self.create_button(Command.START_RECORDING_RELATIVE_MOTION))
+        motionButtonGrid.addWidget(self.create_button(Command.STOP_RECORDING_MOTION))
 
         misc_grid = QtGui.QHBoxLayout()
         misc_grid.addWidget(self.create_button(Command.TEST_MICROPHONE))
@@ -194,6 +200,7 @@ class PbDGUI(Plugin):
         
         allWidgetsBox.addWidget(self.stepsBox)
         allWidgetsBox.addLayout(stepsButtonGrid)
+        allWidgetsBox.addLayout(motionButtonGrid)
         
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(misc_grid)

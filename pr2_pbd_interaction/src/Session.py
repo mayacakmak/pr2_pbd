@@ -223,6 +223,14 @@ class Session:
             rospy.logwarn('No skills created yet.')
         self._update_experiment_state()
 
+    def repeat_step(self):
+        '''copies previous step'''
+        if (self.n_actions() > 0):
+            self.actions[self.current_action_index].repeat_step()
+        else:
+            rospy.logwarn('No skills created yet.')
+        self._update_experiment_state()
+        
     def resume_deleted_step(self):
         '''Resumes the deleted step'''
         if (self.n_actions() > 0):

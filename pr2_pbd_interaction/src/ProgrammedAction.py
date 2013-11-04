@@ -150,6 +150,25 @@ class ProgrammedAction:
         self.l_markers.pop(to_delete)
         self.seq.seq.pop(to_delete)
 
+    def _copy_step(self, to_copy):
+        '''copies step at index to_copy'''
+        step = self.seq.seq[to_copy]
+        self.seq.seq.append(self._copy_action_step(step))
+        if (step.type == ActionStep.ARM_TARGET
+            or step.type == ActionStep.ARM_TRAJECTORY):
+            last_step = self.seq.seq[len(self.seq.seq) - 1]
+            r_marker = ActionStepMarker(self.n_frames(), 0,
+                        last_step, self.marker_click_cb)
+            l_marker = ActionStepMarker(self.n_frames(), 1,
+                        last_step, self.marker_click_cb)
+            self.r_markers.append(r_marker)
+            self.l_markers.append(l_marker)
+            if (self.n_frames() > 1):
+                self.r_links[self.n_frames() - 1] = self._get_link(0,
+                                                        self.n_frames() - 1)
+                self.l_links[self.n_frames() - 1] = self._get_link(1,
+                                                        self.n_frames() - 1)
+        
     def change_requested_steps(self, r_arm, l_arm):
         '''Change an arm step to the current end effector
         pose if requested through the interactive marker menu'''
@@ -341,6 +360,12 @@ class ProgrammedAction:
         '''Deletes the last step of the action'''
         self.lock.acquire()
         self._delete_step(len(self.seq.seq) - 1)
+        self.lock.release()
+    
+    def repeat_step(self):
+        '''repeats last step of the action'''
+        self.lock.acquire()
+        self._copy_step(len(self.seq.seq) - 1)
         self.lock.release()
 
     def resume_deleted_step(self):

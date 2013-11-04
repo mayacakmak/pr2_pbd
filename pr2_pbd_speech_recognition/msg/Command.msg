@@ -9,6 +9,7 @@ string STOP_EXECUTION = stop-execution
 string UNDO = undo-last-command
 string DELETE_ALL_STEPS = delete-all-steps
 string DELETE_LAST_STEP = delete-last-step
+string REPEAT_LAST_STEP = repeat-last-step
 string FREEZE_RIGHT_ARM = freeze-right-arm
 string FREEZE_LEFT_ARM = freeze-left-arm
 string RECORD_OBJECT_POSE = record-object-pose
@@ -20,6 +21,7 @@ string SAVE_ACTION = save-action
 string EDIT_ACTION = edit-action
 string SAVE_POSE = save-pose
 string START_RECORDING_MOTION = start-recording-motion
+string START_RECORDING_RELATIVE_MOTION = start-recording-relative-motion
 string STOP_RECORDING_MOTION = stop-recording-motion
 string UNRECOGNIZED = unrecognized
 string command
