@@ -80,7 +80,7 @@ class Arms:
     def solve_ik_for_action(self):
         '''Computes joint positions for all end-effector poses
         in an action'''
-
+        
         # Go over steps of the action
         for i in range(self.action.n_frames()):
             # For each step check step type
@@ -262,15 +262,15 @@ class Arms:
             rospy.loginfo('Will perform arm trajectory action step.')
 
             # First move to the start frame
-            if (not self.move_to_joints(action_step.armTrajectory.r_arm[0],
-                                        action_step.armTrajectory.l_arm[0])):
+            if (not self.move_to_joints(action_step.armTrajectory.rArm[0],
+                                        action_step.armTrajectory.lArm[0])):
                 self.status = ExecutionStatus.OBSTRUCTED
                 return False
 
             #  Then execute the trajectory
-            Arms.arms[0].exectute_joint_traj(action_step.armTrajectory.r_arm,
+            Arms.arms[0].exectute_joint_traj(action_step.armTrajectory.rArm,
                                              action_step.armTrajectory.timing)
-            Arms.arms[1].exectute_joint_traj(action_step.armTrajectory.l_arm,
+            Arms.arms[1].exectute_joint_traj(action_step.armTrajectory.lArm,
                                              action_step.armTrajectory.timing)
 
             # Wait until both arms complete the trajectory

@@ -435,8 +435,9 @@ class World:
         '''Transforms an arm frame to a new ref. frame'''
         if ref_frame == ArmState.ROBOT_BASE:
             if (arm_frame.refFrame == ArmState.ROBOT_BASE):
-                rospy.logwarn('No reference frame transformations ' +
-                              'needed (both absolute).')
+                pass
+                #rospy.logwarn('No reference frame transformations ' +
+                              #'needed (both absolute).')
             elif (arm_frame.refFrame == ArmState.OBJECT):
                 abs_ee_pose = World.transform(arm_frame.ee_pose,
                                 arm_frame.refFrameObject.name, 'base_link')
@@ -455,8 +456,9 @@ class World:
                 arm_frame.refFrameObject = ref_frame_obj
             elif (arm_frame.refFrame == ArmState.OBJECT):
                 if (arm_frame.refFrameObject.name == ref_frame_obj.name):
-                    rospy.logwarn('No reference frame transformations ' +
-                                  'needed (same object).')
+                    pass
+                    #rospy.logwarn('No reference frame transformations ' +
+                                  #'needed (same object).')
                 else:
                     rel_ee_pose = World.transform(arm_frame.ee_pose,
                         arm_frame.refFrameObject.name, ref_frame_obj.name)
@@ -614,8 +616,8 @@ class World:
         dist_threshold = 0.4
         
         def chObj(cur, obj):
-            dist = World.pose_distance(World.objects[i].object.pose, arm_pose)
-            return (dist, obj) if (dist < cur[0]) else cur
+            dist = World.pose_distance(obj.object.pose, arm_pose)
+            return (dist, obj.object) if (dist < cur[0]) else cur
         
         return reduce(chObj, World.objects, (dist_threshold, None))[1]
 

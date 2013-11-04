@@ -299,6 +299,7 @@ class Interaction:
                                                 Interaction._arm_trajectory.rArm)
         (l_ref, _), (_, l_ref_obj) = self._find_dominant_ref(
                                                 Interaction._arm_trajectory.lArm)
+        rospy.loginfo("should start  converting after here")
         for i in range(len(Interaction._arm_trajectory.timing)):
             Interaction._arm_trajectory.rArm[i] = World.convert_ref_frame(
                             Interaction._arm_trajectory.rArm[i],
@@ -307,6 +308,7 @@ class Interaction:
                             Interaction._arm_trajectory.lArm[i],
                             l_ref, l_ref_obj)
         
+        rospy.loginfo("refference frame r:" + str(r_ref) + ", l: " + str(l_ref))
         Interaction._arm_trajectory.rRefFrame = r_ref
         Interaction._arm_trajectory.rRefFrameObject = r_ref_obj
         Interaction._arm_trajectory.lRefFrame = l_ref
@@ -316,7 +318,7 @@ class Interaction:
         '''Finds the most dominant reference frame
         in a continuous trajectory'''
         def addEnt(dic, ent):
-            key = (ent.refFrame, ent.refFrameObject.get_name())
+            key = (ent.refFrame, ent.refFrameObject.name)
             if (key in dic):
                 dic[key] = (1 + dic[key][0], dic[key][1])
             else:

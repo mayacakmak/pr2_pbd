@@ -80,7 +80,7 @@ class Arms:
     def solve_ik_for_action(self):
         '''Computes joint positions for all end-effector poses
         in an action'''
-
+        
         # Go over steps of the action
         for i in range(self.action.n_frames()):
             # For each step check step type
