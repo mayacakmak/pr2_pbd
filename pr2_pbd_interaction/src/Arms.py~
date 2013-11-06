@@ -120,7 +120,7 @@ class Arms:
         return True
 
     @staticmethod
-    def solve_ik_for_arm(arm_index, arm_state, cur_arm_pose):
+    def solve_ik_for_arm(arm_index, arm_state, cur_arm_pose=None):
         '''Finds an  IK solution for a particular arm pose'''
         # We need to find IK only if the frame is relative to an object
         if (arm_state.refFrame == ArmState.OBJECT):
