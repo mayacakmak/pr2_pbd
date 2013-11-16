@@ -1,0 +1,9 @@
+uint8 ACTION_QUEUE=0
+uint8 POSE=1
+uint8 GRIPPER=2
+uint8 TRAJECTORY=3
+uint8 Type
+uint32[] ActionQueueIds
+ArmState Pose
+ArmState[] Trajectory
+Object Target
