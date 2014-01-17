@@ -31,7 +31,6 @@
   <depend package="rqt_gui"/>
   <depend package="sound_play"/>
   <depend package="std_msgs"/>
-  <depend package="speakeasy"/>
   <depend package="tabletop_collision_map_processing"/>
   <depend package="tf"/>
   <depend package="tf_throttle"/>
