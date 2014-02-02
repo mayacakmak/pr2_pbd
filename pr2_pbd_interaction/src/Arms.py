@@ -9,7 +9,7 @@ from pr2_pbd_interaction.msg import ArmState, GripperState
 from pr2_pbd_interaction.msg import ActionStep, Side
 from pr2_pbd_interaction.msg import ExecutionStatus
 from pr2_social_gaze.msg import GazeGoal
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Point
 from Response import Response
 from World import World
 from Arm import Arm, ArmMode
@@ -26,6 +26,7 @@ class Arms:
         self.attended_arm = -1
         self.action = None
         self.preempt = False
+	self.z_offset = 0
 
         rospy.loginfo('Arms have been initialized.')
 
@@ -64,11 +65,12 @@ class Arms:
         '''Whether or not there is an ongoing action execution'''
         return (self.status == ExecutionStatus.EXECUTING)
 
-    def start_execution(self, action):
+    def start_execution(self, action, z_offset=0):
         ''' Starts execution of an action'''
         # This will take long, create a thread
         self.action = action.copy()
         self.preempt = False
+	self.z_offset = z_offset
         thread = threading.Thread(group=None, target=self.execute_action,
                                   name='skill_execution_thread')
         thread.start()
@@ -87,10 +89,13 @@ class Arms:
             # If arm target action
             if (self.action.seq.seq[i].type == ActionStep.ARM_TARGET):
                 # Find frames that are relative and convert to absolute
+
                 r_arm, has_solution_r = Arms.solve_ik_for_arm(0,
-                                        self.action.seq.seq[i].armTarget.rArm)
+                                        self.action.seq.seq[i].armTarget.rArm,
+					self.z_offset)
                 l_arm, has_solution_l = Arms.solve_ik_for_arm(1,
-                                        self.action.seq.seq[i].armTarget.lArm)
+                                        self.action.seq.seq[i].armTarget.lArm,
+					self.z_offset)
 
                 self.action.seq.seq[i].armTarget.rArm = r_arm
                 self.action.seq.seq[i].armTarget.lArm = l_arm
@@ -101,9 +106,11 @@ class Arms:
                 n_frames = len(self.action.seq.seq[i].armTrajectory.timing)
                 for j in range(n_frames):
                     r_arm, has_solution_r = Arms.solve_ik_for_arm(0,
-                            self.action.seq.seq[i].armTrajectory.r_arm[j])
+                            self.action.seq.seq[i].armTrajectory.r_arm[j],
+			    self.z_offset)
                     l_arm, has_solution_l = Arms.solve_ik_for_arm(1,
-                            self.action.seq.seq[i].armTrajectory.l_arm[j])
+                            self.action.seq.seq[i].armTrajectory.l_arm[j],
+			    self.z_offset)
                     self.action.seq.seq[i].armTrajectory.r_arm[j] = r_arm
                     self.action.seq.seq[i].armTrajectory.l_arm[j] = l_arm
                     if (not has_solution_r) or (not has_solution_l):
@@ -111,7 +118,7 @@ class Arms:
         return True
 
     @staticmethod
-    def solve_ik_for_arm(arm_index, arm_state):
+    def solve_ik_for_arm(arm_index, arm_state, z_offset=0):
         '''Finds an  IK solution for a particular arm pose'''
         # We need to find IK only if the frame is relative to an object
         if (arm_state.refFrame == ArmState.OBJECT):
@@ -119,6 +126,9 @@ class Arms:
             solution = ArmState()
             target_pose = World.transform(arm_state.ee_pose,
                             arm_state.refFrameObject.name, 'base_link')
+
+	    target_pose.z = target_pose.z + z_offset
+
             target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                             arm_state.joint_pose)
             if (target_joints == None):
@@ -132,8 +142,10 @@ class Arms:
                 return solution, True
         elif (arm_state.refFrame == ArmState.ROBOT_BASE):
 	    #rospy.loginfo('solve_ik_for_arm: Arm ' + str(arm_index) + ' is absolute')
-            target_joints = Arms.arms[arm_index].get_ik_for_ee(
-                                                    arm_state.ee_pose,
+	    pos = arm_state.ee_pose.position
+	    target_position = Point(pos.x, pos.y, pos.z + z_offset)
+	    target_pose = Pose(target_position, arm_state.ee_pose.orientation)
+            target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                                     arm_state.joint_pose)
             if (target_joints == None):
                 rospy.logerr('No IK for absolute end-effector pose.')

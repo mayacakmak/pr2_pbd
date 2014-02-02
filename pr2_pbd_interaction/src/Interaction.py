@@ -394,6 +394,7 @@ class Interaction:
 
     def execute_action(self, dummy=None):
         '''Starts the execution of the current action'''
+	execution_z_offset = -0.02
         if (self.session.n_actions() > 0):
             if (self.session.n_frames() > 1):
                 self.session.save_current_action()
@@ -403,12 +404,12 @@ class Interaction:
                     if (self.world.update_object_pose()):
                         self.session.get_current_action().update_objects(
                                                 self.world.get_frame_list())
-                        self.arms.start_execution(action)
+                        self.arms.start_execution(action, execution_z_offset)
                     else:
                         return [RobotSpeech.OBJECT_NOT_DETECTED,
                                 GazeGoal.SHAKE]
                 else:
-                    self.arms.start_execution(action)
+                    self.arms.start_execution(action, execution_z_offset)
 
                 return [RobotSpeech.START_EXECUTION + ' ' +
                         str(self.session.current_action_index), None]
