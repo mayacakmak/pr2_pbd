@@ -127,7 +127,7 @@ class Arms:
             target_pose = World.transform(arm_state.ee_pose,
                             arm_state.refFrameObject.name, 'base_link')
 
-	    target_pose.z = target_pose.z + z_offset
+	    target_pose.position.z = target_pose.position.z + z_offset
 
             target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                             arm_state.joint_pose)

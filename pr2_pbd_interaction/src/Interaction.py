@@ -394,7 +394,7 @@ class Interaction:
 
     def execute_action(self, dummy=None):
         '''Starts the execution of the current action'''
-	execution_z_offset = -0.02
+	execution_z_offset = -0.00
         if (self.session.n_actions() > 0):
             if (self.session.n_frames() > 1):
                 self.session.save_current_action()
