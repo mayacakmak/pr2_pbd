@@ -10,7 +10,7 @@ from Interaction import *
 def signal_handler(signal, frame):
     # The following makes sure the state of a user study is saved, so that it can be recovered
     global interaction
-    interaction.saveExperimentState()
+    interaction.save_experiment_state()
     print 'Program Terminated!!'
     sys.exit(0)
 
