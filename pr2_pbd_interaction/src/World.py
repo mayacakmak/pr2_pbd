@@ -93,7 +93,7 @@ class World:
         self._bb_service = rospy.ServiceProxy(bb_service_name,
                                             FindClusterBoundingBox)
         rospy.Subscriber('interactive_object_recognition_result',
-            GraspableObjectList, self.receieve_object_info)
+            GraspableObjectList, self.receive_object_info)
         self._object_action_client = actionlib.SimpleActionClient(
             'object_detection_user_command', UserCommandAction)
         self._object_action_client.wait_for_server()
@@ -102,7 +102,7 @@ class World:
         self.clear_all_objects()
         # The following is to get the table information
         rospy.Subscriber('tabletop_segmentation_markers',
-                         Marker, self.receieve_table_marker)
+                         Marker, self.receive_table_marker)
 
     def _reset_objects(self):
         '''Function that removes all objects'''
@@ -117,7 +117,7 @@ class World:
         World.objects = []
         self._lock.release()
 
-    def receieve_table_marker(self, marker):
+    def receive_table_marker(self, marker):
         '''Callback function for markers to determine table'''
         if (marker.type == Marker.LINE_STRIP):
             if (len(marker.points) == 6):
@@ -138,7 +138,7 @@ class World:
                                      self.marker_feedback_cb)
                 self._im_server.applyChanges()
 
-    def receieve_object_info(self, object_list):
+    def receive_object_info(self, object_list):
         '''Callback function to receive object info'''
         self._lock.acquire()
         rospy.loginfo('Received recognized object list.')

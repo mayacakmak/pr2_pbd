@@ -33,13 +33,13 @@ class Logger:
         self.initializeBags()
 
         ## ROBOT JOINTS
-        rospy.Subscriber('joint_states', JointState, self.receieveJointStates)
+        rospy.Subscriber('joint_states', JointState, self.receiveJointStates)
 
         ## SPEECH REC
-        rospy.Subscriber('recognized_speech', String, self.receieveSpeechRec)
+        rospy.Subscriber('recognized_speech', String, self.receiveSpeechRec)
         
         ## TTS
-        rospy.Subscriber("speakeasy_text_to_speech_req", SpeakEasyTextToSpeech, self.receieveTTS)
+        rospy.Subscriber("speakeasy_text_to_speech_req", SpeakEasyTextToSpeech, self.receiveTTS)
 
         ## GAZE
         rospy.Subscriber('gaze_command', String, self.receiveGazeCommand)
@@ -66,7 +66,7 @@ class Logger:
     ## Callback functions
     ######################
 
-    def receieveJointStates(self, msg):
+    def receiveJointStates(self, msg):
         if (time.time() - self.lastJointSaveTime > self.streamSavingPeriod):
             armState = JointState()
             armState.header = msg.header
@@ -77,7 +77,7 @@ class Logger:
             self.jointStateBag.write('arm_states', armState)
             self.lastJointSaveTime = time.time()
         
-    def receieveSpeechRec(self, data):
+    def receiveSpeechRec(self, data):
         self.speechRecBag.write('recognized_speech', data)
         
     def receiveGazeCommand(self, data):
@@ -88,7 +88,7 @@ class Logger:
             self.gazeTargetBag.write('gaze_target', data)
             self.lastJointSaveTime = time.time()
     
-    def receieveTTS(self, req):
+    def receiveTTS(self, req):
         ttsCmd = req.command;
         if ttsCmd == 0:
             text = String()
