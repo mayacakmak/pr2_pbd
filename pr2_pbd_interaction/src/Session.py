@@ -24,7 +24,7 @@ class Session:
                                 '/pr2_pbd_interaction/experimentNumber')
             self._data_dir = self._get_data_dir(self._exp_number)
             if (not os.path.exists(self._data_dir)):
-                os.mkdir(self._data_dir)
+                os.makedirs(self._data_dir)
         else:
             self._get_participant_id()
         rospy.set_param('data_directory', self._data_dir)
@@ -111,7 +111,7 @@ class Session:
 
             self._data_dir = Session._get_data_dir(self._exp_number)
             if (not os.path.exists(self._data_dir)):
-                os.mkdir(self._data_dir)
+                os.makedirs(self._data_dir)
             else:
                 rospy.logwarn('A directory for this participant ' +
                               'ID already exists: ' + self._data_dir)
