@@ -13,7 +13,7 @@ from World import World
 from RobotSpeech import RobotSpeech
 from Session import Session
 from Response import Response
-from Arms import Arms
+from Arms import Arms, PoseSet
 from Arm import ArmMode
 from pr2_pbd_interaction.msg import ArmState, GripperState
 from pr2_pbd_interaction.msg import ActionStep, ArmTarget, Object
@@ -47,32 +47,19 @@ class Interaction:
         self.responses = {
             Command.TEST_MICROPHONE: Response(Interaction.empty_response,
                                 [RobotSpeech.TEST_RESPONSE, GazeGoal.NOD]),
-            Command.RELAX_RIGHT_ARM: Response(self.relax_arm, 0),
-            Command.RELAX_LEFT_ARM: Response(self.relax_arm, 1),
-            Command.OPEN_RIGHT_HAND: Response(self.open_hand, 0),
-            Command.OPEN_LEFT_HAND: Response(self.open_hand, 1),
-            Command.CLOSE_RIGHT_HAND: Response(self.close_hand, 0),
-            Command.CLOSE_LEFT_HAND: Response(self.close_hand, 1),
-            Command.STOP_EXECUTION: Response(self.stop_execution, None),
-            Command.UNDO: Response(self.undo, None),
-            Command.DELETE_ALL_STEPS: Response(self.delete_all_steps, None),
-            Command.DELETE_LAST_STEP: Response(self.delete_last_step, None),
-            Command.REPEAT_LAST_STEP: Response(self.repeat_step, None),
-            Command.FREEZE_RIGHT_ARM: Response(self.freeze_arm, 0),
-            Command.FREEZE_LEFT_ARM: Response(self.freeze_arm, 1),
-            Command.CREATE_NEW_ACTION: Response(self.create_action, None),
-            Command.EXECUTE_ACTION: Response(self.execute_action, None),
-            Command.NEXT_ACTION: Response(self.next_action, None),
-            Command.PREV_ACTION: Response(self.previous_action, None),
-            Command.SAVE_POSE: Response(self.save_step, None),
-            Command.RECORD_OBJECT_POSE: Response(
-                                            self.record_object_pose, None),
-            Command.START_RECORDING_MOTION: Response(
-                                            self.start_recording, False),
-            Command.START_RECORDING_RELATIVE_MOTION: Response(
-                                            self.start_recording, True),
-            Command.STOP_RECORDING_MOTION: Response(self.stop_recording, None)
-            }
+            Command.NEW_DEMONSTRATION: Response(self.create_action, None),
+            Command.TAKE_TOOL: Response(self.close_hand, 0),
+            Command.RELEASE_TOOL: Response(self.open_hand, 0),
+            Command.DETECT_SURFACE: Response(self.record_object_pose, None),
+            Command.START_RECORDING: Response(self.start_recording, None),
+            Command.STOP_RECORDING: Response(self.stop_recording, None),
+            Command.REPLAY_DEMONSTRATION: Response(self.execute_action, None),
+        }
+	
+	self.arms.load_known_arm_poses()
+	#TODO fix the following
+	#self.arms.move_to_pose(PoseSet.INITIAL, 0)
+	#self.arms.move_to_pose(PoseSet.INITIAL, 1)
 
         rospy.loginfo('Interaction initialized.')
 
@@ -93,10 +80,6 @@ class Interaction:
         '''Closes gripper on the indicated side'''
         if Arms.set_gripper_state(arm_index, GripperState.CLOSED):
             speech_response = Response.close_responses[arm_index]
-            if (Interaction._is_programming and self.session.n_actions() > 0):
-                self.save_gripper_step(arm_index, GripperState.CLOSED)
-                speech_response = (speech_response + ' ' +
-                                   RobotSpeech.STEP_RECORDED)
             return [speech_response, Response.glance_actions[arm_index]]
         else:
             return [Response.already_closed_responses[arm_index],
@@ -170,22 +153,6 @@ class Interaction:
         else:
             return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
 
-    def delete_last_step(self, dummy=None):
-        '''Deletes last step of the current action'''
-        if (self.session.n_actions() > 0):
-            if (Interaction._is_programming):
-                if self.session.n_frames() > 0:
-                    self.session.delete_last_step()
-                    self._undo_function = self._resume_last_step
-                    return [RobotSpeech.LAST_POSE_DELETED, GazeGoal.NOD]
-                else:
-                    return [RobotSpeech.SKILL_EMPTY, GazeGoal.SHAKE]
-            else:
-                return ['Action ' + str(self.session.current_action_index) +
-                        RobotSpeech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE]
-        else:
-            return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
-
     def delete_all_steps(self, dummy=None):
         '''Deletes all steps in the current action'''
         if (self.session.n_actions() > 0):
@@ -202,29 +169,6 @@ class Interaction:
         else:
             return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
     
-    def repeat_step(self, dummy=None):
-        '''copies previous step'''
-        if (self.session.n_actions() > 0):
-            if (Interaction._is_programming):
-                if self.session.n_frames() > 0:
-                    self.session.repeat_step()
-                    self._undo_function = self.delete_last_step
-                    return [RobotSpeech.LAST_POSE_REPEATED, GazeGoal.NOD]
-                else:
-                    return [RobotSpeech.SKILL_EMPTY, GazeGoal.SHAKE]
-            else:
-                return ['Action ' + str(self.session.current_action_index) +
-                        RobotSpeech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE]
-        else:
-            return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
-    
-    def undo(self, dummy=None):
-        '''Undoes the effect of the previous command'''
-        if (self._undo_function == None):
-            return [RobotSpeech.ERROR_NOTHING_TO_UNDO, GazeGoal.SHAKE]
-        else:
-            return self._undo_function()
-
     def _resume_all_steps(self):
         '''Resumes all steps after clearing'''
         self.session.undo_clear()
@@ -258,7 +202,7 @@ class Interaction:
                 self.session.add_step_to_action(step,
                                                 self.world.get_frame_list())
 
-    def start_recording(self, relative_motion=False):
+    def start_recording(self, dummy=None):
         '''Starts recording continuous motion'''
         if (self.session.n_actions() > 0):
             if (Interaction._is_programming):
@@ -266,12 +210,10 @@ class Interaction:
                     Interaction._is_recording_motion = True
                     Interaction._arm_trajectory = ArmTrajectory()
                     Interaction._trajectory_start_time = rospy.Time.now()
-                    
-                    Interaction._is_relative_motion = relative_motion
-                    if (relative_motion):
-                        Interaction._relative_motion_start = map(lambda a_ind:
-                                        Arms.get_ee_state(a_ind), [0, 1])
-                    
+
+ 		    if self.session.n_frames() > 0:
+                        self.session.clear_current_action()
+
                     return [RobotSpeech.STARTED_RECORDING_MOTION,
                             GazeGoal.NOD]
                 else:
@@ -295,31 +237,6 @@ class Interaction:
                 Interaction._arm_trajectory.timing[i] -= waited_time
                 Interaction._arm_trajectory.timing[i] += rospy.Duration(0.1)
             '''If motion was relative, record transformed pose'''
-            if (Interaction._is_relative_motion):
-                Interaction._arm_trajectory.rRefFrame = ArmState.PREVIOUS_POSE
-                Interaction._arm_trajectory.rRefFrameObject = Object()
-                Interaction._arm_trajectory.lRefFrame = ArmState.PREVIOUS_POSE
-                Interaction._arm_trajectory.lRefFrameObject = Object()
-                
-                for i in range(len(Interaction._arm_trajectory.timing)):
-                    Interaction._arm_trajectory.rArm[i].refFrame = ArmState.PREVIOUS_POSE
-                    Interaction._arm_trajectory.rArm[i].ee_pose.position.x -= (
-                                    Interaction._relative_motion_start[0].position.x)
-                    Interaction._arm_trajectory.rArm[i].ee_pose.position.y -= (
-                                    Interaction._relative_motion_start[0].position.y)
-                    Interaction._arm_trajectory.rArm[i].ee_pose.position.z -= (
-                                    Interaction._relative_motion_start[0].position.z)
-                    Interaction._arm_trajectory.lArm[i].refFrame = ArmState.PREVIOUS_POSE
-                    Interaction._arm_trajectory.lArm[i].ee_pose.position.x -= (
-                                    Interaction._relative_motion_start[1].position.x)
-                    Interaction._arm_trajectory.lArm[i].ee_pose.position.y -= (
-                                    Interaction._relative_motion_start[1].position.y)
-                    Interaction._arm_trajectory.lArm[i].ee_pose.position.z -= (
-                                    Interaction._relative_motion_start[1].position.z)
-            else:     
-                self._fix_trajectory_ref()
-            
-            
             traj_step.armTrajectory = ArmTrajectory(
                 Interaction._arm_trajectory.rArm[:],
                 Interaction._arm_trajectory.lArm[:],
@@ -381,10 +298,7 @@ class Interaction:
     def _save_arm_to_trajectory(self):
         '''Saves current arm state into continuous trajectory'''
         if (Interaction._arm_trajectory != None):
-            states =  self._get_arm_states() if not Interaction._is_relative_motion else map(lambda a_ind:
-                                ArmState(ArmState.ROBOT_BASE,
-                                        Arms.get_ee_state(a_ind),
-                                        Arms.get_joint_state(a_ind), Object()), [0, 1])
+            states =  self._get_arm_states() 	
             Interaction._arm_trajectory.rArm.append(states[0])
             Interaction._arm_trajectory.lArm.append(states[1])
             Interaction._arm_trajectory.timing.append(

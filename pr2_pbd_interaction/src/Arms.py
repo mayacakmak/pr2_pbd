@@ -15,6 +15,16 @@ from World import World
 from Arm import Arm, ArmMode
 
 
+class PoseSet:
+    INITIAL = 0
+    TAKE_TOOL = 1
+    DEMO_START = 2
+
+    pose_set = dict()
+    def __init__(self):
+	#TODO this is where we would load them
+	pass
+
 class Arms:
     '''Class for things related to moving arms'''
     arms = []
@@ -33,9 +43,14 @@ class Arms:
         Arms.arms[1].set_mode(ArmMode.HOLD)
         Arms.arms[0].check_gripper_state()
         Arms.arms[1].check_gripper_state()
-        Arms.arms[Side.RIGHT].close_gripper()
+        Arms.arms[Side.RIGHT].open_gripper()
         Arms.arms[Side.LEFT].close_gripper()
         self.status = ExecutionStatus.NOT_EXECUTING
+
+    def load_known_arm_poses(self):
+	'''This loads important poses from the hard drive'''
+	# TODO
+	pass
 
     @staticmethod
     def set_arm_mode(arm_index, mode):
