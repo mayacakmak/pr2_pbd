@@ -81,7 +81,7 @@ class Interaction:
             return [Response.already_open_responses[arm_index],
                     Response.glance_actions[arm_index]]
 
-    def take_tool(self, arm_index)
+    def take_tool(self, arm_index):
     	self.close_hand(arm_index)
     	self._move_to_arm_pose('initial', arm_index)
 
