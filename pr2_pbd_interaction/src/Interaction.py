@@ -13,7 +13,7 @@ from World import World
 from RobotSpeech import RobotSpeech
 from Session import Session
 from Response import Response
-from Arms import Arms, PoseSet
+from Arms import Arms
 from Arm import ArmMode
 from pr2_pbd_interaction.msg import ArmState, GripperState
 from pr2_pbd_interaction.msg import ActionStep, ArmTarget, Object
@@ -48,20 +48,25 @@ class Interaction:
             Command.TEST_MICROPHONE: Response(Interaction.empty_response,
                                 [RobotSpeech.TEST_RESPONSE, GazeGoal.NOD]),
             Command.NEW_DEMONSTRATION: Response(self.create_action, None),
-            Command.TAKE_TOOL: Response(self.close_hand, 0),
+            Command.TAKE_TOOL: Response(self.take_tool, 0),
             Command.RELEASE_TOOL: Response(self.open_hand, 0),
             Command.DETECT_SURFACE: Response(self.record_object_pose, None),
             Command.START_RECORDING: Response(self.start_recording, None),
             Command.STOP_RECORDING: Response(self.stop_recording, None),
             Command.REPLAY_DEMONSTRATION: Response(self.execute_action, None),
+            Command.SAVE_ARM_POSE: Response(self.save_arm_pose, None)
         }
 	
-	self.arms.load_known_arm_poses()
 	#TODO fix the following
-	#self.arms.move_to_pose(PoseSet.INITIAL, 0)
-	#self.arms.move_to_pose(PoseSet.INITIAL, 1)
+	self._move_to_arm_pose('initial', 0)
+	self._move_to_arm_pose('initial', 1)
 
         rospy.loginfo('Interaction initialized.')
+
+    def load_known_arm_poses(self):
+	'''This loads important poses from the hard drive'''
+	# TODO
+	pass
 
     def open_hand(self, arm_index):
         '''Opens gripper on the indicated side'''
@@ -75,6 +80,10 @@ class Interaction:
         else:
             return [Response.already_open_responses[arm_index],
                     Response.glance_actions[arm_index]]
+
+    def take_tool(self, arm_index)
+    	self.close_hand(arm_index)
+    	self._move_to_arm_pose('initial', arm_index)
 
     def close_hand(self, arm_index):
         '''Closes gripper on the indicated side'''
@@ -123,6 +132,7 @@ class Interaction:
 
     def create_action(self, dummy=None):
         '''Creates a new empty action'''
+        self._move_to_arm_pose('take', arm_index)
         self.world.clear_all_objects()
         self.session.new_action()
         Interaction._is_programming = True
@@ -304,26 +314,31 @@ class Interaction:
             Interaction._arm_trajectory.timing.append(
                         rospy.Time.now() - Interaction._trajectory_start_time)
 
-    def save_step(self, dummy=None):
+    def _move_to_arm_pose(self, pose_name, arm_index):
+    	'''Moves the robot's arm to a pre-specified arm pose'''
+    	action = self.session.pose_set[pose_name]
+    	if action is None:
+    		rospy.logwarn('Arm pose does not exist:' + pose_name)
+    	else:
+    		step = action.get_step(0)
+    		gripper_actions = [step.gripperAction.rGripper,
+    							step.gripperAction.lGripper]
+    		arm_states = [step.armTarget.rArm, step.armTarget.lArm]
+    		self.arms.move_to_pose(arm_states[arm_index], arm_index)
+    		self.arms.set_gripper_state(arm_index, gripper_actions[arm_index])
+    		rospy.loginfo('Moved arm ' + str(arm_index) + ' to pose ' + pose_name)
+
+    def save_arm_pose(self, dummy=None):
         '''Saves current arm state as an action step'''
-        if (self.session.n_actions() > 0):
-            if (Interaction._is_programming):
-                states = self._get_arm_states()
-                step = ActionStep()
-                step.type = ActionStep.ARM_TARGET
-                step.armTarget = ArmTarget(states[0], states[1],
-                                           0.2, 0.2)
-                step.gripperAction = GripperAction(
-                                            self.arms.get_gripper_state(0),
-                                            self.arms.get_gripper_state(1))
-                self.session.add_step_to_action(step,
-                                            self.world.get_frame_list())
-                return [RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
-            else:
-                return ['Action ' + str(self.session.current_action_index) +
-                        RobotSpeech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE]
-        else:
-            return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
+        states = self._get_arm_states()
+        step = ActionStep()
+        step.type = ActionStep.ARM_TARGET
+        step.armTarget = ArmTarget(states[0], states[1], 0.2, 0.2)
+        step.gripperAction = GripperAction(
+                                    self.arms.get_gripper_state(0),
+                                    self.arms.get_gripper_state(1))
+        self.session.save_arm_pose(step, self.world.get_frame_list())
+        return [RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
 
     def _get_arm_states(self):
         '''Returns the current arms states in the right format'''

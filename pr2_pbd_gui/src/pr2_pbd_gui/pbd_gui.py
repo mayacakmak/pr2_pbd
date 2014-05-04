@@ -88,6 +88,7 @@ class PbDGUI(Plugin):
         self.commands[Command.DETECT_SURFACE] = 'Detect surface'
         self.commands[Command.TAKE_TOOL] = 'Take tool'
         self.commands[Command.RELEASE_TOOL] = 'Release tool'
+        self.commands[Command.SAVE_ARM_POSE] = 'Save arm pose'
         
         self.currentAction = -1
         self.currentStep = -1
@@ -143,9 +144,13 @@ class PbDGUI(Plugin):
         misc_grid.addWidget(self.create_button(Command.DETECT_SURFACE))
         misc_grid.addStretch(1)
         
+        misc_grid2 = QtGui.QHBoxLayout()
+        misc_grid2.addWidget(self.create_button(Command.TAKE_TOOL))
+        misc_grid2.addWidget(self.create_button(Command.RELEASE_TOOL))
+        misc_grid2.addStretch(1)
+        
         misc_grid3 = QtGui.QHBoxLayout()
-        misc_grid3.addWidget(self.create_button(Command.TAKE_TOOL))
-        misc_grid3.addWidget(self.create_button(Command.RELEASE_TOOL))
+        misc_grid3.addWidget(self.create_button(Command.SAVE_ARM_POSE))
         misc_grid3.addStretch(1)
         
         speechGroupBox = QGroupBox('Robot Speech', self._widget)
@@ -168,6 +173,8 @@ class PbDGUI(Plugin):
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(misc_grid)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
+        allWidgetsBox.addLayout(misc_grid2)
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 40))
         allWidgetsBox.addLayout(misc_grid3)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         

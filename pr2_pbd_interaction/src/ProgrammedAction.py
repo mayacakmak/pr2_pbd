@@ -231,11 +231,14 @@ class ProgrammedAction:
         '''Undo effect of clear'''
         self.seq = []
 
-    def _get_filename(self, ext='.bag'):
+    def _get_filename(self, name=None, ext='.bag'):
         '''Returns filename for the bag that holds the action'''
         if ext[0] != '.':
             ext = '.' + ext
-        return self.get_name() + ext
+        if name is None:
+            return self.get_name() + ext
+        else:
+            return name + ext
 
     def n_frames(self):
         '''Returns the number of steps in the action'''
@@ -245,11 +248,11 @@ class ProgrammedAction:
         '''Returns an array of the frame types'''
         return map(lambda act_step: act_step.type, self.seq.seq)
     
-    def save(self, data_dir):
+    def save(self, data_dir, name=None):
         '''Saves the action into a file'''
         if (self.n_frames() > 0):
             self.lock.acquire()
-            demo_bag = rosbag.Bag(data_dir + self._get_filename(), 'w')
+            demo_bag = rosbag.Bag(data_dir + self._get_filename(name), 'w')
             demo_bag.write('sequence', self.seq)
             demo_bag.close()
             self.lock.release()
@@ -257,9 +260,9 @@ class ProgrammedAction:
             rospy.logwarn('Could not save demonstration because ' +
                           'it does not have any frames.')
 
-    def load(self, data_dir):
+    def load(self, data_dir, name=None):
         '''Loads an action from a file'''
-        filename = data_dir + self._get_filename()
+        filename = data_dir + self._get_filename(name)
         if (os.path.exists(filename)):
             self.lock.acquire()
             demo_bag = rosbag.Bag(filename)

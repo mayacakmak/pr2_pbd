@@ -18,15 +18,27 @@ class Session:
         self._exp_number = None
         self._selected_step = 0
         self._object_list = object_list
+        self.pose_set = dict()
 
-        if (is_debug):
-            self._exp_number = rospy.get_param(
-                                '/pr2_pbd_interaction/experimentNumber')
-            self._data_dir = self._get_data_dir(self._exp_number)
-            if (not os.path.exists(self._data_dir)):
-                os.mkdir(self._data_dir)
+        self._exp_number = rospy.get_param(
+                            '/pr2_pbd_interaction/experimentNumber')
+        self._data_dir = self._get_data_dir(self._exp_number)
+        
+        self._pose_dir = self._data_dir + 'poses/'
+
+        parent_dir = os.path.abspath(os.path.join(self._data_dir, os.pardir))
+
+        if (not os.path.exists(parent_dir)):
+            os.mkdir(parent_dir)
+
+        if (not os.path.exists(self._data_dir)):
+            os.mkdir(self._data_dir)
+
+        if (not os.path.exists(self._pose_dir)):
+            os.mkdir(self._pose_dir)
         else:
-            self._get_participant_id()
+            self.load_arm_poses()
+
         rospy.set_param('data_directory', self._data_dir)
 
         self.actions = dict()
@@ -46,6 +58,26 @@ class Session:
                       self.get_experiment_state_cb)
 
         self._update_experiment_state()
+
+    def load_arm_poses(self):
+        pose_files = os.listdir(self._pose_dir)
+        for pose_file_name in pose_files:
+            name = pose_file_name[0:pose_file_name.index('.')]
+            extension = pose_file_name[(pose_file_name.index('.')+1):(len(pose_file_name)+1)]
+            if (extension == 'bag'):
+                dummy_action = ProgrammedAction(0, self._selected_step_cb)
+                dummy_action.load(self._pose_dir, name)
+                self.pose_set[name] = dummy_action
+                print 'Loaded', pose_file_name, 'with', dummy_action.n_frames(), 'frames.'
+        print 'Loaded ' + str(len(self.pose_set)) + ' poses.'
+
+    def save_arm_pose(self, step, object_list, name=None):
+        dummy_action = ProgrammedAction(0, self._selected_step_cb)
+        dummy_action.add_action_step(step,object_list)
+        if name is None:
+            name = 'Pose' + str(len(self.pose_set))
+        self.pose_set[name] = dummy_action
+        dummy_action.save(self._pose_dir, name)
 
     def _selected_step_cb(self, selected_step):
         '''Updates the selected step when interactive
