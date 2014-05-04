@@ -58,8 +58,8 @@ class Interaction:
         }
 	
 	#TODO fix the following
-	self._move_to_arm_pose('initial', 0)
-	self._move_to_arm_pose('initial', 1)
+	#self._move_to_arm_pose('initial', 0)
+	#self._move_to_arm_pose('initial', 1)
 
         rospy.loginfo('Interaction initialized.')
 
