@@ -138,7 +138,7 @@ class Interaction:
 
     def create_action(self, dummy=None):
         '''Creates a new empty action'''
-        self._move_to_arm_pose('take', arm_index)
+        self._move_to_arm_pose('take', 0)
         self.world.clear_all_objects()
         self.session.new_action()
         Interaction._is_programming = True
