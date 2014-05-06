@@ -56,10 +56,16 @@ class Interaction:
             Command.REPLAY_DEMONSTRATION: Response(self.execute_action, None),
             Command.SAVE_ARM_POSE: Response(self.save_arm_pose, None)
         }
-	
-	#TODO fix the following
-	#self._move_to_arm_pose('initial', 0)
-	#self._move_to_arm_pose('initial', 1)
+
+        rospy.loginfo('Will wait until arms ready to respond.')
+        while ((self.arms.get_ee_state(0) is None) or 
+        		(self.arms.get_ee_state(1) is None)):
+        	time.sleep(0.1)
+
+        rospy.loginfo('Starting to move to the initial pose.')
+
+        self._move_to_arm_pose('initial', 0)
+        self._move_to_arm_pose('initial', 1)
 
         rospy.loginfo('Interaction initialized.')
 
@@ -321,11 +327,13 @@ class Interaction:
     		rospy.logwarn('Arm pose does not exist:' + pose_name)
     	else:
     		step = action.get_step(0)
-    		gripper_actions = [step.gripperAction.rGripper,
-    							step.gripperAction.lGripper]
-    		arm_states = [step.armTarget.rArm, step.armTarget.lArm]
-    		self.arms.move_to_pose(arm_states[arm_index], arm_index)
-    		self.arms.set_gripper_state(arm_index, gripper_actions[arm_index])
+    		if arm_index == 0:
+    			self.arms.start_move_to_pose(step.armTarget.rArm, 0)
+    			self.arms.set_gripper_state(0, step.gripperAction.rGripper)
+    		else:
+    			self.arms.start_move_to_pose(step.armTarget.lArm, 1)
+    			self.arms.set_gripper_state(1, step.gripperAction.lGripper)
+
     		rospy.loginfo('Moved arm ' + str(arm_index) + ' to pose ' + pose_name)
 
     def save_arm_pose(self, dummy=None):

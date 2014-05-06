@@ -351,7 +351,7 @@ class Arms:
     def _get_time_to_pose(pose, arm_index):
         ''' Returns the time to get to an arm pose'''
         if (pose == None):
-            rospy.logwarn('Arm ' + str(arm_index) + 'will not move.')
+            rospy.logwarn('Arm ' + str(arm_index) + ' will not move.')
             return None
         else:
             time_to_pose = Arms._get_time_bw_poses(
@@ -363,6 +363,7 @@ class Arms:
 
     def move_to_joints(self, r_arm, l_arm):
         '''Makes the arms move to indicated joint poses'''
+
         time_to_r_pose = Arms._get_time_to_pose(r_arm, 0)
         time_to_l_pose = Arms._get_time_to_pose(l_arm, 1)
 
