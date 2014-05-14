@@ -4,6 +4,7 @@ from ProgrammedAction import ProgrammedAction
 import rospy
 import os
 import yaml
+import rospkg
 from pr2_pbd_interaction.msg import ExperimentState
 from pr2_pbd_interaction.srv import GetExperimentState
 from pr2_pbd_interaction.srv import GetExperimentStateResponse
@@ -24,8 +25,6 @@ class Session:
                             '/pr2_pbd_interaction/experimentNumber')
         self._data_dir = self._get_data_dir(self._exp_number)
         
-        self._pose_dir = self._data_dir + 'poses/'
-
         parent_dir = os.path.abspath(os.path.join(self._data_dir, os.pardir))
 
         if (not os.path.exists(parent_dir)):
@@ -34,10 +33,9 @@ class Session:
         if (not os.path.exists(self._data_dir)):
             os.mkdir(self._data_dir)
 
-        if (not os.path.exists(self._pose_dir)):
-            os.mkdir(self._pose_dir)
-        else:
-            self.load_arm_poses()
+        rospack = rospkg.RosPack()
+        self._pose_dir = rospack.get_path('pr2_pbd_interaction') + '/data/'
+        self.load_arm_poses()
 
         rospy.set_param('data_directory', self._data_dir)
 
