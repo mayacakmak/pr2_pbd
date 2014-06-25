@@ -17,7 +17,7 @@ from python_qt_binding.QtCore import Slot, qDebug, QSignalMapper, QTimer, qWarni
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_pbd_interaction.msg import GuiCommand
 from sound_play.msg import SoundRequest
-from pr2_pbd_interaction.msg import ExperimentState
+from pr2_pbd_interaction.msg import ExperimentState, ActionStep
 from pr2_pbd_interaction.srv import GetExperimentState
 
 
@@ -80,31 +80,21 @@ class PbDGUI(Plugin):
         self.exp_state_sig.connect(self.update_state)
         
         self.commands = dict()
-        self.commands[Command.CREATE_NEW_ACTION] = 'New action'
         self.commands[Command.TEST_MICROPHONE] = 'Test microphone'
-        self.commands[Command.NEXT_ACTION] = 'Next action'
-        self.commands[Command.PREV_ACTION] = 'Previous action'
-        self.commands[Command.SAVE_POSE] = 'Save pose'
-        self.commands[Command.RELAX_RIGHT_ARM] = 'Relax right arm'
-        self.commands[Command.RELAX_LEFT_ARM] = 'Relax left arm'
-        self.commands[Command.FREEZE_RIGHT_ARM] = 'Freeze right arm'
-        self.commands[Command.FREEZE_LEFT_ARM] = 'Freeze left arm'
-        self.commands[Command.OPEN_RIGHT_HAND] = 'Open right hand'
-        self.commands[Command.OPEN_LEFT_HAND] = 'Open left hand'
-        self.commands[Command.CLOSE_RIGHT_HAND] = 'Close right hand'
-        self.commands[Command.CLOSE_LEFT_HAND] = 'Close left hand'
-        self.commands[Command.CLOSE_LEFT_HAND] = 'Close left hand'
-        self.commands[Command.EXECUTE_ACTION] = 'Execute action'
-        self.commands[Command.STOP_EXECUTION] = 'Stop execution'
-        self.commands[Command.DELETE_ALL_STEPS] = 'Delete all'
-        self.commands[Command.DELETE_LAST_STEP] = 'Delete last'
-        self.commands[Command.RECORD_OBJECT_POSE] = 'Record object poses'
+        self.commands[Command.NEW_DEMONSTRATION] = 'New demonstration'
+        self.commands[Command.START_RECORDING] = 'Start recording'
+        self.commands[Command.STOP_RECORDING] = 'Stop recording'
+        self.commands[Command.REPLAY_DEMONSTRATION] = 'Replay demonstration'
+        self.commands[Command.DETECT_SURFACE] = 'Detect surface'
+        self.commands[Command.TAKE_TOOL] = 'Take tool'
+        self.commands[Command.RELEASE_TOOL] = 'Release tool'
+        self.commands[Command.SAVE_ARM_POSE] = 'Save arm pose'
         
         self.currentAction = -1
         self.currentStep = -1
 
         allWidgetsBox = QtGui.QVBoxLayout()
-        actionBox = QGroupBox('Actions', self._widget)
+        actionBox = QGroupBox('Demonstrations', self._widget)
         self.actionGrid = QtGui.QGridLayout()
         self.actionGrid.setHorizontalSpacing(0)
         for i in range(6):
@@ -117,8 +107,8 @@ class PbDGUI(Plugin):
         
         actionButtonGrid = QtGui.QHBoxLayout()
         actionButtonGrid.addWidget(self.create_button(
-                                        Command.CREATE_NEW_ACTION))
-        self.stepsBox = QGroupBox('No actions created yet', self._widget)
+                                        Command.NEW_DEMONSTRATION))
+        self.stepsBox = QGroupBox('No demonstrations', self._widget)
         self.stepsGrid = QtGui.QGridLayout()
         
         self.l_model = QtGui.QStandardItemModel(self)
@@ -143,36 +133,26 @@ class PbDGUI(Plugin):
         self.stepsBox.setLayout(stepsBoxLayout)
 
         stepsButtonGrid = QtGui.QHBoxLayout()
-        stepsButtonGrid.addWidget(self.create_button(Command.SAVE_POSE))
-        stepsButtonGrid.addWidget(self.create_button(Command.EXECUTE_ACTION))
-        stepsButtonGrid.addWidget(self.create_button(Command.STOP_EXECUTION))
-        stepsButtonGrid.addWidget(self.create_button(Command.DELETE_ALL_STEPS))
-        stepsButtonGrid.addWidget(self.create_button(Command.DELETE_LAST_STEP))
+        stepsButtonGrid.addWidget(self.create_button(Command.REPLAY_DEMONSTRATION))
+        
+        motionButtonGrid = QtGui.QHBoxLayout()
+        motionButtonGrid.addWidget(self.create_button(Command.START_RECORDING))
+        motionButtonGrid.addWidget(self.create_button(Command.STOP_RECORDING))
 
         misc_grid = QtGui.QHBoxLayout()
         misc_grid.addWidget(self.create_button(Command.TEST_MICROPHONE))
-        misc_grid.addWidget(self.create_button(Command.RECORD_OBJECT_POSE))
+        misc_grid.addWidget(self.create_button(Command.DETECT_SURFACE))
         misc_grid.addStretch(1)
         
         misc_grid2 = QtGui.QHBoxLayout()
-        misc_grid2.addWidget(self.create_button(Command.RELAX_RIGHT_ARM))
-        misc_grid2.addWidget(self.create_button(Command.RELAX_LEFT_ARM))
-        misc_grid2.addWidget(self.create_button(Command.FREEZE_RIGHT_ARM))
-        misc_grid2.addWidget(self.create_button(Command.FREEZE_LEFT_ARM))
+        misc_grid2.addWidget(self.create_button(Command.TAKE_TOOL))
+        misc_grid2.addWidget(self.create_button(Command.RELEASE_TOOL))
         misc_grid2.addStretch(1)
-
+        
         misc_grid3 = QtGui.QHBoxLayout()
-        misc_grid3.addWidget(self.create_button(Command.OPEN_RIGHT_HAND))
-        misc_grid3.addWidget(self.create_button(Command.OPEN_LEFT_HAND))
-        misc_grid3.addWidget(self.create_button(Command.CLOSE_RIGHT_HAND))
-        misc_grid3.addWidget(self.create_button(Command.CLOSE_LEFT_HAND))
+        misc_grid3.addWidget(self.create_button(Command.SAVE_ARM_POSE))
         misc_grid3.addStretch(1)
         
-        misc_grid4 = QtGui.QHBoxLayout()
-        misc_grid4.addWidget(self.create_button(Command.PREV_ACTION))
-        misc_grid4.addWidget(self.create_button(Command.NEXT_ACTION))
-        misc_grid4.addStretch(1)
-
         speechGroupBox = QGroupBox('Robot Speech', self._widget)
         speechGroupBox.setObjectName('RobotSpeechGroup')
         speechBox = QtGui.QHBoxLayout()
@@ -187,15 +167,15 @@ class PbDGUI(Plugin):
         allWidgetsBox.addLayout(actionButtonGrid)
         
         allWidgetsBox.addWidget(self.stepsBox)
+        allWidgetsBox.addLayout(motionButtonGrid)
         allWidgetsBox.addLayout(stepsButtonGrid)
         
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(misc_grid)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(misc_grid2)
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 40))
         allWidgetsBox.addLayout(misc_grid3)
-        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
-        allWidgetsBox.addLayout(misc_grid4)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         
         allWidgetsBox.addWidget(speechGroupBox)
@@ -271,7 +251,7 @@ class PbDGUI(Plugin):
         n_steps = self.n_steps()
         if (n_steps < state.n_steps):
             for i in range(n_steps, state.n_steps):
-                self.save_pose()
+                self.save_pose(frameType=ord(state.frame_types[i]))
         elif (n_steps > state.n_steps):
             n_to_remove = n_steps - state.n_steps
             self.r_model.invisibleRootItem().removeRows(state.n_steps,
@@ -295,16 +275,23 @@ class PbDGUI(Plugin):
                 else:
                     self.l_view.selectRow(index)
 
-    def save_pose(self, actionIndex=None):
+    def get_frame_type(self, fr_type):
+        if (fr_type > 1):
+            rospy.logwarn("Invalid frame type @ save_pose -> get_frame_type: " + str(fr_type))
+        return ["Go to pose", "Maneuver"][fr_type]
+    
+    
+    def save_pose(self, actionIndex=None, frameType=0):
         nColumns = 9
         if actionIndex is None:
             actionIndex = self.currentAction
         stepIndex = self.n_steps(actionIndex)
+        
         r_step = [QtGui.QStandardItem('Step' + str(stepIndex + 1)),
-                    QtGui.QStandardItem('Go to pose'), 
+                    QtGui.QStandardItem(self.get_frame_type(frameType)), 
                     QtGui.QStandardItem('Absolute')]
         l_step = [QtGui.QStandardItem('Step' + str(stepIndex + 1)),
-                    QtGui.QStandardItem('Go to pose'), 
+                    QtGui.QStandardItem(self.get_frame_type(frameType)), 
                     QtGui.QStandardItem('Absolute')]
         self.r_model.invisibleRootItem().appendRow(r_step)
         self.l_model.invisibleRootItem().appendRow(l_step)
@@ -395,4 +382,3 @@ class PbDGUI(Plugin):
         # TODO restore intrinsic configuration, usually using:
         # v = instance_settings.value(k)
         pass
-

@@ -47,31 +47,32 @@ class Interaction:
         self.responses = {
             Command.TEST_MICROPHONE: Response(Interaction.empty_response,
                                 [RobotSpeech.TEST_RESPONSE, GazeGoal.NOD]),
-            Command.RELAX_RIGHT_ARM: Response(self.relax_arm, 0),
-            Command.RELAX_LEFT_ARM: Response(self.relax_arm, 1),
-            Command.OPEN_RIGHT_HAND: Response(self.open_hand, 0),
-            Command.OPEN_LEFT_HAND: Response(self.open_hand, 1),
-            Command.CLOSE_RIGHT_HAND: Response(self.close_hand, 0),
-            Command.CLOSE_LEFT_HAND: Response(self.close_hand, 1),
-            Command.STOP_EXECUTION: Response(self.stop_execution, None),
-            Command.UNDO: Response(self.undo, None),
-            Command.DELETE_ALL_STEPS: Response(self.delete_all_steps, None),
-            Command.DELETE_LAST_STEP: Response(self.delete_last_step, None),
-            Command.FREEZE_RIGHT_ARM: Response(self.freeze_arm, 0),
-            Command.FREEZE_LEFT_ARM: Response(self.freeze_arm, 1),
-            Command.CREATE_NEW_ACTION: Response(self.create_action, None),
-            Command.EXECUTE_ACTION: Response(self.execute_action, None),
-            Command.NEXT_ACTION: Response(self.next_action, None),
-            Command.PREV_ACTION: Response(self.previous_action, None),
-            Command.SAVE_POSE: Response(self.save_step, None),
-            Command.RECORD_OBJECT_POSE: Response(
-                                            self.record_object_pose, None),
-            Command.START_RECORDING_MOTION: Response(
-                                            self.start_recording, None),
-            Command.STOP_RECORDING_MOTION: Response(self.stop_recording, None)
-            }
+            Command.NEW_DEMONSTRATION: Response(self.create_action, None),
+            Command.TAKE_TOOL: Response(self.take_tool, 0),
+            Command.RELEASE_TOOL: Response(self.open_hand, 0),
+            Command.DETECT_SURFACE: Response(self.record_object_pose, None),
+            Command.START_RECORDING: Response(self.start_recording, None),
+            Command.STOP_RECORDING: Response(self.stop_recording, None),
+            Command.REPLAY_DEMONSTRATION: Response(self.execute_action, None),
+            Command.SAVE_ARM_POSE: Response(self.save_arm_pose, None)
+        }
+
+        rospy.loginfo('Will wait until arms ready to respond.')
+        while ((self.arms.get_ee_state(0) is None) or 
+        		(self.arms.get_ee_state(1) is None)):
+        	time.sleep(0.1)
+
+        rospy.loginfo('Starting to move to the initial pose.')
+
+        self._move_to_arm_pose('initial', 0)
+        self._move_to_arm_pose('initial', 1)
 
         rospy.loginfo('Interaction initialized.')
+
+    def load_known_arm_poses(self):
+	'''This loads important poses from the hard drive'''
+	# TODO
+	pass
 
     def open_hand(self, arm_index):
         '''Opens gripper on the indicated side'''
@@ -86,14 +87,14 @@ class Interaction:
             return [Response.already_open_responses[arm_index],
                     Response.glance_actions[arm_index]]
 
+    def take_tool(self, arm_index):
+    	self.close_hand(arm_index)
+    	self._move_to_arm_pose('initial', arm_index)
+
     def close_hand(self, arm_index):
         '''Closes gripper on the indicated side'''
         if Arms.set_gripper_state(arm_index, GripperState.CLOSED):
             speech_response = Response.close_responses[arm_index]
-            if (Interaction._is_programming and self.session.n_actions() > 0):
-                self.save_gripper_step(arm_index, GripperState.CLOSED)
-                speech_response = (speech_response + ' ' +
-                                   RobotSpeech.STEP_RECORDED)
             return [speech_response, Response.glance_actions[arm_index]]
         else:
             return [Response.already_closed_responses[arm_index],
@@ -137,6 +138,7 @@ class Interaction:
 
     def create_action(self, dummy=None):
         '''Creates a new empty action'''
+        self._move_to_arm_pose('take', 0)
         self.world.clear_all_objects()
         self.session.new_action()
         Interaction._is_programming = True
@@ -167,22 +169,6 @@ class Interaction:
         else:
             return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
 
-    def delete_last_step(self, dummy=None):
-        '''Deletes last step of the current action'''
-        if (self.session.n_actions() > 0):
-            if (Interaction._is_programming):
-                if self.session.n_frames() > 0:
-                    self.session.delete_last_step()
-                    self._undo_function = self._resume_last_step
-                    return [RobotSpeech.LAST_POSE_DELETED, GazeGoal.NOD]
-                else:
-                    return [RobotSpeech.SKILL_EMPTY, GazeGoal.SHAKE]
-            else:
-                return ['Action ' + str(self.session.current_action_index) +
-                        RobotSpeech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE]
-        else:
-            return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
-
     def delete_all_steps(self, dummy=None):
         '''Deletes all steps in the current action'''
         if (self.session.n_actions() > 0):
@@ -198,14 +184,7 @@ class Interaction:
                         RobotSpeech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE]
         else:
             return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
-
-    def undo(self, dummy=None):
-        '''Undoes the effect of the previous command'''
-        if (self._undo_function == None):
-            return [RobotSpeech.ERROR_NOTHING_TO_UNDO, GazeGoal.SHAKE]
-        else:
-            return self._undo_function()
-
+    
     def _resume_all_steps(self):
         '''Resumes all steps after clearing'''
         self.session.undo_clear()
@@ -247,6 +226,10 @@ class Interaction:
                     Interaction._is_recording_motion = True
                     Interaction._arm_trajectory = ArmTrajectory()
                     Interaction._trajectory_start_time = rospy.Time.now()
+
+ 		    if self.session.n_frames() > 0:
+                        self.session.clear_current_action()
+
                     return [RobotSpeech.STARTED_RECORDING_MOTION,
                             GazeGoal.NOD]
                 else:
@@ -269,23 +252,25 @@ class Interaction:
             for i in range(len(Interaction._arm_trajectory.timing)):
                 Interaction._arm_trajectory.timing[i] -= waited_time
                 Interaction._arm_trajectory.timing[i] += rospy.Duration(0.1)
-
-            self._fix_trajectory_ref()
-            traj_step.arm_trajectory = ArmTrajectory(
+            '''If motion was relative, record transformed pose'''
+            traj_step.armTrajectory = ArmTrajectory(
                 Interaction._arm_trajectory.rArm[:],
                 Interaction._arm_trajectory.lArm[:],
                 Interaction._arm_trajectory.timing[:],
-                Interaction._arm_trajectory.r_ref,
-                Interaction._arm_trajectory.l_ref,
-                Interaction._arm_trajectory.r_ref_name,
-                Interaction._arm_trajectory.l_ref_name)
+                Interaction._arm_trajectory.rRefFrame,
+                Interaction._arm_trajectory.lRefFrame,
+                Interaction._arm_trajectory.rRefFrameObject,
+                Interaction._arm_trajectory.lRefFrameObject)
             traj_step.gripperAction = GripperAction(
                                         self.arms.get_gripper_state(0),
                                         self.arms.get_gripper_state(1))
+                                        
             self.session.add_step_to_action(traj_step,
                                         self.world.get_frame_list())
+            
             Interaction._arm_trajectory = None
             Interaction._trajectory_start_time = None
+            
             return [RobotSpeech.STOPPED_RECORDING_MOTION + ' ' +
                     RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
         else:
@@ -293,70 +278,75 @@ class Interaction:
 
     def _fix_trajectory_ref(self):
         '''Makes the reference frame of continuous trajectories uniform'''
-        r_ref, r_ref_name = self._find_dominant_ref(
-                                        Interaction._arm_trajectory.rArm)
-        l_ref, l_ref_name = self._find_dominant_ref(
-                                        Interaction._arm_trajectory.lArm)
+        (r_ref, _), (_, r_ref_obj) = self._find_dominant_ref(
+                                                Interaction._arm_trajectory.rArm)
+        (l_ref, _), (_, l_ref_obj) = self._find_dominant_ref(
+                                                Interaction._arm_trajectory.lArm)
+                                                
         for i in range(len(Interaction._arm_trajectory.timing)):
             Interaction._arm_trajectory.rArm[i] = World.convert_ref_frame(
                             Interaction._arm_trajectory.rArm[i],
-                            r_ref, r_ref_name)
+                            r_ref, r_ref_obj)
             Interaction._arm_trajectory.lArm[i] = World.convert_ref_frame(
                             Interaction._arm_trajectory.lArm[i],
-                            l_ref, l_ref_name)
-        Interaction._arm_trajectory.r_ref = r_ref
-        Interaction._arm_trajectory.l_ref = l_ref
-        Interaction._arm_trajectory.r_ref_name = r_ref_name
-        Interaction._arm_trajectory.l_ref_name = l_ref_name
+                            l_ref, l_ref_obj)
+        
+        Interaction._arm_trajectory.rRefFrame = r_ref
+        Interaction._arm_trajectory.rRefFrameObject = r_ref_obj
+        Interaction._arm_trajectory.lRefFrame = l_ref
+        Interaction._arm_trajectory.lRefFrameObject = l_ref_obj
 
     def _find_dominant_ref(self, arm_traj):
         '''Finds the most dominant reference frame
         in a continuous trajectory'''
-        ref_names = self.world.get_frame_list()
-        ref_counts = dict()
-        for i in range(len(ref_names)):
-            ref_counts[ref_names[i]] = 0
-        for i in range(len(arm_traj)):
-            if (arm_traj[i].refFrameName in ref_counts.keys()):
-                ref_counts[arm_traj[i].refFrameName] += 1
+        def addEnt(dic, ent):
+            key = (ent.refFrame, ent.refFrameObject.name)
+            if (key in dic):
+                dic[key] = (1 + dic[key][0], dic[key][1])
             else:
-                rospy.logwarn('Ignoring object with reference frame name '
-                    + arm_traj[i].refFrameName
-                    + ' because the world does not have this object.')
-        dominant_ref = ref_counts.values().index(
-                                                max(ref_counts.values()))
-        dominant_ref_name = ref_counts.keys()[dominant_ref]
-        return World.get_ref_from_name(dominant_ref_name), dominant_ref_name
+                dic[key] = (1, ent.refFrameObject)
+            return dic
+
+        cnt = reduce(addEnt, arm_traj, {})
+
+        return reduce(lambda a, b: a if a[1][0] > b[1][0] else b, cnt.items())
 
     def _save_arm_to_trajectory(self):
         '''Saves current arm state into continuous trajectory'''
         if (Interaction._arm_trajectory != None):
-            states = self._get_arm_states()
+            states =  self._get_arm_states() 	
             Interaction._arm_trajectory.rArm.append(states[0])
             Interaction._arm_trajectory.lArm.append(states[1])
             Interaction._arm_trajectory.timing.append(
                         rospy.Time.now() - Interaction._trajectory_start_time)
 
-    def save_step(self, dummy=None):
+    def _move_to_arm_pose(self, pose_name, arm_index):
+    	'''Moves the robot's arm to a pre-specified arm pose'''
+    	action = self.session.pose_set[pose_name]
+    	if action is None:
+    		rospy.logwarn('Arm pose does not exist:' + pose_name)
+    	else:
+    		step = action.get_step(0)
+    		if arm_index == 0:
+    			self.arms.start_move_to_pose(step.armTarget.rArm, 0)
+    			self.arms.set_gripper_state(0, step.gripperAction.rGripper)
+    		else:
+    			self.arms.start_move_to_pose(step.armTarget.lArm, 1)
+    			self.arms.set_gripper_state(1, step.gripperAction.lGripper)
+
+    		rospy.loginfo('Moved arm ' + str(arm_index) + ' to pose ' + pose_name)
+
+    def save_arm_pose(self, dummy=None):
         '''Saves current arm state as an action step'''
-        if (self.session.n_actions() > 0):
-            if (Interaction._is_programming):
-                states = self._get_arm_states()
-                step = ActionStep()
-                step.type = ActionStep.ARM_TARGET
-                step.armTarget = ArmTarget(states[0], states[1],
-                                           0.2, 0.2)
-                step.gripperAction = GripperAction(
-                                            self.arms.get_gripper_state(0),
-                                            self.arms.get_gripper_state(1))
-                self.session.add_step_to_action(step,
-                                            self.world.get_frame_list())
-                return [RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
-            else:
-                return ['Action ' + str(self.session.current_action_index) +
-                        RobotSpeech.ERROR_NOT_IN_EDIT, GazeGoal.SHAKE]
-        else:
-            return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
+        states = self._get_arm_states()
+        step = ActionStep()
+        step.type = ActionStep.ARM_TARGET
+        step.armTarget = ArmTarget(states[0], states[1], 0.2, 0.2)
+        step.gripperAction = GripperAction(
+                                    self.arms.get_gripper_state(0),
+                                    self.arms.get_gripper_state(1))
+        self.session.save_arm_pose(step, self.world.get_frame_list())
+        return [RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
 
     def _get_arm_states(self):
         '''Returns the current arms states in the right format'''
@@ -365,38 +355,31 @@ class Interaction:
         joint_poses = [Arms.get_joint_state(0),
                       Arms.get_joint_state(1)]
 
-        rel_ee_poses = [None, None]
         states = [None, None]
 
         for arm_index in [0, 1]:
-            if (not World.has_objects()):
-                # Absolute
-                states[arm_index] = ArmState(ArmState.ROBOT_BASE,
-                    abs_ee_poses[arm_index], joint_poses[arm_index], Object())
-            else:
-                nearest_obj = self.world.get_nearest_object(
-                                                    abs_ee_poses[arm_index])
+            nearest_obj = self.world.get_nearest_object(
+                                                abs_ee_poses[arm_index])
 
-                if (nearest_obj == None):
-                    states[arm_index] = ArmState(ArmState.ROBOT_BASE,
-                                        abs_ee_poses[arm_index],
-                                        joint_poses[arm_index], Object())
-                else:
-                    # Relative
-		    #rospy.loginfo('Pose is relative for arm ' + str(arm_index))
-                    rel_ee_poses[arm_index] = World.transform(
-                                        abs_ee_poses[arm_index],
-                                        'base_link', nearest_obj.name)
-                    states[arm_index] = ArmState(ArmState.OBJECT,
-                                        rel_ee_poses[arm_index],
-                                        joint_poses[arm_index], nearest_obj)
+            if (nearest_obj == None):
+                states[arm_index] = ArmState(ArmState.ROBOT_BASE,
+                                    abs_ee_poses[arm_index],
+                                    joint_poses[arm_index], Object())
+            else:
+                # Relative
+                rel_ee_pose = World.transform(
+                                    abs_ee_poses[arm_index],
+                                    'base_link', nearest_obj.name)
+                states[arm_index] = ArmState(ArmState.OBJECT,
+                                    rel_ee_pose,
+                                    joint_poses[arm_index], nearest_obj)
         return states
 
     def execute_action(self, dummy=None):
         '''Starts the execution of the current action'''
 	execution_z_offset = -0.00
         if (self.session.n_actions() > 0):
-            if (self.session.n_frames() > 1):
+            if (self.session.n_frames() > 0):
                 self.session.save_current_action()
                 action = self.session.get_current_action()
 
@@ -460,7 +443,6 @@ class Interaction:
 
     def gui_command_cb(self, command):
         '''Callback for when a GUI command is received'''
-
         if (not self.arms.is_executing()):
             if (self.session.n_actions() > 0):
                 if (command.command == GuiCommand.SWITCH_TO_ACTION):

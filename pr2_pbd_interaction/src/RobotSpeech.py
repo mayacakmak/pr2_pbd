@@ -47,6 +47,7 @@ class RobotSpeech:
     LEFT_ARM_ALREADY_RELEASED = 'Left arm is already relaxed.'
     SKILL_CLEARED = 'All poses deleted.'
     LAST_POSE_DELETED = 'Last pose deleted.'
+    LAST_POSE_REPEATED = 'Last pose repeated.'
     ALL_POSES_RESUMED = 'All poses resumed.'
     START_STATE_RECORDED = 'Start state recorded.'
     OBJECT_NOT_DETECTED = 'No objects were detected.'

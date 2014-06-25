@@ -37,6 +37,15 @@ class Session:
         self._pose_dir = rospack.get_path('pr2_pbd_interaction') + '/data/'
         self.load_arm_poses()
 
+        if (is_debug):
+            self._exp_number = rospy.get_param(
+                                '/pr2_pbd_interaction/experimentNumber')
+            self._data_dir = self._get_data_dir(self._exp_number)
+            if (not os.path.exists(self._data_dir)):
+                os.makedirs(self._data_dir)
+        else:
+            self._get_participant_id()
+
         rospy.set_param('data_directory', self._data_dir)
 
         self.actions = dict()
