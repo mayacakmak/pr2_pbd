@@ -44,7 +44,8 @@ class Interaction:
         self._viz_publisher = rospy.Publisher('visualization_marker_array',
                                               MarkerArray)
 
-	self._demo_state = None
+		self._demo_state = None
+		self._is_busy = True
 
         rospy.Subscriber('recognized_command', Command, self.speech_command_cb)
         rospy.Subscriber('gui_command', GuiCommand, self.gui_command_cb)
@@ -53,7 +54,7 @@ class Interaction:
             Command.TEST_MICROPHONE: Response(Interaction.empty_response,
                                 [RobotSpeech.TEST_RESPONSE, GazeGoal.NOD]),
             Command.TAKE_TOOL: Response(self.take_tool, 0),
-            Command.RELEASE_TOOL: Response(self.open_hand, 0),
+            Command.RELEASE_TOOL: Response(self.release_tool, 0),
             Command.DETECT_SURFACE: Response(self.record_object_pose, None),
             Command.START_RECORDING: Response(self.start_recording, None),
             Command.STOP_RECORDING: Response(self.stop_recording, None),
@@ -67,20 +68,35 @@ class Interaction:
         	time.sleep(0.1)
 
         rospy.loginfo('Starting to move to the initial pose.')
-
+        # TODO: Make it possible to take with either hand
         self._move_to_arm_pose('take', 0)
         self._move_to_arm_pose('take', 1)
-
-	self._demo_state = DemoState.READY_TO_TAKE
+        self._wait_for_arms()
+		self._demo_state = DemoState.READY_TO_TAKE
+		self._is_busy = False
         rospy.loginfo('Interaction initialized.')
 
-    def load_known_arm_poses(self):
-	'''This loads important poses from the hard drive'''
-	# TODO
-	pass
+    def _wait_for_arms(self):
+        rospy.loginfo('Will wait until the arms get in place.')
+        while (self.arms.is_executing):
+        	time.sleep(0.1)
 
-    def open_hand(self, arm_index):
-        '''Opens gripper on the indicated side'''
+    def take_tool(self, arm_index):
+    	self._is_busy = True
+    	self.close_hand(arm_index)
+    	self._move_to_arm_pose('look', arm_index)
+    	self._wait_for_arms()
+    	self.tool_id = self.world.detect_tool_id()
+    	if self.tool_id is None:
+    		pass
+    	else:
+	        self.session.new_action()
+
+    	self._move_to_arm_pose('ready', 0)
+    	self._wait_for_arms()
+    	self._is_busy = False
+
+    def release_tool(self, arm_index):
         if self.arms.set_gripper_state(arm_index, GripperState.OPEN):
             speech_response = Response.open_responses[arm_index]
             if (Interaction._is_programming and self.session.n_actions() > 0):
@@ -92,63 +108,28 @@ class Interaction:
             return [Response.already_open_responses[arm_index],
                     Response.glance_actions[arm_index]]
 
-    def take_tool(self, arm_index):
-    	self.close_hand(arm_index)
-    	self._move_to_arm_pose('initial', arm_index)
+
 
     def close_hand(self, arm_index):
         '''Closes gripper on the indicated side'''
         if Arms.set_gripper_state(arm_index, GripperState.CLOSED):
-            speech_response = Response.close_responses[arm_index]
-            return [speech_response, Response.glance_actions[arm_index]]
+        	return True
         else:
-            return [Response.already_closed_responses[arm_index],
-                    Response.glance_actions[arm_index]]
+            return False
 
     def relax_arm(self, arm_index):
         '''Relaxes arm on the indicated side'''
         if self.arms.set_arm_mode(arm_index, ArmMode.RELEASE):
-            return [Response.release_responses[arm_index],
-                    Response.glance_actions[arm_index]]
+            return True
         else:
-            return [Response.already_released_responses[arm_index],
-                    Response.glance_actions[arm_index]]
+            return False
 
     def freeze_arm(self, arm_index):
         '''Stiffens arm on the indicated side'''
         if self.arms.set_arm_mode(arm_index, ArmMode.HOLD):
-            return [Response.hold_responses[arm_index],
-                    Response.glance_actions[arm_index]]
+            return True
         else:
-            return [Response.already_holding_responses[arm_index],
-                    Response.glance_actions[arm_index]]
-
-    def edit_action(self, dummy=None):
-        '''Goes back to edit mode'''
-        if (self.session.n_actions() > 0):
-            if (Interaction._is_programming):
-                return [RobotSpeech.ALREADY_EDITING, GazeGoal.SHAKE]
-            else:
-                Interaction._is_programming = True
-                return [RobotSpeech.SWITCH_TO_EDIT_MODE, GazeGoal.NOD]
-        else:
-            return [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE]
-
-    def save_action(self, dummy=None):
-        '''Goes out of edit mode'''
-        self.session.save_current_action()
-        Interaction._is_programming = False
-        return [RobotSpeech.ACTION_SAVED + ' ' +
-                str(self.session.current_action_index), GazeGoal.NOD]
-
-    def create_action(self, dummy=None):
-        '''Creates a new empty action'''
-        self._move_to_arm_pose('take', 0)
-        self.world.clear_all_objects()
-        self.session.new_action()
-        Interaction._is_programming = True
-        return [RobotSpeech.SKILL_CREATED + ' ' +
-                str(self.session.current_action_index), GazeGoal.NOD]
+            return False
 
     def next_action(self, dummy=None):
         '''Switches to next action'''
@@ -381,7 +362,7 @@ class Interaction:
 
     def execute_action(self, dummy=None):
         '''Starts the execution of the current action'''
-	execution_z_offset = -0.00
+		execution_z_offset = -0.00
         if (self.session.n_actions() > 0):
             if (self.session.n_frames() > 0):
                 self.session.save_current_action()
@@ -413,13 +394,13 @@ class Interaction:
                           command.command + '\033[0m')
             response = self.responses[command.command]
 
-            if (not self.arms.is_executing()):
+            if (not self.arms.is_executing() and not self._is_busy):
                 response.respond()
             else:
                 if command.command == Command.STOP_EXECUTION:
                     response.respond()
                 else:
-                    rospy.logwarn('Ignoring speech command during execution: '
+                    rospy.logwarn('Ignoring speech command during execution or busy: '
                                   + command.command)
         else:
             switch_command = 'SWITCH_TO_ACTION'
