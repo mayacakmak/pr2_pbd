@@ -23,6 +23,11 @@ from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 
 
+class DemoState:
+    READY_TO_TAKE="READY_TO_TAKE"
+    READY_FOR_DEMO="READY_FOR_DEMO"
+    TOOL_NOT_RECOGNIZED="TOOL_NOT_RECOGNIZED"
+
 class Interaction:
     '''Finite state machine for the human interaction'''
 
@@ -39,15 +44,14 @@ class Interaction:
         self._viz_publisher = rospy.Publisher('visualization_marker_array',
                                               MarkerArray)
 
+	self._demo_state = None
+
         rospy.Subscriber('recognized_command', Command, self.speech_command_cb)
         rospy.Subscriber('gui_command', GuiCommand, self.gui_command_cb)
-
-        self._undo_function = None
 
         self.responses = {
             Command.TEST_MICROPHONE: Response(Interaction.empty_response,
                                 [RobotSpeech.TEST_RESPONSE, GazeGoal.NOD]),
-            Command.NEW_DEMONSTRATION: Response(self.create_action, None),
             Command.TAKE_TOOL: Response(self.take_tool, 0),
             Command.RELEASE_TOOL: Response(self.open_hand, 0),
             Command.DETECT_SURFACE: Response(self.record_object_pose, None),
@@ -64,9 +68,10 @@ class Interaction:
 
         rospy.loginfo('Starting to move to the initial pose.')
 
-        self._move_to_arm_pose('initial', 0)
-        self._move_to_arm_pose('initial', 1)
+        self._move_to_arm_pose('take', 0)
+        self._move_to_arm_pose('take', 1)
 
+	self._demo_state = DemoState.READY_TO_TAKE
         rospy.loginfo('Interaction initialized.')
 
     def load_known_arm_poses(self):
@@ -175,7 +180,6 @@ class Interaction:
             if (Interaction._is_programming):
                 if self.session.n_frames() > 0:
                     self.session.clear_current_action()
-                    self._undo_function = self._resume_all_steps
                     return [RobotSpeech.SKILL_CLEARED, GazeGoal.NOD]
                 else:
                     return [RobotSpeech.SKILL_EMPTY, None]
@@ -410,11 +414,7 @@ class Interaction:
             response = self.responses[command.command]
 
             if (not self.arms.is_executing()):
-                if (self._undo_function != None):
-                    response.respond()
-                    self._undo_function = None
-                else:
-                    response.respond()
+                response.respond()
             else:
                 if command.command == Command.STOP_EXECUTION:
                     response.respond()
