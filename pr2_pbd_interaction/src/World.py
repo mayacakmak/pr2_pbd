@@ -34,6 +34,14 @@ from pr2_social_gaze.msg import GazeGoal
 from Response import Response
 
 
+class Surface:
+    '''Class representing the cleaning surface'''
+    points = None
+
+    def __init__(self, points):
+        self.points = points
+
+
 class WorldObject:
     '''Class for representing objects'''
 
@@ -116,6 +124,17 @@ class World:
         self._im_server.applyChanges()
         World.objects = []
         self._lock.release()
+
+    def get_tool_id(self):
+        #TODO
+        return 0
+
+    def get_surface(self):
+        #TODO
+        points = [Point(0.6,-0.1,0.5), Point(0.6,0.1,0.5),
+                    Point(0.4,-0.1,0.5),Point(0.4,0.1,0.5)]
+        s = Surface(points)
+        return s
 
     def receive_table_marker(self, marker):
         '''Callback function for markers to determine table'''
@@ -207,29 +226,6 @@ class World:
             return arm_state.ee_pose
 
     @staticmethod
-    def get_most_similar_obj(ref_object, ref_frame_list):
-        '''Finds the most similar object in the world'''
-        best_dist = 10000
-        chosen_obj_index = -1
-        for i in range(len(ref_frame_list)):
-            dist = World.object_dissimilarity(ref_frame_list[i], ref_object)
-            if (dist < best_dist):
-                best_dist = dist
-                chosen_obj_index = i
-        if chosen_obj_index == -1:
-            rospy.logwarn('Did not find a similar object..')
-            return None
-        else:
-            print 'Object dissimilarity is --- ', best_dist
-            if best_dist > 0.075:
-                rospy.logwarn('Found some objects, but not similar enough.')
-                return None
-            else:
-                rospy.loginfo('Most similar to new object '
-                                        + str(chosen_obj_index))
-                return ref_frame_list[chosen_obj_index]
-
-    @staticmethod
     def _get_mesh_marker(marker, mesh):
         '''Function that generated a marker from a mesh'''
         marker.type = Marker.TRIANGLE_LIST
@@ -256,36 +252,6 @@ class World:
             # Temporary HACK for testing.
             # Will remove all recognition completely if this works.
             return False
-            # Check if there is already an object
-            for i in range(len(World.objects)):
-                distance = World.pose_distance(World.objects[i].object.pose,
-                                               pose)
-                if (distance < dist_threshold):
-                    if (World.objects[i].is_recognized):
-                        rospy.loginfo('Previously recognized object at ' +
-                            'the same location, will not add this object.')
-                        return False
-                    else:
-                        rospy.loginfo('Previously unrecognized object at ' +
-                            'the same location, will replace it with the ' +
-                            'recognized object.')
-                        to_remove = i
-                        break
-
-            if (to_remove != None):
-                self._remove_object(to_remove)
-
-            n_objects = len(World.objects)
-            World.objects.append(WorldObject(pose, n_objects,
-                                            dimensions, is_recognized))
-            int_marker = self._get_object_marker(len(World.objects) - 1, mesh)
-            World.objects[-1].int_marker = int_marker
-            self._im_server.insert(int_marker, self.marker_feedback_cb)
-            self._im_server.applyChanges()
-            World.objects[-1].menu_handler.apply(self._im_server,
-                                               int_marker.name)
-            self._im_server.applyChanges()
-            return True
         else:
             for i in range(len(World.objects)):
                 if (World.pose_distance(World.objects[i].object.pose, pose)
@@ -312,18 +278,6 @@ class World:
         rospy.loginfo('Removing object ' + obj.int_marker.name)
         self._im_server.erase(obj.int_marker.name)
         self._im_server.applyChanges()
-#        if (obj.is_recognized):
-#            for i in range(len(World.objects)):
-#                if ((World.objects[i].is_recognized)
-#                    and World.objects[i].index>obj.index):
-#                    World.objects[i].decrease_index()
-#            self.n_recognized -= 1
-#        else:
-#            for i in range(len(World.objects)):
-#                if ((not World.objects[i].is_recognized) and
-#                    World.objects[i].index>obj.index):
-#                    World.objects[i].decrease_index()
-#            self.n_unrecognized -= 1
 
     def _remove_surface(self):
         '''Function to request removing surface'''
@@ -413,14 +367,6 @@ class World:
     def has_objects():
         '''Function that checks if there are any objects'''
         return len(World.objects) > 0
-
-    @staticmethod
-    def object_dissimilarity(obj1, obj2):
-        '''Distance between two objects'''
-        dims1 = obj1.dimensions
-        dims2 = obj2.dimensions
-        return norm(array([dims1.x, dims1.y, dims1.z]) -
-                    array([dims2.x, dims2.y, dims2.z]))
 
     @staticmethod
     def get_ref_from_name(ref_name):

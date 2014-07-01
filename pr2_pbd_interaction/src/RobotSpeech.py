@@ -12,6 +12,15 @@ class RobotSpeech:
     ''' The robot's speech responses '''
 
     TEST_RESPONSE = 'Microphone working.'
+    HAND_TOOL_REQUEST = 'Place tool inside gripper and say Take tool.'
+    TOOL_RELEASED = 'Tool released.'
+    RECOGNIZED_TOOL = 'Recognized tool '
+    SURFACE_DETECTED = 'Surface detected.'
+    ERROR_NO_SURFACE = 'Could not detect surface.'
+    ERROR_TOOL_NOT_RECOGNIZED = 'Tool not recognized.'
+    READY_FOR_DEMO = 'Ready for demonstration.'
+    ERROR_NOT_IN_TAKE_STATE = 'Cannot take tool in current state.'
+
     SKILL_CREATED = 'Created action'
     RIGHT_ARM_RELEASED = 'Right arm relaxed'
     RIGHT_ARM_HOLDING = 'Right arm frozen'

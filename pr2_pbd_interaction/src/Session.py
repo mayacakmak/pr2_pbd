@@ -69,14 +69,6 @@ class Session:
                 print 'Loaded', pose_file_name, 'with', dummy_action.n_frames(), 'frames.'
         print 'Loaded ' + str(len(self.pose_set)) + ' poses.'
 
-    def save_arm_pose(self, step, object_list, name=None):
-        dummy_action = ProgrammedAction(0, self._selected_step_cb)
-        dummy_action.add_action_step(step,object_list)
-        if name is None:
-            name = 'Pose' + str(len(self.pose_set))
-        self.pose_set[name] = dummy_action
-        dummy_action.save(self._pose_dir, name)
-
     def _selected_step_cb(self, selected_step):
         '''Updates the selected step when interactive
         markers are clicked on'''
@@ -190,11 +182,12 @@ class Session:
         self.actions[self.current_action_index].initialize_viz(object_list)
         state_file.close()
 
-    def new_action(self):
+    def new_action(self, action_id):
         '''Creates new action'''
         if (self.n_actions() > 0):
             self.get_current_action().reset_viz()
-        self.current_action_index = self.n_actions() + 1
+        self.current_action_index = action_id
+        ## TODO: Check if the action already exists
         self.actions.update({self.current_action_index:
                              ProgrammedAction(self.current_action_index,
                                               self._selected_step_cb)})

@@ -49,16 +49,16 @@ class Arms:
             return True
 
     @staticmethod
-    def set_gripper_state(arm_index, gripper_state):
+    def set_gripper_state(arm_index, gripper_state, wait=False):
         '''Set gripper to open or closed'''
         if (gripper_state == Arms.get_gripper_state(arm_index)):
             # Already in that mode
             return False
         else:
             if (gripper_state == GripperState.OPEN):
-                Arms.arms[arm_index].open_gripper()
+                Arms.arms[arm_index].open_gripper(wait=wait)
             else:
-                Arms.arms[arm_index].close_gripper()
+                Arms.arms[arm_index].close_gripper(wait=wait)
         return True
 
     def is_executing(self):
@@ -125,6 +125,7 @@ class Arms:
     @staticmethod
     def solve_ik_for_arm(arm_index, arm_state, cur_arm_pose=None):
         '''Finds an  IK solution for a particular arm pose'''
+        z_offset = 0.0
         # We need to find IK only if the frame is relative to an object
         if (arm_state.refFrame == ArmState.OBJECT):
 	    #rospy.loginfo('solve_ik_for_arm: Arm ' + str(arm_index) + ' is relative')
