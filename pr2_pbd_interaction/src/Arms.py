@@ -26,7 +26,7 @@ class Arms:
         self.attended_arm = -1
         self.action = None
         self.preempt = False
-	self.z_offset = 0
+        self.z_offset = 0
 
         rospy.loginfo('Arms have been initialized.')
 
@@ -70,7 +70,7 @@ class Arms:
         # This will take long, create a thread
         self.action = action.copy()
         self.preempt = False
-	self.z_offset = z_offset
+        self.z_offset = z_offset
         thread = threading.Thread(group=None, target=self.execute_action,
                                   name='skill_execution_thread')
         thread.start()
@@ -125,7 +125,6 @@ class Arms:
     @staticmethod
     def solve_ik_for_arm(arm_index, arm_state, cur_arm_pose=None):
         '''Finds an  IK solution for a particular arm pose'''
-        z_offset = 0.0
         # We need to find IK only if the frame is relative to an object
         if (arm_state.refFrame == ArmState.OBJECT):
 	    #rospy.loginfo('solve_ik_for_arm: Arm ' + str(arm_index) + ' is relative')
@@ -133,7 +132,7 @@ class Arms:
             target_pose = World.transform(arm_state.ee_pose,
                             arm_state.refFrameObject.name, 'base_link')
 
-	    target_pose.position.z = target_pose.position.z + z_offset
+	    target_pose.position.z = target_pose.position.z + self.z_offset
 
             target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                             arm_state.joint_pose)
@@ -149,7 +148,7 @@ class Arms:
         elif (arm_state.refFrame == ArmState.ROBOT_BASE):
 	    #rospy.loginfo('solve_ik_for_arm: Arm ' + str(arm_index) + ' is absolute')
 	    pos = arm_state.ee_pose.position
-	    target_position = Point(pos.x, pos.y, pos.z + z_offset)
+	    target_position = Point(pos.x, pos.y, pos.z + self.z_offset)
 	    target_pose = Pose(target_position, arm_state.ee_pose.orientation)
             target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                                     arm_state.joint_pose)

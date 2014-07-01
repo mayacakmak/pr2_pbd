@@ -27,6 +27,8 @@ class DemoState:
     READY_TO_TAKE = 'READY_TO_TAKE'
     READY_FOR_DEMO = 'READY_FOR_DEMO'
     TOOL_NOT_RECOGNIZED = 'TOOL_NOT_RECOGNIZED'
+    HAS_TOOL_NO_SURFACE = 'HAS_TOOL_NO_SURFACE'
+    NO_TOOL_NO_SURFACE = 'NO_TOOL_NO_SURFACE'
 
 class Interaction:
     '''Finite state machine for the human interaction'''
@@ -74,22 +76,23 @@ class Interaction:
         self._is_busy = False
         rospy.loginfo('Interaction initialized.')
 
-    def _wait_for_arms(self):
-        rospy.loginfo('Will wait until the arms get in place.')
-        while (self.arms.is_executing()):
-            time.sleep(0.1)
-        rospy.loginfo('Arms are in place.')
-
     def take_tool(self, arm_index):
+        '''Robot's response to TAKE_TOOL'''
         self._is_busy = True
         if self._demo_state == DemoState.READY_TO_TAKE:
             ## Robot closes the hand
             Arms.set_gripper_state(arm_index, GripperState.CLOSED, wait=True)
+            
             ## Robot moves the hand near the camera to take a look at the tool
             self._move_to_arm_pose('look', arm_index, wait=True)
             self.tool_id = self.world.get_tool_id()
+
             if self.tool_id is None:
-                speech_response = RobotSpeech.ERROR_TOOL_NOT_RECOGNIZED
+                ## Robot moves the arm back to the person can take the tool
+                self._move_to_arm_pose('take', 0, wait=True)
+                Response.say(RobotSpeech.ERROR_TOOL_NOT_RECOGNIZED)
+                self._demo_state = DemoState.NO_TOOL_NO_SURFACE
+
             else:
                 self.session.new_action(self.tool_id)
                 Response.say(RobotSpeech.RECOGNIZED_TOOL + str(self.tool_id))
@@ -97,26 +100,35 @@ class Interaction:
                 ## Robot moves the arm away and looks at the surface
                 self._move_to_arm_pose('away', 0, wait=True)
                 self.surface = self.world.get_surface()
+
                 if self.surface is None:
-                    speech_response = RobotSpeech.ERROR_NO_SURFACE
+                    Response.say(RobotSpeech.ERROR_NO_SURFACE)
+                    self._demo_state = DemoState.HAS_TOOL_NO_SURFACE
+
                 else:
                     #TODO: log the surface somewhere
                     Response.say(RobotSpeech.SURFACE_DETECTED)
                     self._move_to_arm_pose('ready', arm_index, wait=True)
+                    
+                    Response.say(RobotSpeech.READY_FOR_DEMO)
                     self._demo_state = DemoState.READY_FOR_DEMO
-                    speech_response = RobotSpeech.READY_FOR_DEMO
         else:
-            speech_response = RobotSpeech.ERROR_NOT_IN_TAKE_STATE
+            Response.say(RobotSpeech.ERROR_NOT_IN_TAKE_STATE)
 
+        rospy.loginfo('Current state: ' + self._demo_state)
         self._is_busy = False
-        return [speech_response, Response.glance_actions[arm_index]]
-
 
     def release_tool(self, arm_index):
         self.busy = True
-        self.arms.set_gripper_state(arm_index, GripperState.OPEN, wait=True)
-        speech_response = Response.TOOL_RELEASED
-        return [speech_response, Response.glance_actions[arm_index]]
+        if (self._demo_state != DemoState.READY_TO_TAKE):
+            self._move_to_arm_pose('take', 0, wait=True)
+            self.arms.set_gripper_state(arm_index, GripperState.OPEN, wait=True)
+            Response.say(Response.TOOL_RELEASED)
+            Response.perform_gaze_action(Response.glance_actions[arm_index])
+        else:
+            Response.say(Response.ERROR_NOT_IN_RELEASE_STATE)
+
+        self.busy = False
 
     def relax_arm(self, arm_index):
         '''Relaxes arm on the indicated side'''
@@ -266,6 +278,12 @@ class Interaction:
                 self.arms.set_gripper_state(1, step.gripperAction.lGripper, wait=wait)
 
             rospy.loginfo('Moved arm ' + str(arm_index) + ' to pose ' + pose_name)
+
+    def _wait_for_arms(self):
+        rospy.loginfo('Will wait until the arms get in place.')
+        while (self.arms.is_executing()):
+            time.sleep(0.1)
+        rospy.loginfo('Arms are in place.')
 
     def _get_arm_states(self):
         '''Returns the current arms states in the right format'''

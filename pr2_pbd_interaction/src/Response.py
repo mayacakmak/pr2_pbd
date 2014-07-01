@@ -61,14 +61,7 @@ class Response:
 
     def respond(self):
         ''' Triggers the defined response'''
-        speech_resp, gaze_resp = self.function_to_call(self.function_param)
-        # Speech response
-        if (speech_resp != None):
-            Response.say(speech_resp)
-            Response.respond_with_sound(speech_resp)
-        # Gaze response
-        if (gaze_resp != None):
-            Response.perform_gaze_action(gaze_resp)
+        self.function_to_call(self.function_param)
 
     @staticmethod
     def perform_gaze_action(gaze_action):

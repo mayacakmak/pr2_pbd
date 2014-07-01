@@ -20,6 +20,7 @@ class RobotSpeech:
     ERROR_TOOL_NOT_RECOGNIZED = 'Tool not recognized.'
     READY_FOR_DEMO = 'Ready for demonstration.'
     ERROR_NOT_IN_TAKE_STATE = 'Cannot take tool in current state.'
+    ERROR_NOT_IN_RELEASE_STATE = 'Cannot release tool in current state.'
 
     SKILL_CREATED = 'Created action'
     RIGHT_ARM_RELEASED = 'Right arm relaxed'
