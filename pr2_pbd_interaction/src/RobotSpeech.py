@@ -20,6 +20,7 @@ class RobotSpeech:
     STOPPED_RECORDING = 'Stopped recording demonstration.'
     READY_FOR_DEMO = 'Ready for demonstration.'
     STARTED_REPLAY = 'Started replay of demonstration.'
+    ENDED_REPLAY = 'Replay complete.'
 
     ERROR_NO_SURFACE = 'Could not detect surface.'
     ERROR_TOOL_NOT_RECOGNIZED = 'Tool not recognized.'
@@ -29,6 +30,8 @@ class RobotSpeech:
     ERROR_NOT_RECORDING =  'Cannot stop recording because no recordings are in progress.'
     ERROR_ALREADY_RECORDING = 'Already recording.'
     ERROR_CANNOT_REPLAY = 'Cannot replay demonstration in current state.'
+    ERROR_REPLAY_NOT_POSSIBLE = 'Cannot replay. Some poses are unreachable.'
+    ERROR_PREEMPTED_REPLAY = 'Could not replay.'
 
     SKILL_CREATED = 'Created action'
     RIGHT_ARM_RELEASED = 'Right arm relaxed'

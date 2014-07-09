@@ -52,13 +52,13 @@ class Interaction:
         rospy.Subscriber('gui_command', GuiCommand, self.gui_command_cb)
 
         self.responses = {
-            Command.TEST_MICROPHONE: Response(Interaction.default_response,
+            Command.TEST_MICROPHONE: Response(self.default_response,
                                 [RobotSpeech.TEST_RESPONSE, GazeGoal.NOD]),
             Command.TAKE_TOOL: Response(self.take_tool, 0),
             Command.RELEASE_TOOL: Response(self.release_tool, 0),
             Command.START_RECORDING: Response(self.start_recording, None),
             Command.STOP_RECORDING: Response(self.stop_recording, None),
-            Command.REPLAY_DEMONSTRATION: Response(self.execute_action, None)
+            Command.REPLAY_DEMONSTRATION: Response(self.replay_demonstration, None)
         }
 
         rospy.loginfo('Will wait until arms ready to respond.')
@@ -121,13 +121,16 @@ class Interaction:
 
     def release_tool(self, arm_index):
         self.busy = True
-        if (self._demo_state != DemoState.READY_TO_TAKE):
+        if (self._demo_state != DemoState.READY_TO_TAKE and 
+            self._demo_state != DemoState.PLAYING_DEMO and
+            self._demo_state != DemoState.RECORDING_DEMO):
             self._move_to_arm_pose('take', 0, wait=True)
             self.arms.set_gripper_state(arm_index, GripperState.OPEN, wait=True)
-            Response.say(Response.TOOL_RELEASED)
-            Response.perform_gaze_action(Response.glance_actions[arm_index])
+            Response.say(RobotSpeech.TOOL_RELEASED)
+            Response.perform_gaze_action(GazeGoal.GLANCE_RIGHT_EE)
+            self._demo_state = DemoState.READY_TO_TAKE
         else:
-            Response.say(Response.ERROR_NOT_IN_RELEASE_STATE)
+            Response.say(RobotSpeech.ERROR_NOT_IN_RELEASE_STATE)
 
         rospy.loginfo('Current state: ' + self._demo_state)
         self.busy = False
@@ -144,14 +147,14 @@ class Interaction:
             if self.session.n_frames() > 0:
                 self.session.clear_current_action()
 
-            self.relax_arm()
+            self.relax_arm(0)
             self._demo_state = DemoState.RECORDING_DEMO
             Response.say(RobotSpeech.STARTED_RECORDING)
             Response.perform_gaze_action(GazeGoal.NOD)
         elif (self._demo_state == DemoState.RECORDING_DEMO):
             Response.say(RobotSpeech.ERROR_ALREADY_RECORDING)
         else:
-            Response.say(Response.ERROR_NOT_READY_TO_RECORD)
+            Response.say(RobotSpeech.ERROR_NOT_READY_TO_RECORD)
 
         rospy.loginfo('Current state: ' + self._demo_state)
         self.busy = False
@@ -192,7 +195,7 @@ class Interaction:
             Interaction._arm_trajectory = None
             Interaction._trajectory_start_time = None
             self.session.save_current_action()
-            self.freeze_arm()
+            self.freeze_arm(0)
 
             self._demo_state = DemoState.HAS_RECORDED_DEMO
 
@@ -207,20 +210,16 @@ class Interaction:
         rospy.loginfo('Current state: ' + self._demo_state)
         self.busy = False
 
-    def execute_action(self, dummy=None):
-        '''Starts the execution of the current action'''
+    def replay_demonstration(self, dummy=None):
+        '''Starts the execution of the current demonstration'''
         self.busy = True
-
-        execution_z_offset = -0.00
+        execution_z_offset = 0.00
         if (self._demo_state == DemoState.HAS_RECORDED_DEMO):
             self.session.save_current_action()
             action = self.session.get_current_action()
-
             self.arms.start_execution(action, execution_z_offset)
-
             Response.say(RobotSpeech.STARTED_REPLAY)
             self._demo_state = DemoState.PLAYING_DEMO
-
         else:
             Response.say(RobotSpeech.ERROR_CANNOT_REPLAY)
             Response.perform_gaze_action(GazeGoal.SHAKE)
@@ -228,8 +227,33 @@ class Interaction:
         rospy.loginfo('Current state: ' + self._demo_state)
         self.busy = False
 
-    @staticmethod
-    def default_response(responses):
+    def _end_replay(self):
+        '''Responses for when the action execution ends'''
+        if (self.arms.status == ExecutionStatus.SUCCEEDED):
+            if self._demo_state == DemoState.PLAYING_DEMO:
+                Response.say(RobotSpeech.ENDED_REPLAY)
+                Response.perform_gaze_action(GazeGoal.NOD)
+                self._demo_state = DemoState.HAS_RECORDED_DEMO
+            else:
+                rospy.loginfo('Non-replay motion successful.')
+        elif (self.arms.status == ExecutionStatus.PREEMPTED):
+            if self._demo_state == DemoState.PLAYING_DEMO:
+                Response.say(RobotSpeech.ERROR_PREEMPTED_REPLAY)
+                Response.perform_gaze_action(GazeGoal.SHAKE)
+                self._demo_state = DemoState.HAS_RECORDED_DEMO
+            else:
+                rospy.loginfo('Non-replay motion pre-empted.')
+        else:
+            if self._demo_state == DemoState.PLAYING_DEMO:
+                Response.say(RobotSpeech.ERROR_REPLAY_NOT_POSSIBLE)
+                Response.perform_gaze_action(GazeGoal.SHAKE)
+                self._demo_state = DemoState.HAS_RECORDED_DEMO
+            else:
+                rospy.loginfo('Non-replay motion has no IK.')
+
+        self.arms.status = ExecutionStatus.NOT_EXECUTING
+
+    def default_response(self, responses):
         '''Default response to speech commands'''
         self.busy = True
         speech_resp = responses[0]
@@ -261,8 +285,6 @@ class Interaction:
         else:
             return False
 
-#self.session.clear_current_action()
-    
     def stop_execution(self, dummy=None):
         '''Stops ongoing execution'''
         if (self._demo_state == DemoState.PLAYING_DEMO and
@@ -360,11 +382,11 @@ class Interaction:
                 if (self.session.n_actions() > 0):
                     self.session.switch_to_action(action_no,
                                                   self.world.get_frame_list())
-                    response = Response(Interaction.default_response,
+                    response = Response(self.default_response,
                         [RobotSpeech.SWITCH_SKILL + str(action_no),
                          GazeGoal.NOD])
                 else:
-                    response = Response(Interaction.default_response,
+                    response = Response(self.default_response,
                         [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
                 response.respond()
             else:
@@ -379,7 +401,7 @@ class Interaction:
                     action_no = command.param
                     self.session.switch_to_action(action_no,
                                                   self.world.get_frame_list())
-                    response = Response(Interaction.default_response,
+                    response = Response(self.default_response,
                         [RobotSpeech.SWITCH_SKILL + str(action_no),
                          GazeGoal.NOD])
                     response.respond()
@@ -391,7 +413,7 @@ class Interaction:
                     rospy.logwarn('\033[32m This command (' + command.command
                                   + ') is unknown. \033[0m')
             else:
-                response = Response(Interaction.default_response,
+                response = Response(self.default_response,
                     [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
                 response.respond()
         else:
@@ -404,46 +426,14 @@ class Interaction:
 
         if (self.arms.status != ExecutionStatus.NOT_EXECUTING):
             if (self.arms.status != ExecutionStatus.EXECUTING):
-                self._end_execution()
+                self._end_replay()
 
         if (self._demo_state == DemoState.RECORDING_DEMO):
             self._save_arm_to_trajectory()
 
-        is_world_changed = self.world.update()
         if (self.session.n_actions() > 0):
             action = self.session.get_current_action()
             action.update_viz()
-            r_target = action.get_requested_targets(0)
-            if (r_target != None):
-                self.arms.start_move_to_pose(r_target, 0)
-                action.reset_targets(0)
-            l_target = action.get_requested_targets(1)
-            if (l_target != None):
-                self.arms.start_move_to_pose(l_target, 1)
-                action.reset_targets(1)
-
-            action.delete_requested_steps()
-
-            states = self._get_arm_states()
-            action.change_requested_steps(states[0], states[1])
-
-            if (is_world_changed):
-                rospy.loginfo('The world has changed.')
-                self.session.get_current_action().update_objects(
-                                        self.world.get_frame_list())
 
         time.sleep(0.1)
 
-    def _end_execution(self):
-        '''Responses for when the action execution ends'''
-        if (self.arms.status == ExecutionStatus.SUCCEEDED):
-            Response.say(RobotSpeech.EXECUTION_ENDED)
-            Response.perform_gaze_action(GazeGoal.NOD)
-        elif (self.arms.status == ExecutionStatus.PREEMPTED):
-            Response.say(RobotSpeech.EXECUTION_PREEMPTED)
-            Response.perform_gaze_action(GazeGoal.SHAKE)
-        else:
-            Response.say(RobotSpeech.EXECUTION_ERROR_NOIK)
-            Response.perform_gaze_action(GazeGoal.SHAKE)
-
-        self.arms.status = ExecutionStatus.NOT_EXECUTING

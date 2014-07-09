@@ -93,10 +93,12 @@ class Arms:
 
                 r_arm, has_solution_r = Arms.solve_ik_for_arm(0,
                                         self.action.seq.seq[i].armTarget.rArm,
-                                        prev_arm_state[0])
+                                        prev_arm_state[0],
+                                        self.z_offset)
                 l_arm, has_solution_l = Arms.solve_ik_for_arm(1,
                                         self.action.seq.seq[i].armTarget.lArm,
-                                        prev_arm_state[1])
+                                        prev_arm_state[1],
+                                        self.z_offset)
 
                 self.action.seq.seq[i].armTarget.rArm = r_arm
                 self.action.seq.seq[i].armTarget.lArm = l_arm
@@ -110,10 +112,12 @@ class Arms:
                 for j in range(n_frames):
                     r_arm, has_solution_r = Arms.solve_ik_for_arm(0,
                             self.action.seq.seq[i].armTrajectory.rArm[j],
-                            prev_arm_state[0])
+                            prev_arm_state[0],
+                            self.z_offset)
                     l_arm, has_solution_l = Arms.solve_ik_for_arm(1,
                             self.action.seq.seq[i].armTrajectory.lArm[j],
-                            prev_arm_state[1])
+                            prev_arm_state[1],
+                            self.z_offset)
                     self.action.seq.seq[i].armTrajectory.rArm[j] = r_arm
                     self.action.seq.seq[i].armTrajectory.lArm[j] = l_arm
                     end_state = [r_arm.ee_pose, l_arm.ee_pose]
@@ -123,16 +127,15 @@ class Arms:
         return True
 
     @staticmethod
-    def solve_ik_for_arm(arm_index, arm_state, cur_arm_pose=None):
+    def solve_ik_for_arm(arm_index, arm_state, cur_arm_pose=None, z_offset=0.0):
         '''Finds an  IK solution for a particular arm pose'''
         # We need to find IK only if the frame is relative to an object
         if (arm_state.refFrame == ArmState.OBJECT):
-	    #rospy.loginfo('solve_ik_for_arm: Arm ' + str(arm_index) + ' is relative')
             solution = ArmState()
             target_pose = World.transform(arm_state.ee_pose,
                             arm_state.refFrameObject.name, 'base_link')
 
-	    target_pose.position.z = target_pose.position.z + self.z_offset
+	    target_pose.position.z = target_pose.position.z + z_offset
 
             target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                             arm_state.joint_pose)
@@ -148,7 +151,7 @@ class Arms:
         elif (arm_state.refFrame == ArmState.ROBOT_BASE):
 	    #rospy.loginfo('solve_ik_for_arm: Arm ' + str(arm_index) + ' is absolute')
 	    pos = arm_state.ee_pose.position
-	    target_position = Point(pos.x, pos.y, pos.z + self.z_offset)
+	    target_position = Point(pos.x, pos.y, pos.z + z_offset)
 	    target_pose = Pose(target_position, arm_state.ee_pose.orientation)
             target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                                     arm_state.joint_pose)
