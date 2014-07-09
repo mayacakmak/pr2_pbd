@@ -92,31 +92,38 @@ class Interaction:
                 ## Robot moves the arm back to the person can take the tool
                 self._move_to_arm_pose('take', 0, wait=True)
                 Response.say(RobotSpeech.ERROR_TOOL_NOT_RECOGNIZED)
+                Response.perform_gaze_action(GazeGoal.SHAKE)
                 self._demo_state = DemoState.NO_TOOL_NO_SURFACE
-
             else:
                 self.session.new_action(self.tool_id)
                 Response.say(RobotSpeech.RECOGNIZED_TOOL + str(self.tool_id))
 
-                ## Robot moves the arm away and looks at the surface
-                self._move_to_arm_pose('away', 0, wait=True)
-                self.surface = self.world.get_surface()
-
-                if self.surface is None:
-                    Response.say(RobotSpeech.ERROR_NO_SURFACE)
-                    self._demo_state = DemoState.HAS_TOOL_NO_SURFACE
-
-                else:
-                    #TODO: log the surface somewhere
-                    Response.say(RobotSpeech.SURFACE_DETECTED)
-                    self._move_to_arm_pose('ready', arm_index, wait=True)
-                    
-                    Response.say(RobotSpeech.READY_FOR_DEMO)
-                    self._demo_state = DemoState.READY_FOR_DEMO
+                self._demo_state = DemoState.HAS_TOOL_NO_SURFACE
+                self.detect_surface()
         else:
             Response.say(RobotSpeech.ERROR_NOT_IN_TAKE_STATE)
 
         rospy.loginfo('Current state: ' + self._demo_state)
+        self._is_busy = False
+
+    def detect_surface(self):
+        self._is_busy = True
+
+        if self._demo_state == DemoState.HAS_TOOL_NO_SURFACE:
+            ## Robot moves the arm away and looks at the surface
+            self._move_to_arm_pose('away', 0, wait=True)
+            self.surface = self.world.get_surface()
+
+            if self.surface is None:
+                Response.say(RobotSpeech.ERROR_NO_SURFACE)
+                Response.perform_gaze_action(GazeGoal.SHAKE)
+            else:
+                #TODO: log the surface somewhere
+                Response.say(RobotSpeech.SURFACE_DETECTED)
+                self._move_to_arm_pose('ready', arm_index, wait=True)
+                Response.say(RobotSpeech.READY_FOR_DEMO)
+                self._demo_state = DemoState.READY_FOR_DEMO
+
         self._is_busy = False
 
     def release_tool(self, arm_index):
@@ -130,6 +137,7 @@ class Interaction:
             Response.perform_gaze_action(GazeGoal.GLANCE_RIGHT_EE)
             self._demo_state = DemoState.READY_TO_TAKE
         else:
+            Response.perform_gaze_action(GazeGoal.SHAKE)
             Response.say(RobotSpeech.ERROR_NOT_IN_RELEASE_STATE)
 
         rospy.loginfo('Current state: ' + self._demo_state)
@@ -152,8 +160,10 @@ class Interaction:
             Response.say(RobotSpeech.STARTED_RECORDING)
             Response.perform_gaze_action(GazeGoal.NOD)
         elif (self._demo_state == DemoState.RECORDING_DEMO):
+            Response.perform_gaze_action(GazeGoal.SHAKE)
             Response.say(RobotSpeech.ERROR_ALREADY_RECORDING)
         else:
+            Response.perform_gaze_action(GazeGoal.SHAKE)
             Response.say(RobotSpeech.ERROR_NOT_READY_TO_RECORD)
 
         rospy.loginfo('Current state: ' + self._demo_state)
@@ -294,6 +304,7 @@ class Interaction:
             Respoonse.say(RobotSpeech.STOPPING_EXECUTION)
             Response.perform_gaze_action(GazeGoal.NOD)
         else:
+            Response.perform_gaze_action(GazeGoal.SHAKE)
             Respoonse.say(RobotSpeech.ERROR_IS_NOT_PLAYING)
 
     def _save_arm_to_trajectory(self):
