@@ -16,11 +16,19 @@ class RobotSpeech:
     TOOL_RELEASED = 'Tool released.'
     RECOGNIZED_TOOL = 'Recognized tool '
     SURFACE_DETECTED = 'Surface detected.'
+    STARTED_RECORDING = 'Started recording demonstration.'
+    STOPPED_RECORDING = 'Stopped recording demonstration.'
+    READY_FOR_DEMO = 'Ready for demonstration.'
+    STARTED_REPLAY = 'Started replay of demonstration.'
+
     ERROR_NO_SURFACE = 'Could not detect surface.'
     ERROR_TOOL_NOT_RECOGNIZED = 'Tool not recognized.'
-    READY_FOR_DEMO = 'Ready for demonstration.'
     ERROR_NOT_IN_TAKE_STATE = 'Cannot take tool in current state.'
     ERROR_NOT_IN_RELEASE_STATE = 'Cannot release tool in current state.'
+    ERROR_NOT_READY_TO_RECORD =  'Cannot start recording in current state.'
+    ERROR_NOT_RECORDING =  'Cannot stop recording because no recordings are in progress.'
+    ERROR_ALREADY_RECORDING = 'Already recording.'
+    ERROR_CANNOT_REPLAY = 'Cannot replay demonstration in current state.'
 
     SKILL_CREATED = 'Created action'
     RIGHT_ARM_RELEASED = 'Right arm relaxed'
@@ -67,9 +75,6 @@ class RobotSpeech:
     ERROR_NOT_IN_EDIT = ' has been saved. Say, edit action, to make changes.'
     ACTION_ALREADY_STARTED = ('Action already started. ' +
                              'Say, delete all steps, to start over.')
-    ALREADY_RECORDING_MOTION = 'Already recording motion.'
-    STARTED_RECORDING_MOTION = 'Started recording motion.'
-    STOPPED_RECORDING_MOTION = 'Stopped recording motion.'
     MOTION_NOT_RECORDING = 'Not currently recording motion.'
     STOPPING_EXECUTION = 'Execution stopped.'
 
