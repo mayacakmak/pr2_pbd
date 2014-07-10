@@ -32,7 +32,7 @@ import actionlib
 from pr2_pbd_interaction.msg import Object, ArmState
 from pr2_social_gaze.msg import GazeGoal
 from Response import Response
-
+from ar_track_alvar.msg import AlvarMarkers
 
 class Surface:
     '''Class representing the cleaning surface'''
@@ -45,17 +45,18 @@ class Surface:
 class WorldObject:
     '''Class for representing objects'''
 
-    def __init__(self, pose, index, dimensions, is_recognized):
+    def __init__(self, pose, index, dimensions, marker_id=None):
         ''' Initialization of objects'''
         self.index = index
         self.assigned_name = None
-        self.is_recognized = is_recognized
+        self.position = pose.position
         self.object = Object(Object.TABLE_TOP, self.get_name(),
                              pose, dimensions)
         self.menu_handler = MenuHandler()
         self.int_marker = None
         self.is_removed = False
         self.menu_handler.insert('Remove from scene', callback=self.remove)
+        self.marker_id = marker_id
 
     def remove(self, dummy):
         '''Function for removing object from the world'''
@@ -70,10 +71,7 @@ class WorldObject:
     def get_name(self):
         '''Function to get the object name'''
         if (self.assigned_name == None):
-            if (self.is_recognized):
-                return 'object' + str(self.index)
-            else:
-                return 'thing' + str(self.index)
+            return 'marker' + str(self.marker_id)
         else:
             return self.assigned_name
 
@@ -112,6 +110,21 @@ class World:
         rospy.Subscriber('tabletop_segmentation_markers',
                          Marker, self.receive_table_marker)
 
+        rospy.Subscriber("ar_pose_marker",
+                         AlvarMarkers, self.receive_ar_markers)
+        self.marker_dims = Vector3(0.04, 0.04, 0.01)
+
+
+    def receive_ar_markers(self, data):
+        '''Callback function to receive marker info'''
+        self._lock.acquire()
+        if len(data.markers) > 0:
+            rospy.loginfo('Received non-empty marker list.')
+            for i in range(len(data.markers)):
+                marker = data.markers[i]
+                self._add_new_object(marker.pose.pose, self.marker_dims, marker.id)
+        self._lock.release()
+
     def _reset_objects(self):
         '''Function that removes all objects'''
         self._lock.acquire()
@@ -126,13 +139,23 @@ class World:
         self._lock.release()
 
     def get_tool_id(self):
-        #TODO
-        return 0
+        if (len(self.objects) == 0):
+            rospy.warning('There are no fiducials, cannot get tool ID.')
+            return None
+        elif (len(self.objects) > 1):
+            rospy.warning('There are more than one fiducials, returning the first as tool ID.')
+        return World.objects[0].marker_id
 
     def get_surface(self):
-        #TODO
-        points = [Point(0.6,-0.1,0.5), Point(0.6,0.1,0.5),
-                    Point(0.4,-0.1,0.5),Point(0.4,0.1,0.5)]
+        if (len(self.objects) < 4):
+            rospy.warning('There are not enough fiducials to detect surface.')
+            return None
+        elif (len(self.objects) > 4):
+            rospy.warning('There are more than four fiducials for surface, will use first four.')
+        return 
+
+        points = [World.objects[0].position, World.objects[1].position,
+                    World.objects[2].position, World.objects[3].position]
         s = Surface(points)
         return s
 
@@ -175,7 +198,7 @@ class World:
                         rospy.logwarn('Adding the recognized object ' +
                                       'with most confident model.')
                         self._add_new_object(object_pose,
-                            Vector3(0.2, 0.2, 0.2), True,
+                            Vector3(0.2, 0.2, 0.2), i,
                             object_list.meshes[i])
                 else:
                     rospy.logwarn('... this is not a recognition result, ' +
@@ -187,8 +210,7 @@ class World:
                         rospy.loginfo('Adding unrecognized object with pose:' +
                             World.pose_to_string(cluster_pose) + '\n' +
                             'In ref frame' + str(bbox.pose.header.frame_id))
-                        self._add_new_object(cluster_pose, bbox.box_dims,
-                                             False)
+                        self._add_new_object(cluster_pose, bbox.box_dims, i)
         else:
             rospy.logwarn('... but the list was empty.')
         self._lock.release()
@@ -244,33 +266,29 @@ class World:
                 break
         return marker
 
-    def _add_new_object(self, pose, dimensions, is_recognized, mesh=None):
+    def _add_new_object(self, pose, dimensions, id=None, mesh=None):
         '''Function to add new objects'''
         dist_threshold = 0.02
         to_remove = None
-        if (is_recognized):
-            # Temporary HACK for testing.
-            # Will remove all recognition completely if this works.
-            return False
-        else:
-            for i in range(len(World.objects)):
-                if (World.pose_distance(World.objects[i].object.pose, pose)
-                        < dist_threshold):
-                    rospy.loginfo('Previously detected object at the same' +
-                                  'location, will not add this object.')
-                    return False
 
-            n_objects = len(World.objects)
-            World.objects.append(WorldObject(pose, n_objects,
-                                            dimensions, is_recognized))
-            int_marker = self._get_object_marker(len(World.objects) - 1)
-            World.objects[-1].int_marker = int_marker
-            self._im_server.insert(int_marker, self.marker_feedback_cb)
-            self._im_server.applyChanges()
-            World.objects[-1].menu_handler.apply(self._im_server,
-                                               int_marker.name)
-            self._im_server.applyChanges()
-            return True
+        for i in range(len(World.objects)):
+            if (World.pose_distance(World.objects[i].object.pose, pose)
+                    < dist_threshold):
+                rospy.loginfo('Previously detected object at the same' +
+                              'location, will not add this object.')
+                return False
+
+        n_objects = len(World.objects)
+        World.objects.append(WorldObject(pose, n_objects,
+                                        dimensions, id))
+        int_marker = self._get_object_marker(len(World.objects) - 1)
+        World.objects[-1].int_marker = int_marker
+        self._im_server.insert(int_marker, self.marker_feedback_cb)
+        self._im_server.applyChanges()
+        World.objects[-1].menu_handler.apply(self._im_server,
+                                           int_marker.name)
+        self._im_server.applyChanges()
+        return True
 
     def _remove_object(self, to_remove):
         '''Function to remove object by index'''

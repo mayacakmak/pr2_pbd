@@ -59,6 +59,7 @@ class Interaction:
             Command.START_RECORDING: Response(self.start_recording, None),
             Command.STOP_RECORDING: Response(self.stop_recording, None),
             Command.REPLAY_DEMONSTRATION: Response(self.replay_demonstration, None)
+            Command.DETECT_SURFACE: Response(self.detect_surface, None)
         }
 
         rospy.loginfo('Will wait until arms ready to respond.')
@@ -118,7 +119,6 @@ class Interaction:
                 Response.say(RobotSpeech.ERROR_NO_SURFACE)
                 Response.perform_gaze_action(GazeGoal.SHAKE)
             else:
-                #TODO: log the surface somewhere
                 Response.say(RobotSpeech.SURFACE_DETECTED)
                 self._move_to_arm_pose('ready', arm_index, wait=True)
                 Response.say(RobotSpeech.READY_FOR_DEMO)
