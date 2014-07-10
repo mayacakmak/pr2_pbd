@@ -50,13 +50,13 @@ class WorldObject:
         self.index = index
         self.assigned_name = None
         self.position = pose.position
+        self.marker_id = marker_id
         self.object = Object(Object.TABLE_TOP, self.get_name(),
                              pose, dimensions)
         self.menu_handler = MenuHandler()
         self.int_marker = None
         self.is_removed = False
         self.menu_handler.insert('Remove from scene', callback=self.remove)
-        self.marker_id = marker_id
 
     def remove(self, dummy):
         '''Function for removing object from the world'''
