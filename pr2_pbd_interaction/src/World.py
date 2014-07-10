@@ -277,12 +277,12 @@ class World:
                     < dist_threshold):
                 #rospy.loginfo('Previously detected object at the same' +
                 #              'location, will not add this object.')
-                World.objects[i].object.last_detected_time = rospy.now()
+                World.objects[i].object.last_detected_time = rospy.get_time()
                 return False
 
         n_objects = len(World.objects)
         World.objects.append(WorldObject(pose, n_objects,
-                                        dimensions, id, rospy.now()))
+                                        dimensions, id, rospy.get_time()))
         int_marker = self._get_object_marker(len(World.objects) - 1)
         World.objects[-1].int_marker = int_marker
         self._im_server.insert(int_marker, self.marker_feedback_cb)
@@ -624,7 +624,7 @@ class World:
             for i in range(len(World.objects)):
                 self._publish_tf_pose(World.objects[i].object.pose,
                     World.objects[i].get_name(), 'base_link')
-                marker_age = rospy.now() - World.objects[i].object.last_detected_time
+                marker_age = rospy.get_time() - World.objects[i].object.last_detected_time
                 if (marker_age > 2.0):
                     to_remove = i
                 if (World.objects[i].is_removed):
