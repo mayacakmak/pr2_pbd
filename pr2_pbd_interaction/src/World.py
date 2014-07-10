@@ -45,12 +45,13 @@ class Surface:
 class WorldObject:
     '''Class for representing objects'''
 
-    def __init__(self, pose, index, dimensions, marker_id=None):
+    def __init__(self, pose, index, dimensions, marker_id, detected_time):
         ''' Initialization of objects'''
         self.index = index
         self.assigned_name = None
         self.position = pose.position
         self.marker_id = marker_id
+        self.last_detected_time = detected_time
         self.object = Object(Object.TABLE_TOP, self.get_name(),
                              pose, dimensions)
         self.menu_handler = MenuHandler()
@@ -119,7 +120,7 @@ class World:
         '''Callback function to receive marker info'''
         self._lock.acquire()
         if len(data.markers) > 0:
-            rospy.loginfo('Received non-empty marker list.')
+            #rospy.loginfo('Received non-empty marker list.')
             for i in range(len(data.markers)):
                 marker = data.markers[i]
                 self._add_new_object(marker.pose.pose, self.marker_dims, marker.id)
@@ -274,13 +275,14 @@ class World:
         for i in range(len(World.objects)):
             if (World.pose_distance(World.objects[i].object.pose, pose)
                     < dist_threshold):
-                rospy.loginfo('Previously detected object at the same' +
-                              'location, will not add this object.')
+                #rospy.loginfo('Previously detected object at the same' +
+                #              'location, will not add this object.')
+                World.objects[i].object.last_detected_time = rospy.now()
                 return False
 
         n_objects = len(World.objects)
         World.objects.append(WorldObject(pose, n_objects,
-                                        dimensions, id))
+                                        dimensions, id, rospy.now()))
         int_marker = self._get_object_marker(len(World.objects) - 1)
         World.objects[-1].int_marker = int_marker
         self._im_server.insert(int_marker, self.marker_feedback_cb)
@@ -622,6 +624,9 @@ class World:
             for i in range(len(World.objects)):
                 self._publish_tf_pose(World.objects[i].object.pose,
                     World.objects[i].get_name(), 'base_link')
+                marker_age = rospy.now() - World.objects[i].object.last_detected_time
+                if (marker_age > 2.0):
+                    to_remove = i
                 if (World.objects[i].is_removed):
                     to_remove = i
             if to_remove != None:
