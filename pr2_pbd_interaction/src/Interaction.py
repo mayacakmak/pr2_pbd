@@ -58,7 +58,7 @@ class Interaction:
             Command.RELEASE_TOOL: Response(self.release_tool, 0),
             Command.START_RECORDING: Response(self.start_recording, None),
             Command.STOP_RECORDING: Response(self.stop_recording, None),
-            Command.REPLAY_DEMONSTRATION: Response(self.replay_demonstration, None)
+            Command.REPLAY_DEMONSTRATION: Response(self.replay_demonstration, None),
             Command.DETECT_SURFACE: Response(self.detect_surface, None)
         }
 
