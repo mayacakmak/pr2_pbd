@@ -41,5 +41,5 @@
    <rosparam command="load" file="$(find pr2_pbd_interaction)/config/filters.yaml"/>
   </node>
 
-  <include file="$(find r_track_alvar)/launch/pr2_indiv.launch"/>
+  <include file="$(find ar_track_alvar)/launch/pr2_indiv.launch"/>
 </launch>
