@@ -141,18 +141,18 @@ class World:
 
     def get_tool_id(self):
         if (len(self.objects) == 0):
-            rospy.warning('There are no fiducials, cannot get tool ID.')
+            rospy.logwarn('There are no fiducials, cannot get tool ID.')
             return None
         elif (len(self.objects) > 1):
-            rospy.warning('There are more than one fiducials, returning the first as tool ID.')
+            rospy.logwarn('There are more than one fiducials, returning the first as tool ID.')
         return World.objects[0].marker_id
 
     def get_surface(self):
         if (len(self.objects) < 4):
-            rospy.warning('There are not enough fiducials to detect surface.')
+            rospy.logwarn('There are not enough fiducials to detect surface.')
             return None
         elif (len(self.objects) > 4):
-            rospy.warning('There are more than four fiducials for surface, will use first four.')
+            rospy.logwarn('There are more than four fiducials for surface, will use first four.')
         return 
 
         points = [World.objects[0].position, World.objects[1].position,
@@ -277,7 +277,7 @@ class World:
                     < dist_threshold):
                 #rospy.loginfo('Previously detected object at the same' +
                 #              'location, will not add this object.')
-                World.objects[i].object.last_detected_time = rospy.get_time()
+                World.objects[i].last_detected_time = rospy.get_time()
                 return False
 
         n_objects = len(World.objects)
@@ -624,7 +624,7 @@ class World:
             for i in range(len(World.objects)):
                 self._publish_tf_pose(World.objects[i].object.pose,
                     World.objects[i].get_name(), 'base_link')
-                marker_age = rospy.get_time() - World.objects[i].object.last_detected_time
+                marker_age = rospy.get_time() - World.objects[i].last_detected_time
                 if (marker_age > 2.0):
                     to_remove = i
                 if (World.objects[i].is_removed):
