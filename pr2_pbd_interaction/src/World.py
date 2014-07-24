@@ -149,7 +149,7 @@ class World:
 
     def get_surface(self):
         if (len(self.objects) < 4):
-            rospy.logwarn('There are not enough fiducials to detect surface.')
+            rospy.logwarn('There are not enough fiducials to detect surface, only ' + str(len(self.objects)))
             return None
         elif (len(self.objects) > 4):
             rospy.logwarn('There are more than four fiducials for surface, will use first four.')
@@ -341,6 +341,11 @@ class World:
                 pose=Pose(text_pos, Quaternion(0, 0, 0, 1))))
         int_marker.controls.append(button_control)
         return int_marker
+
+    @staticmethod
+    def _update_marker_text(index, text)
+        World.objects[index].int_marker.controls[0].markers[1].text = 
+             int_marker.name + ' ' + text
 
     @staticmethod
     def _get_surface_marker(pose, dimensions):
@@ -625,6 +630,8 @@ class World:
                 self._publish_tf_pose(World.objects[i].object.pose,
                     World.objects[i].get_name(), 'base_link')
                 marker_age = rospy.get_time() - World.objects[i].last_detected_time
+                World._update_marker_text(i, ' (' + str(marker_age) + 'seconds old)')        
+                
                 if (marker_age > 2.0):
                     to_remove = i
                 if (World.objects[i].is_removed):

@@ -1,13 +1,14 @@
 ''' Robot responses in the dialog '''
 import roslib
 roslib.load_manifest('pr2_pbd_interaction')
-
+import rospy
 from actionlib import SimpleActionClient
+from actionlib_msgs.msg import GoalStatus
 from RobotSpeech import RobotSpeech
 from pr2_social_gaze.msg import GazeGoal, GazeAction
 from sound_play.msg import SoundRequest
 from sound_play.libsoundplay import SoundClient
-import os
+import os, time
 from pr2_pbd_interaction.msg import RobotSound
 
 
@@ -64,11 +65,19 @@ class Response:
         self.function_to_call(self.function_param)
 
     @staticmethod
-    def perform_gaze_action(gaze_action):
+    def perform_gaze_action(gaze_action, wait=False):
         ''' Triggers a gaze action'''
         goal = GazeGoal()
         goal.action = gaze_action
         Response.gaze_client.send_goal(goal)
+
+        if wait:
+          time.sleep(0.5)
+          rospy.loginfo('Will wait for the gaze action to complete!')
+          while (Response.gaze_client.get_state() == GoalStatus.ACTIVE or
+                Response.gaze_client.get_state() == GoalStatus.PENDING):
+            time.sleep(0.1)
+
 
     @staticmethod
     def look_at_point(point):
