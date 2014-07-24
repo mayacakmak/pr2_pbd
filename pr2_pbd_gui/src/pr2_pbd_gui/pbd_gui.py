@@ -85,6 +85,7 @@ class PbDGUI(Plugin):
         self.commands[Command.STOP_RECORDING] = 'Stop recording'
         self.commands[Command.REPLAY_DEMONSTRATION] = 'Replay demonstration'
         self.commands[Command.TAKE_TOOL] = 'Take tool'
+        self.commands[Command.DETECT_SURFACE] = 'Detect surface'
         self.commands[Command.RELEASE_TOOL] = 'Release tool'
         
         self.currentAction = -1
@@ -141,6 +142,7 @@ class PbDGUI(Plugin):
         misc_grid2 = QtGui.QHBoxLayout()
         misc_grid2.addWidget(self.create_button(Command.TAKE_TOOL))
         misc_grid2.addWidget(self.create_button(Command.RELEASE_TOOL))
+        misc_grid2.addWidget(self.create_button(Command.DETECT_SURFACE))
         misc_grid2.addStretch(1)
                 
         speechGroupBox = QGroupBox('Robot Speech', self._widget)
