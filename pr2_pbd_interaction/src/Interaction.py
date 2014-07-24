@@ -327,12 +327,12 @@ class Interaction:
                 self.arms.start_move_to_pose(step.armTarget.rArm, 0)
                 if wait:
                     self._wait_for_arms()
-                self.arms.set_gripper_state(0, step.gripperAction.rGripper, wait=wait)
+                #self.arms.set_gripper_state(0, step.gripperAction.rGripper, wait=wait)
             else:
                 self.arms.start_move_to_pose(step.armTarget.lArm, 1)
                 if wait:
                     self._wait_for_arms()
-                self.arms.set_gripper_state(1, step.gripperAction.lGripper, wait=wait)
+                #self.arms.set_gripper_state(1, step.gripperAction.lGripper, wait=wait)
 
             rospy.loginfo('Moved arm ' + str(arm_index) + ' to pose ' + pose_name)
 

@@ -349,16 +349,40 @@ class Arm:
         return (self.traj_action_client.get_state() == GoalStatus.SUCCEEDED)
 
     def get_ik_for_ee(self, ee_pose, seed):
-        ''' Finds the IK solution for given end effector pose'''
+        ''' Finds the IK solution for given end effector pose.
+
+        Note that though seed is not explicitly allowed to be None in
+        this method, it often is in code that this calls. If None is
+        passed in for the seed, None may be returned.
+
+        Args:
+        ee_pose (Pose): Pose to solve IK for.
+        seed ([float]): Seven-element list of arm joint positions.
+
+        Returns:
+        [float]: Seven-element list of arm joint positions. If seed
+        passed in is None, and no IK solution is found, None
+        could be returned.
+        '''
+        
         joints = self._solve_ik(ee_pose, seed)
-        ## If our seed did not work, try once again with the default seed
-        if joints == None:
-            rospy.logwarn('Could not find IK solution with preferred seed,' +
-                          'will try default seed.')
+        # If our seed did not work, try once again with the default
+        # seed.
+        if joints is None:
+            rospy.logdebug(
+                'Could not find IK solution with preferred seed, will try ' +
+                'default seed.')
             joints = self._solve_ik(ee_pose)
 
-        if joints == None:
-            rospy.logwarn('IK out of bounds, will use the seed directly.')
+        if joints is None:
+            rospy.logdebug('IK out of bounds, considering the seed directly.')
+            # IK failed, but let's see if FK with the passed seed will
+            # give us a pose close enough to the ee_pose that it's
+            # usable.
+            fk_pose = self.get_fk_for_joints(seed)
+            if Arm.get_distance_bw_poses(ee_pose, fk_pose) <  0.02:
+                joints = seed
+                rospy.logdebug('IK out of bounds, but FK close; using seed.')
         else:
             rollover = array((array(joints) - array(seed)) / pi, int)
             joints -= ((rollover + (sign(rollover) + 1) / 2) / 2) * 2 * pi
