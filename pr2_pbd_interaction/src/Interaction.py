@@ -71,7 +71,6 @@ class Interaction:
         # TODO: Make it possible to take with either hand
         self._move_to_arm_pose('take', 0)
         self._move_to_arm_pose('away', 1)
-	time.sleep(0.5)
         self._wait_for_arms()
         self._demo_state = DemoState.READY_TO_TAKE
         Response.say(RobotSpeech.HAND_TOOL_REQUEST)
@@ -86,10 +85,8 @@ class Interaction:
             ## Robot closes the hand
             Arms.set_gripper_state(arm_index, GripperState.CLOSED, wait=True)
             Response.perform_gaze_action(GazeGoal.LOOK_FORWARD)
-	    time.sleep(1.0) 
             ## Robot moves the hand near the camera to take a look at the tool
             self._move_to_arm_pose('look', arm_index, wait=True)
-	    time.sleep(1.0) 
             self.tool_id = self.world.get_tool_id()
 
             if self.tool_id is None:
@@ -326,16 +323,15 @@ class Interaction:
         if action is None:
             rospy.logwarn('Arm pose does not exist:' + pose_name)
         else:
+            time.sleep(0.5)
             step = action.get_step(0)
             if arm_index == 0:
                 self.arms.start_move_to_pose(step.armTarget.rArm, 0)
-		time.sleep(0.5)
                 if wait:
                     self._wait_for_arms()
                 #self.arms.set_gripper_state(0, step.gripperAction.rGripper, wait=wait)
             else:
                 self.arms.start_move_to_pose(step.armTarget.lArm, 1)
-		time.sleep(0.5)
                 if wait:
                     self._wait_for_arms()
                 #self.arms.set_gripper_state(1, step.gripperAction.lGripper, wait=wait)
@@ -344,6 +340,7 @@ class Interaction:
 
     def _wait_for_arms(self):
         rospy.loginfo('Will wait until the arms get in place.')
+        time.sleep(0.5)
         while (self.arms.is_executing()):
             time.sleep(0.1)
         rospy.loginfo('Arms are in place.')
