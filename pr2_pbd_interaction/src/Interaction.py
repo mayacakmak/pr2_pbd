@@ -71,6 +71,7 @@ class Interaction:
         # TODO: Make it possible to take with either hand
         self._move_to_arm_pose('take', 0)
         self._move_to_arm_pose('away', 1)
+	time.sleep(0.5)
         self._wait_for_arms()
         self._demo_state = DemoState.READY_TO_TAKE
         Response.say(RobotSpeech.HAND_TOOL_REQUEST)
@@ -85,8 +86,10 @@ class Interaction:
             ## Robot closes the hand
             Arms.set_gripper_state(arm_index, GripperState.CLOSED, wait=True)
             Response.perform_gaze_action(GazeGoal.LOOK_FORWARD)
+	    time.sleep(1.0) 
             ## Robot moves the hand near the camera to take a look at the tool
             self._move_to_arm_pose('look', arm_index, wait=True)
+	    time.sleep(1.0) 
             self.tool_id = self.world.get_tool_id()
 
             if self.tool_id is None:
@@ -98,7 +101,6 @@ class Interaction:
             else:
                 self.session.new_action(self.tool_id)
                 Response.say(RobotSpeech.RECOGNIZED_TOOL + str(self.tool_id))
-
                 self._demo_state = DemoState.HAS_TOOL_NO_SURFACE
                 self.detect_surface()
         else:
@@ -107,12 +109,14 @@ class Interaction:
         rospy.loginfo('Current state: ' + self._demo_state)
         self._is_busy = False
 
-    def detect_surface(self):
+    def detect_surface(self, dummy=None):
         self._is_busy = True
-        Response.perform_gaze_action(GazeGoal.LOOK_DOWN)
         if self._demo_state == DemoState.HAS_TOOL_NO_SURFACE:
-            ## Robot moves the arm away and looks at the surface
             self._move_to_arm_pose('away', 0, wait=True)
+	    time.sleep(1.0)
+            Response.perform_gaze_action(GazeGoal.LOOK_DOWN)
+	    time.sleep(1.0)
+            ## Robot moves the arm away and looks at the surface
             self.surface = self.world.get_surface()
 
             if self.surface is None:
@@ -325,11 +329,13 @@ class Interaction:
             step = action.get_step(0)
             if arm_index == 0:
                 self.arms.start_move_to_pose(step.armTarget.rArm, 0)
+		time.sleep(0.5)
                 if wait:
                     self._wait_for_arms()
                 #self.arms.set_gripper_state(0, step.gripperAction.rGripper, wait=wait)
             else:
                 self.arms.start_move_to_pose(step.armTarget.lArm, 1)
+		time.sleep(0.5)
                 if wait:
                     self._wait_for_arms()
                 #self.arms.set_gripper_state(1, step.gripperAction.lGripper, wait=wait)
