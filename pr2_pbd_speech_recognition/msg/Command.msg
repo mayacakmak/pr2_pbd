@@ -1,5 +1,5 @@
 string TEST_MICROPHONE = test-microphone
-string TAKE_TOOL = take_tool
+string TAKE_TOOL = take-tool
 string START_RECORDING = start-recording
 string STOP_RECORDING = stop-recording
 string REPLAY_DEMONSTRATION = replay-demonstration
