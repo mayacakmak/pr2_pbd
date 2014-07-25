@@ -164,10 +164,10 @@ class World:
         pts = [World.objects[0].position, World.objects[1].position,
                     World.objects[2].position, World.objects[3].position]
         
-        xmin = min([pts[0].x, pts[1].x, pts[2].x, pts[3].x)
-        ymin = min([pts[0].y, pts[1].y, pts[2].y, pts[3].y)
-        xmax = max([pts[0].x, pts[1].x, pts[2].x, pts[3].x)
-        ymax = max([pts[0].y, pts[1].y, pts[2].y, pts[3].y)
+        xmin = min([pts[0].x, pts[1].x, pts[2].x, pts[3].x])
+        ymin = min([pts[0].y, pts[1].y, pts[2].y, pts[3].y])
+        xmax = max([pts[0].x, pts[1].x, pts[2].x, pts[3].x])
+        ymax = max([pts[0].y, pts[1].y, pts[2].y, pts[3].y])
         depth = xmax - xmin
         width = ymax - ymin
 
