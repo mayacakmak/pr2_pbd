@@ -343,7 +343,7 @@ class World:
         return int_marker
 
     @staticmethod
-    def _update_marker_text(index, text)
+    def _update_marker_text(index, text):
         World.objects[index].int_marker.controls[0].markers[1].text = 
              int_marker.name + ' ' + text
 
