@@ -366,21 +366,9 @@ class Interaction:
         states = [None, None]
 
         for arm_index in [0, 1]:
-            #nearest_obj = self.world.get_nearest_object(
-            #                                    abs_ee_poses[arm_index])
-
-            #if (nearest_obj == None):
             states[arm_index] = ArmState(ArmState.ROBOT_BASE,
                                     abs_ee_poses[arm_index],
                                     joint_poses[arm_index], Object())
-            #else:
-                # Relative
-            #    rel_ee_pose = World.transform(
-            #                        abs_ee_poses[arm_index],
-            #                        'base_link', nearest_obj.name)
-            #    states[arm_index] = ArmState(ArmState.OBJECT,
-            #                        rel_ee_pose,
-            #                        joint_poses[arm_index], nearest_obj)
         return states
 
     def speech_command_cb(self, command):
@@ -462,4 +450,3 @@ class Interaction:
             action.update_viz()
 
         time.sleep(0.1)
-

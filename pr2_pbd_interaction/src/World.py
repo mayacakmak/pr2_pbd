@@ -100,8 +100,6 @@ class World:
         rospy.wait_for_service(bb_service_name)
         self._bb_service = rospy.ServiceProxy(bb_service_name,
                                             FindClusterBoundingBox)
-        rospy.Subscriber('interactive_object_recognition_result',
-            GraspableObjectList, self.receive_object_info)
         self._object_action_client = actionlib.SimpleActionClient(
             'object_detection_user_command', UserCommandAction)
         self._object_action_client.wait_for_server()
@@ -213,41 +211,6 @@ class World:
                 self._im_server.insert(self.surface,
                                      self.marker_feedback_cb)
                 self._im_server.applyChanges()
-
-    def receive_object_info(self, object_list):
-        '''Callback function to receive object info'''
-        self._lock.acquire()
-        rospy.loginfo('Received recognized object list.')
-        if (len(object_list.graspable_objects) > 0):
-            for i in range(len(object_list.graspable_objects)):
-                models = object_list.graspable_objects[i].potential_models
-                if (len(models) > 0):
-                    object_pose = None
-                    best_confidence = 0.0
-                    for j in range(len(models)):
-                        if (best_confidence < models[j].confidence):
-                            object_pose = models[j].pose.pose
-                            best_confidence = models[j].confidence
-                    if (object_pose != None):
-                        rospy.logwarn('Adding the recognized object ' +
-                                      'with most confident model.')
-                        self._add_new_object(object_pose,
-                            Vector3(0.2, 0.2, 0.2), i,
-                            object_list.meshes[i])
-                else:
-                    rospy.logwarn('... this is not a recognition result, ' +
-                                  'it is probably just segmentation.')
-                    cluster = object_list.graspable_objects[i].cluster
-                    bbox = self._bb_service(cluster)
-                    cluster_pose = bbox.pose.pose
-                    if (cluster_pose != None):
-                        rospy.loginfo('Adding unrecognized object with pose:' +
-                            World.pose_to_string(cluster_pose) + '\n' +
-                            'In ref frame' + str(bbox.pose.header.frame_id))
-                        self._add_new_object(cluster_pose, bbox.box_dims, i)
-        else:
-            rospy.logwarn('... but the list was empty.')
-        self._lock.release()
 
     @staticmethod
     def get_pose_from_transform(transform):
@@ -533,74 +496,6 @@ class World:
                         pose.orientation.z, pose.orientation.w)
             self._tf_broadcaster.sendTransform(pos, rot,
                                         rospy.Time.now(), name, parent)
-
-    def update_object_pose(self):
-        ''' Function to externally update an object pose'''
-        Response.perform_gaze_action(GazeGoal.LOOK_DOWN)
-        while (Response.gaze_client.get_state() == GoalStatus.PENDING or
-               Response.gaze_client.get_state() == GoalStatus.ACTIVE):
-            time.sleep(0.1)
-
-        if (Response.gaze_client.get_state() != GoalStatus.SUCCEEDED):
-            rospy.logerr('Could not look down to take table snapshot')
-            return False
-
-        rospy.loginfo('Looking at table now.')
-        goal = UserCommandGoal(UserCommandGoal.RESET, False)
-        self._object_action_client.send_goal(goal)
-        while (self._object_action_client.get_state() == GoalStatus.ACTIVE or
-               self._object_action_client.get_state() == GoalStatus.PENDING):
-            time.sleep(0.1)
-        rospy.loginfo('Object recognition has been reset.')
-        rospy.loginfo('STATUS: ' +
-                      self._object_action_client.get_goal_status_text())
-        self._reset_objects()
-
-        if (self._object_action_client.get_state() != GoalStatus.SUCCEEDED):
-            rospy.logerr('Could not reset recognition.')
-            return False
-
-        # Do segmentation
-        goal = UserCommandGoal(UserCommandGoal.SEGMENT, False)
-        self._object_action_client.send_goal(goal)
-        while (self._object_action_client.get_state() == GoalStatus.ACTIVE or
-               self._object_action_client.get_state() == GoalStatus.PENDING):
-            time.sleep(0.1)
-        rospy.loginfo('Table segmentation is complete.')
-        rospy.loginfo('STATUS: ' +
-                      self._object_action_client.get_goal_status_text())
-
-        if (self._object_action_client.get_state() != GoalStatus.SUCCEEDED):
-            rospy.logerr('Could not segment.')
-            return False
-
-        # Do recognition
-        goal = UserCommandGoal(UserCommandGoal.RECOGNIZE, False)
-        self._object_action_client.send_goal(goal)
-        while (self._object_action_client.get_state() == GoalStatus.ACTIVE or
-               self._object_action_client.get_state() == GoalStatus.PENDING):
-            time.sleep(0.1)
-        rospy.loginfo('Objects on the table have been recognized.')
-        rospy.loginfo('STATUS: ' +
-                      self._object_action_client.get_goal_status_text())
-
-        # Record the result
-        if (self._object_action_client.get_state() == GoalStatus.SUCCEEDED):
-            wait_time = 0
-            total_wait_time = 5
-            while (not World.has_objects() and wait_time < total_wait_time):
-                time.sleep(0.1)
-                wait_time += 0.1
-
-            if (not World.has_objects()):
-                rospy.logerr('Timeout waiting for a recognition result.')
-                return False
-            else:
-                rospy.loginfo('Got the object list.')
-                return True
-        else:
-            rospy.logerr('Could not recognize.')
-            return False
 
     def clear_all_objects(self):
         '''Removes all objects from the world'''
