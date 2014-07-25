@@ -300,6 +300,8 @@ class Arms:
                 return False
 
         # If arm trajectory action
+        # ******
+
         elif (action_step.type == ActionStep.ARM_TRAJECTORY):
 
             rospy.loginfo('Will perform arm trajectory action step.')
@@ -311,10 +313,14 @@ class Arms:
                 return False
 
             #  Then execute the trajectory
-            Arms.arms[0].exectute_joint_traj(action_step.armTrajectory.rArm,
-                                             action_step.armTrajectory.timing)
-            Arms.arms[1].exectute_joint_traj(action_step.armTrajectory.lArm,
-                                             action_step.armTrajectory.timing)
+
+            if not Arms.arms[0].execute_joint_traj(action_step.armTrajectory.rArm,
+                                             action_step.armTrajectory.timing):
+                return False
+
+            if not Arms.arms[1].execute_joint_traj(action_step.armTrajectory.lArm,
+                                             action_step.armTrajectory.timing):
+                return False
 
             # Wait until both arms complete the trajectory
             while((Arms.arms[0].is_executing() or Arms.arms[1].is_executing())

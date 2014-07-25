@@ -18,7 +18,7 @@ class RobotSpeech:
     ENDED_REPLAY = 'Replay complete.'
 
     ERROR_NO_SURFACE = 'Could not detect surface.'
-    ERROR_TOOL_NOT_RECOGNIZED = 'Tool not recognized.'
+    ERROR_TOOL_NOT_RECOGNIZED = 'Tool not recognized. Please take it.'
     ERROR_NOT_IN_TAKE_STATE = 'Cannot take tool in current state.'
     ERROR_NOT_IN_RELEASE_STATE = 'Cannot release tool in current state.'
     ERROR_NOT_READY_TO_RECORD =  'Cannot start recording in current state.'

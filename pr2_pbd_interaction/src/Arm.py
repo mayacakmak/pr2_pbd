@@ -288,7 +288,9 @@ class Arm:
         elif (gripper_state == GripperState.OPEN):
             self.open_gripper()
 
-    def exectute_joint_traj(self, joint_trajectory, timing):
+    # *******
+
+    def execute_joint_traj(self, joint_trajectory, timing):
         '''Moves the arm through the joint sequence'''
 
         # First, do filtering on the trajectory to fix the velocities
@@ -310,18 +312,26 @@ class Arm:
 
         output = self.filter_service(trajectory=trajectory,
                                      allowed_time=rospy.Duration.from_sec(20))
-        rospy.loginfo('Trajectory for arm ' + str(self.arm_index) +
-                      ' has been filtered.')
-        traj_goal = JointTrajectoryGoal()
 
-        # TO-DO: check output.error_code
-        traj_goal.trajectory = output.trajectory
-        traj_goal.trajectory.header.stamp = (rospy.Time.now() +
-                                            rospy.Duration(0.1))
-        traj_goal.trajectory.joint_names = self.joint_names
+        if(output.error_code.val == response.error_code.SUCCESS):
 
-        # Sends the goal to the trajectory server
-        self.traj_action_client.send_goal(traj_goal)
+            rospy.loginfo('Trajectory for arm ' + str(self.arm_index) +
+                          ' has been filtered.')
+            traj_goal = JointTrajectoryGoal()
+
+            traj_goal.trajectory = output.trajectory
+            traj_goal.trajectory.header.stamp = (rospy.Time.now() +
+                                                rospy.Duration(0.1))
+            traj_goal.trajectory.joint_names = self.joint_names
+
+            # Sends the goal to the trajectory server
+            self.traj_action_client.send_goal(traj_goal)
+            return True
+            
+        else
+            rospy.logwarn('Trajectory filtering failed.')
+            print output.error_code.val
+            return False
 
     def move_to_joints(self, joints, time_to_joint):
         '''Moves the arm to the desired joints'''

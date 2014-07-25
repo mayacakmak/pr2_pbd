@@ -105,9 +105,11 @@ class Interaction:
 
             if self.tool_id is None:
                 ## Robot moves the arm back to the person can take the tool
-                self._move_to_arm_pose('take', 0, wait=True)
                 Response.say(RobotSpeech.ERROR_TOOL_NOT_RECOGNIZED)
+                self._move_to_arm_pose('take', 0, wait=True)
                 Response.perform_gaze_action(GazeGoal.SHAKE)
+                time.sleep(1.0)
+                self.arms.set_gripper_state(0, GripperState.OPEN, wait=True)
                 self._demo_state = DemoState.NO_TOOL_NO_SURFACE
             else:
                 self.session.new_action(self.tool_id)
