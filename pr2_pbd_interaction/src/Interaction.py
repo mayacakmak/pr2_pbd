@@ -15,6 +15,7 @@ from Session import Session
 from Response import Response
 from Arms import Arms
 from Arm import ArmMode
+from actionlib import SimpleActionClient
 from pr2_pbd_interaction.msg import ArmState, GripperState
 from pr2_pbd_interaction.msg import ActionStep, ArmTarget, Object
 from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
@@ -49,7 +50,7 @@ class Interaction:
         self._demo_state = None
         self._is_busy = True
 
-        self.torso_client = actionlib.SimpleActionClient('torso_controller/position_joint_action',
+        self.torso_client = SimpleActionClient('torso_controller/position_joint_action',
                                                           SingleJointPositionAction)
         rospy.loginfo('Will set up the torso position.')
         self.torso_client.wait_for_server()
