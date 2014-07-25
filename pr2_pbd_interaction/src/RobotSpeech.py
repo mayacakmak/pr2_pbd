@@ -1,11 +1,6 @@
 ''' Robot speech'''
 import roslib
 roslib.load_manifest('pr2_pbd_interaction')
-import rospy
-from sound_play.msg import SoundRequest
-from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Quaternion, Pose, Point, Vector3
-from std_msgs.msg import Header, ColorRGBA
 
 
 class RobotSpeech:
@@ -81,23 +76,3 @@ class RobotSpeech:
     MOTION_NOT_RECORDING = 'Not currently recording motion.'
     STOPPING_EXECUTION = 'Execution stopped.'
 
-    def __init__(self):
-        self.speech_publisher = rospy.Publisher('robotsound', SoundRequest)
-        self.marker_publisher = rospy.Publisher('visualization_marker', Marker)
-
-    def say(self, text, is_using_sounds=False):
-        ''' Send a TTS command'''
-        if (not is_using_sounds):
-            self.speech_publisher.publish(SoundRequest(
-                                        command=SoundRequest.SAY, arg=text))
-        self.say_in_rviz(text)
-
-    def say_in_rviz(self, text):
-        ''' Visualizes the text that is uttered by the robot in rviz'''
-        marker = Marker(type=Marker.TEXT_VIEW_FACING, id=1000,
-                   lifetime=rospy.Duration(1.5),
-                   pose=Pose(Point(0.5, 0.5, 1.45), Quaternion(0, 0, 0, 1)),
-                   scale=Vector3(0.06, 0.06, 0.06),
-                   header=Header(frame_id='base_link'),
-                   color=ColorRGBA(0.0, 1.0, 0.0, 0.8), text=text)
-        self.marker_publisher.publish(marker)
