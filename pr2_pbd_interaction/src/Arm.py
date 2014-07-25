@@ -321,14 +321,14 @@ class Arm:
 
             n_points = len(traj_goal.trajectory.points)
 
-            for i in range(n_points):
-                print traj_goal.trajectory.points[i].positions
-                print traj_goal.trajectory.points[i].velocities
-
             traj_goal.trajectory = output.trajectory
             traj_goal.trajectory.header.stamp = (rospy.Time.now() +
                                                 rospy.Duration(0.1))
             traj_goal.trajectory.joint_names = self.joint_names
+
+            for i in range(n_points):
+                print traj_goal.trajectory.points[i].positions
+                print traj_goal.trajectory.points[i].velocities
 
             # Sends the goal to the trajectory server
             # DISABLING FOR DEBUGGING
