@@ -343,8 +343,8 @@ class ActionStepMarker:
             point_markers = dict()
             for c in range(n_clusters):
                 r_val = 0.1 + 0.9*c/n_clusters
-                cluster_colors[c] = ColorRGBA(r_val, 0.4, 0.0, 0.8)
-                point_list[c] = []
+                cluster_colors[cluster_ids[c]] = ColorRGBA(r_val, 0.4, 0.0, 0.8)
+                point_list[cluster_ids[c]] = []
 
             for j in range(n_points):
                 c = clusters[j]
@@ -352,14 +352,14 @@ class ActionStepMarker:
 
             # Plotting the trajectories
             for c in range(n_clusters):
-                point_markers[c] = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
+                point_markers[cluster_ids[c]] = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
                                     lifetime=rospy.Duration(2),
                                     scale=Vector3(0.02, 0.02, 0.02),
                                     header=Header(frame_id=frame_id),
-                                    color=cluster_colors[c],
-                                    points=point_list[c])
+                                    color=cluster_colors[cluster_ids[c]],
+                                    points=point_list[cluster_ids[c]])
 
-                menu_control.markers.append(point_markers[c])
+                menu_control.markers.append(point_markers[cluster_ids[c]])
 
             # Larger sphere for start point
             menu_control.markers.append(ActionStepMarker.make_sphere_marker(
