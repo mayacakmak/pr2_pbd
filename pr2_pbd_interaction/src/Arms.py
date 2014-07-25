@@ -382,16 +382,16 @@ class Arms:
         is_r_moving = (time_to_r_pose != None)
         is_l_moving = (time_to_l_pose != None)
         if (not is_r_moving):
-            Response.look_at_point(l_arm.ee_pose.position)
+            #Response.look_at_point(l_arm.ee_pose.position)
         elif (not is_l_moving):
-            Response.look_at_point(r_arm.ee_pose.position)
+            #Response.look_at_point(r_arm.ee_pose.position)
         else:
             if (time_to_r_pose > time_to_l_pose):
                 time_to_l_pose = time_to_r_pose
-                Response.look_at_point(r_arm.ee_pose.position)
+                #Response.look_at_point(r_arm.ee_pose.position)
             else:
                 time_to_r_pose = time_to_l_pose
-                Response.look_at_point(l_arm.ee_pose.position)
+                #Response.look_at_point(l_arm.ee_pose.position)
 
         #  Move arms to target
         if (is_r_moving):

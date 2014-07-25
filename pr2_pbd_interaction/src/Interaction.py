@@ -87,6 +87,7 @@ class Interaction:
             Response.perform_gaze_action(GazeGoal.LOOK_FORWARD, wait=True)
             ## Robot moves the hand near the camera to take a look at the tool
             self._move_to_arm_pose('look', arm_index, wait=True)
+            time.sleep(1.0)
             self.tool_id = self.world.get_tool_id()
 
             if self.tool_id is None:
@@ -437,6 +438,7 @@ class Interaction:
     def update(self):
         '''General update for the main loop'''
         self.arms.update()
+        self.world.update()
 
         if (self.arms.status != ExecutionStatus.NOT_EXECUTING):
             if (self.arms.status != ExecutionStatus.EXECUTING):
