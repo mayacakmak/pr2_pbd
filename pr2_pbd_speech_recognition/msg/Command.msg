@@ -5,4 +5,5 @@ string STOP_RECORDING = stop-recording
 string REPLAY_DEMONSTRATION = replay-demonstration
 string RELEASE_TOOL = release-tool
 string DETECT_SURFACE = detect-surface
+string UNRECOGNIZED = unrecognized
 string command
