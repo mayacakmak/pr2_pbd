@@ -7,6 +7,7 @@ roslib.load_manifest("pr2_controllers_msgs")
 # Generic libraries
 import rospy
 import time
+import numpy
 from visualization_msgs.msg import MarkerArray
 # Local stuff
 from World import World
@@ -186,6 +187,66 @@ class Interaction:
         rospy.loginfo('Current state: ' + self._demo_state)
         self.busy = False
 
+
+    def cluster_demonstration(self):
+        ''' Find meaningful clusters in the trajectory'''
+
+        clusterIDs = [1, 2, 3, 4, 5]  #entry, re-entry, application, re-exit, exit
+        clusters = []
+        
+        n_points = len(Interaction._arm_trajectory.timing)
+        r_traj = Interaction._arm_trajectory.rArm[:]
+
+        # First determine the lowest point in the trajectory
+        all_z = []
+        for i in range(n_points):
+            point_z = r_traj[i].ee_pose.position.z
+            all_z.append(point_z)
+            clusters.append[0] #unassigned    
+
+        min_z = min(all_z)
+
+        # Assign points close to lowest point as application (cluster 2)
+        for i in range(n_points):
+            point_z = r_traj[i].ee_pose.position.z
+            if (numpy.abs(point_z - min_z) < 0.04):
+                clusters[i] = 3
+
+        # Assign points at the beginning as entry
+        index = 0
+        while (clusters[index] != 3):
+            clusters[index] = 1
+            index++
+
+        # Assign points at the end beginning as exit
+        index = n_points - 1
+        while (clusters[index] != 3):
+            clusters[index] = 5
+            index--
+
+        # Assign mid points based on their diff
+        for i in range(n_points-1):
+            if clusters[i] == 0:
+                point_z = r_traj[i].ee_pose.position.z
+                next_point_z = r_traj[i+1].ee_pose.position.z
+                diff_z = next_point_z - point_z
+
+                if (diff_z) >= 0):
+                    clusters[i] = 4
+                else:
+                    clusters[i] = 2
+
+        # Finally do some smoothing
+        for i in range(n_points-2):
+            c1 = clusters[i]
+            c2 = clusters[i+1]
+            c3 = clusters[i+2]
+
+            if c1==c3 and c1!=c2:
+                clusters[i+1] = c1
+        
+        return clusterIDs, clusters
+
     def stop_recording(self, dummy=None):
         '''Stops recording continuous motion'''
         self.busy = True
@@ -202,16 +263,7 @@ class Interaction:
                 Interaction._arm_trajectory.timing[i] -= waited_time
                 Interaction._arm_trajectory.timing[i] += rospy.Duration(0.1)
             
-            clusterIDs = [1, 2, 3]
-            clusters = []
-            for i in range(n_points):
-                if (i < n_points/3):
-                    clusters.append(clusterIDs[0])
-                elif (i < 2*n_points/3):
-                    clusters.append(clusterIDs[1])
-                else:
-                    clusters.append(clusterIDs[2])
-
+            clusterIDs, clusters = self.cluster_demonstration()
 
             '''If motion was relative, record transformed pose'''
             traj_step.armTrajectory = ArmTrajectory(
@@ -467,4 +519,4 @@ class Interaction:
             action = self.session.get_current_action()
             action.update_viz()
 
-        time.sleep(0.04)
+        time.sleep(0.01)

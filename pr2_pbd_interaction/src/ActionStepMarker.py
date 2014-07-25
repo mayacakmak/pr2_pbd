@@ -328,7 +328,6 @@ class ActionStepMarker:
         # r = 0.0
         # g = 1.0 - bucket_pos
         # b = 1.0
-
         return ColorRGBA(r, g, b, 0.8)
 
     def _update_viz_core(self):
@@ -363,7 +362,7 @@ class ActionStepMarker:
             for c in range(n_clusters):
                 point_markers[cluster_ids[c]] = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
                                     lifetime=rospy.Duration(2),
-                                    scale=Vector3(0.02, 0.02, 0.02),
+                                    scale=Vector3(0.01, 0.01, 0.01),
                                     header=Header(frame_id=frame_id),
                                     color=cluster_colors[cluster_ids[c]],
                                     points=point_list[cluster_ids[c]])
