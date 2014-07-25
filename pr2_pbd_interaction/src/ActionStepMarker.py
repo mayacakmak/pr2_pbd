@@ -317,6 +317,20 @@ class ActionStepMarker:
             rospy.logerr('Cannot request trajectory pose ' +
                          'on non-trajectory action step.')
 
+    def get_marker_color(self, index, n_colors):
+
+        abs_step_size = 1.0 / float(n_colors - 1) if n_colors > 1 else 0.0
+        abs_pos = abs_step_size * index
+
+        r = 1.0
+        g = 1.0 - abs_pos
+        b = 0.0
+        # r = 0.0
+        # g = 1.0 - bucket_pos
+        # b = 1.0
+
+        return ColorRGBA(r, g, b, 0.8)
+
     def _update_viz_core(self):
         '''Updates visualization after a change'''
         menu_control = InteractiveMarkerControl()
@@ -334,16 +348,11 @@ class ActionStepMarker:
             clusters = self.action_step.armTrajectory.clusters
             n_clusters = len(cluster_ids)
 
-            print 'n_points', n_points
-            print 'len(clusters)', len(clusters)
-            print cluster_ids
-
             cluster_colors = dict()
             point_list = dict()
             point_markers = dict()
             for c in range(n_clusters):
-                r_val = 0.1 + 0.9*c/n_clusters
-                cluster_colors[cluster_ids[c]] = ColorRGBA(r_val, 0.4, 0.0, 0.8)
+                cluster_colors[cluster_ids[c]] = self.get_marker_color(c, n_clusters)
                 point_list[cluster_ids[c]] = []
 
             for j in range(n_points):

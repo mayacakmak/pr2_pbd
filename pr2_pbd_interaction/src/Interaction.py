@@ -125,8 +125,8 @@ class Interaction:
             self._demo_state == DemoState.READY_FOR_DEMO or
             self._demo_state == DemoState.HAS_RECORDED_DEMO):
 
-            self._move_to_arm_pose('away', 0, wait=True)
             Response.perform_gaze_action(GazeGoal.LOOK_DOWN, wait=True)
+            self._move_to_arm_pose('away', 0, wait=True)
             time.sleep(2.0)
 
             ## Robot moves the arm away and looks at the surface
