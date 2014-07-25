@@ -97,7 +97,7 @@ class Interaction:
         if self._demo_state == DemoState.READY_TO_TAKE:
             ## Robot closes the hand
             Arms.set_gripper_state(arm_index, GripperState.CLOSED, wait=True)
-            Response.perform_gaze_action(GazeGoal.LOOK_FORWARD, wait=True)
+            Response.perform_gaze_action(GazeGoal.LOOK_FORWARD)
             ## Robot moves the hand near the camera to take a look at the tool
             self._move_to_arm_pose('look', arm_index, wait=True)
             time.sleep(1.0)
