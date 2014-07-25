@@ -202,7 +202,7 @@ class Interaction:
         for i in range(n_points):
             point_z = r_traj[i].ee_pose.position.z
             all_z.append(point_z)
-            clusters.append[0] #unassigned    
+            clusters.append(0) #unassigned    
 
         min_z = min(all_z)
 
