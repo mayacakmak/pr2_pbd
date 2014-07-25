@@ -379,7 +379,8 @@ class World:
 
     @staticmethod
     def _update_marker_text(index, text):
-        World.objects[index].int_marker.controls[0].markers[1].text = int_marker.name + ' ' + text
+        name = World.objects[index].int_marker.name
+        World.objects[index].int_marker.controls[0].markers[1].text = name + ' ' + text
 
     @staticmethod
     def _get_surface_marker(pose, dimensions):
