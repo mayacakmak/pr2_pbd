@@ -121,10 +121,13 @@ class Interaction:
 
     def detect_surface(self, dummy=None):
         self._is_busy = True
-        if self._demo_state == DemoState.HAS_TOOL_NO_SURFACE:
+        if (self._demo_state == DemoState.HAS_TOOL_NO_SURFACE or
+            self._demo_state == DemoState.READY_FOR_DEMO or
+            self._demo_state == DemoState.HAS_RECORDED_DEMO):
+
             self._move_to_arm_pose('away', 0, wait=True)
             Response.perform_gaze_action(GazeGoal.LOOK_DOWN, wait=True)
-            time.sleep(1.0)
+            time.sleep(2.0)
 
             ## Robot moves the arm away and looks at the surface
             self.surface = self.world.get_surface()
@@ -286,7 +289,6 @@ class Interaction:
         # Speech response
         if (speech_resp != None):
             Response.say(speech_resp)
-            Response.respond_with_sound(speech_resp)
         
         # Gaze response
         if (gaze_resp != None):

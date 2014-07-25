@@ -166,7 +166,7 @@ class World:
             median_z = numpy.median(all_pts_z)
 
             for i in range(len(all_pts_z)):
-                if (numpy.abs(median_z - all_pts_z[i]) < 0.04):
+                if (numpy.abs(median_z - all_pts_z[i]) < 0.08):
                     pts_ind.append(i)
                 else:
                     rospy.loginfo('Outlier point with height ' + str(all_pts_z[i]) + 

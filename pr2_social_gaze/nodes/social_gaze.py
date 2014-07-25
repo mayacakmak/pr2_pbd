@@ -30,7 +30,7 @@ from pr2_social_gaze.msg import *
 
 class SocialGaze:
     def __init__(self):
-        self.defaultLookatPoint = Point(0.8,0,0.6)
+        self.defaultLookatPoint = Point(0.8,0,0.9)
         self.downLookatPoint = Point(0.5,0,0.5)
         self.targetLookatPoint = Point(1,0,1.35)
         self.currentLookatPoint = Point(1,0,1.35)
