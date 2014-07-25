@@ -121,7 +121,7 @@ class Interaction:
                 Response.perform_gaze_action(GazeGoal.SHAKE)
             else:
                 Response.say(RobotSpeech.SURFACE_DETECTED)
-                self._move_to_arm_pose('ready', arm_index, wait=True)
+                self._move_to_arm_pose('ready', 0, wait=True)
                 Response.say(RobotSpeech.READY_FOR_DEMO)
                 self._demo_state = DemoState.READY_FOR_DEMO
 
