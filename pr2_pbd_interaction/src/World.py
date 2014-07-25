@@ -171,7 +171,7 @@ class World:
         depth = xmax - xmin
         width = ymax - ymin
 
-        pose = Pose(Position(xmin + depth / 2, 
+        pose = Pose(Point(xmin + depth / 2, 
                              ymin + width / 2, 
                              World.objects[0].position.z), 
                     World.objects[0].orientation)
