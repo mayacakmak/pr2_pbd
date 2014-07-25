@@ -2,12 +2,12 @@
 
 import roslib
 roslib.load_manifest('pr2_pbd_interaction')
+roslib.load_manifest("pr2_controllers_msgs")
 
 # Generic libraries
 import rospy
 import time
 from visualization_msgs.msg import MarkerArray
-
 # Local stuff
 from World import World
 from RobotSpeech import RobotSpeech
@@ -21,6 +21,7 @@ from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
 from pr2_pbd_interaction.msg import ExecutionStatus, GuiCommand
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
+from pr2_controllers_msgs.msg import SingleJointPositionAction
 
 
 class DemoState:
@@ -47,6 +48,15 @@ class Interaction:
         self._viz_publisher = rospy.Publisher('visualization_marker_array', MarkerArray)
         self._demo_state = None
         self._is_busy = True
+
+        self.torso_client = actionlib.SimpleActionClient('torso_controller/position_joint_action',
+                                                          SingleJointPositionAction)
+        rospy.loginfo('Will set up the torso position.')
+        self.torso_client.wait_for_server()
+        torso_up = .195
+        torso_down = .02
+        self.torso_client.send_goal(SingleJointPositionGoal(position = (torso_up + torso_down)/2))
+        self.torso_client.wait_for_result()
 
         rospy.Subscriber('recognized_command', Command, self.speech_command_cb)
         rospy.Subscriber('gui_command', GuiCommand, self.gui_command_cb)
