@@ -332,7 +332,7 @@ class Arm:
 
             # Sends the goal to the trajectory server
             # DISABLING FOR DEBUGGING
-            #self.traj_action_client.send_goal(traj_goal)
+            self.traj_action_client.send_goal(traj_goal)
             return True
 
         else:
