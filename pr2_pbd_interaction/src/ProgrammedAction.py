@@ -444,7 +444,10 @@ class ProgrammedAction:
         elif (copy.type == ActionStep.ARM_TRAJECTORY):
             copy.armTrajectory = ArmTrajectory()
             copy.armTrajectory.timing = action_step.armTrajectory.timing[:]
-            for j in range(len(action_step.armTrajectory.timing)):
+            copy.armTrajectory.clusters = action_step.armTrajectory.clusters
+            copy.armTrajectory.clusterIDs = action_step.armTrajectory.clusterIDs
+            n_points = len(action_step.armTrajectory.timing)
+            for j in range(n_points):
                 copy.armTrajectory.rArm.append(
                     ProgrammedAction._copy_arm_state(
                                         action_step.armTrajectory.rArm[j]))
