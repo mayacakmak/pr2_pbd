@@ -50,6 +50,7 @@ class WorldObject:
         self.index = index
         self.assigned_name = None
         self.position = pose.position
+        self.orientation = pose.orientation
         self.marker_id = marker_id
         self.last_detected_time = detected_time
         self.object = Object(Object.TABLE_TOP, self.get_name(),
@@ -143,13 +144,19 @@ class World:
         self._lock.acquire()
         if (len(self.objects) == 0):
             rospy.logwarn('There are no fiducials, cannot get tool ID.')
-            self._lock.release()
-            return None
+            tool_id = None
         elif (len(self.objects) > 1):
-            rospy.logwarn('There are more than one fiducials, returning the first as tool ID.')
+            rospy.logwarn('There are more than one fiducials, returning the highest one as tool ID.')
+            marker_z = []
+            for i in range(len(World.objects)):
+                marker_z.append(World.objects[i].position.z)
+            index = marker_z.index(max(marker_z))
+            tool_id = World.objects[index].marker_id
+        else:
+            tool_id = World.objects[0].marker_id
 
         self._lock.release()
-        return World.objects[0].marker_id
+        return tool_id
 
     def get_surface(self):
         self._lock.acquire()
