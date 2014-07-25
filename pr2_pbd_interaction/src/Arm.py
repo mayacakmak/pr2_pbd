@@ -313,7 +313,7 @@ class Arm:
         output = self.filter_service(trajectory=trajectory,
                                      allowed_time=rospy.Duration.from_sec(20))
 
-        if(output.error_code.val == response.error_code.SUCCESS):
+        if(output.error_code.val == output.error_code.SUCCESS):
 
             rospy.loginfo('Trajectory for arm ' + str(self.arm_index) +
                           ' has been filtered.')
