@@ -335,6 +335,10 @@ class ActionStepMarker:
             n_clusters = len(cluster_ids)
             cluster_colors = []
 
+            print 'n_points', n_points
+            print 'len(clusters)', len(clusters)
+            print cluster_ids
+
             point_list = dict()
             point_markers = dict()
             for c in range(n_clusters):
