@@ -23,6 +23,7 @@ from pr2_pbd_interaction.msg import ExecutionStatus, GuiCommand
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 from pr2_controllers_msgs.msg import SingleJointPositionAction
+from pr2_controllers_msgs.msg import SingleJointPositionGoal
 
 
 class DemoState:
