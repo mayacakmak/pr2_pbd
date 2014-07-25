@@ -140,24 +140,50 @@ class World:
         self._lock.release()
 
     def get_tool_id(self):
+        self._lock.acquire()
         if (len(self.objects) == 0):
             rospy.logwarn('There are no fiducials, cannot get tool ID.')
+            self._lock.release()
             return None
         elif (len(self.objects) > 1):
             rospy.logwarn('There are more than one fiducials, returning the first as tool ID.')
+
+        self._lock.release()
         return World.objects[0].marker_id
 
     def get_surface(self):
+        self._lock.acquire()
+
         if (len(self.objects) < 4):
             rospy.logwarn('There are not enough fiducials to detect surface, only ' + str(len(self.objects)))
+            self._lock.release()
             return None
         elif (len(self.objects) > 4):
             rospy.logwarn('There are more than four fiducials for surface, will use first four.')
-        return 
 
-        points = [World.objects[0].position, World.objects[1].position,
+        pts = [World.objects[0].position, World.objects[1].position,
                     World.objects[2].position, World.objects[3].position]
-        s = Surface(points)
+        
+        xmin = min([pts[0].x, pts[1].x, pts[2].x, pts[3].x)
+        ymin = min([pts[0].y, pts[1].y, pts[2].y, pts[3].y)
+        xmax = max([pts[0].x, pts[1].x, pts[2].x, pts[3].x)
+        ymax = max([pts[0].y, pts[1].y, pts[2].y, pts[3].y)
+        depth = xmax - xmin
+        width = ymax - ymin
+
+        pose = Pose(Position(xmin + depth / 2, 
+                             ymin + width / 2, 
+                             World.objects[0].position.z), 
+                    World.objects[0].orientation)
+
+        dimensions = Vector3(depth, width, 0.01)
+        self.surface = World._get_surface_marker(pose, dimensions)
+        self._im_server.insert(self.surface,
+                             self.marker_feedback_cb)
+        self._im_server.applyChanges()
+
+        s = Surface(pts)
+        self._lock.release()
         return s
 
     def receive_table_marker(self, marker):
@@ -274,9 +300,11 @@ class World:
 
         for i in range(len(World.objects)):
             if (World.pose_distance(World.objects[i].object.pose, pose)
-                    < dist_threshold):
-                #rospy.loginfo('Previously detected object at the same' +
-                #              'location, will not add this object.')
+                    < dist_threshold and
+                World.objects[i].marker_id == id):
+                ## This means we are re-detecting the same object
+                ## So we'll just update it's info
+                World.objects[i].int_marker.pose = pose
                 World.objects[i].last_detected_time = rospy.get_time()
                 return False
 
