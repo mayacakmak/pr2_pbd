@@ -111,7 +111,7 @@ class Interaction:
         if self._demo_state == DemoState.HAS_TOOL_NO_SURFACE:
             self._move_to_arm_pose('away', 0, wait=True)
             Response.perform_gaze_action(GazeGoal.LOOK_DOWN, wait=True)
-	        time.sleep(0.5)
+            time.sleep(0.5)
 
             ## Robot moves the arm away and looks at the surface
             self.surface = self.world.get_surface()
