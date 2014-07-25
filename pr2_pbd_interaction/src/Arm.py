@@ -327,8 +327,8 @@ class Arm:
             # Sends the goal to the trajectory server
             self.traj_action_client.send_goal(traj_goal)
             return True
-            
-        else
+
+        else:
             rospy.logwarn('Trajectory filtering failed.')
             print output.error_code.val
             return False
