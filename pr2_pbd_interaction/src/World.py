@@ -98,20 +98,13 @@ class World:
         self._im_server = InteractiveMarkerServer('world_objects')
         bb_service_name = 'find_cluster_bounding_box'
         rospy.wait_for_service(bb_service_name)
-        self._bb_service = rospy.ServiceProxy(bb_service_name,
-                                            FindClusterBoundingBox)
-        self._object_action_client = actionlib.SimpleActionClient(
-            'object_detection_user_command', UserCommandAction)
-        self._object_action_client.wait_for_server()
-        rospy.loginfo('Interactive object detection action ' +
-                      'server has responded.')
-        self.clear_all_objects()
-        # The following is to get the table information
-        rospy.Subscriber('tabletop_segmentation_markers',
-                         Marker, self.receive_table_marker)
 
+        self.clear_all_objects()
+
+        # The following is to get the fiducial information
         rospy.Subscriber("ar_pose_marker",
                          AlvarMarkers, self.receive_ar_markers)
+        
         self.marker_dims = Vector3(0.04, 0.04, 0.01)
 
 
@@ -190,27 +183,6 @@ class World:
         s = Surface(pts)
         self._lock.release()
         return s
-
-    def receive_table_marker(self, marker):
-        '''Callback function for markers to determine table'''
-        if (marker.type == Marker.LINE_STRIP):
-            if (len(marker.points) == 6):
-                rospy.loginfo('Received a TABLE marker.')
-                xmin = marker.points[0].x
-                ymin = marker.points[0].y
-                xmax = marker.points[2].x
-                ymax = marker.points[2].y
-                depth = xmax - xmin
-                width = ymax - ymin
-
-                pose = Pose(marker.pose.position, marker.pose.orientation)
-                pose.position.x = pose.position.x + xmin + depth / 2
-                pose.position.y = pose.position.y + ymin + width / 2
-                dimensions = Vector3(depth, width, 0.01)
-                self.surface = World._get_surface_marker(pose, dimensions)
-                self._im_server.insert(self.surface,
-                                     self.marker_feedback_cb)
-                self._im_server.applyChanges()
 
     @staticmethod
     def get_pose_from_transform(transform):
@@ -499,17 +471,7 @@ class World:
 
     def clear_all_objects(self):
         '''Removes all objects from the world'''
-        goal = UserCommandGoal(UserCommandGoal.RESET, False)
-        self._object_action_client.send_goal(goal)
-        while (self._object_action_client.get_state() == GoalStatus.ACTIVE or
-               self._object_action_client.get_state() == GoalStatus.PENDING):
-            time.sleep(0.1)
-        rospy.loginfo('Object recognition has been reset.')
-        rospy.loginfo('STATUS: ' +
-                      self._object_action_client.get_goal_status_text())
-        if (self._object_action_client.get_state() == GoalStatus.SUCCEEDED):
-            rospy.loginfo('Successfully reset object localization pipeline.')
-            self._reset_objects()
+        self._reset_objects()
         self._remove_surface()
 
     def get_nearest_object(self, arm_pose):
