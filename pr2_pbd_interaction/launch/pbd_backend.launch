@@ -42,4 +42,7 @@
   </node>
 
   <include file="$(find ar_track_alvar)/launch/pr2_indiv.launch"/>
+
+  <node pkg="sound_play" name="soundplay_node" type="soundplay_node" output="screen" />
+  
 </launch>
