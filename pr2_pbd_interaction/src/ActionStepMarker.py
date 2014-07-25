@@ -329,20 +329,41 @@ class ActionStepMarker:
             menu_control = self._make_gripper_marker(menu_control,
                                                   self._is_hand_open())
         elif (self.action_step.type == ActionStep.ARM_TRAJECTORY):
-            point_list = []
-            for j in range(len(self.action_step.armTrajectory.timing)):
-                point_list.append(self._get_traj_pose(j).position)
+            n_points = len(self.action_step.armTrajectory.timing)
+            cluster_ids = self.action_step.armTrajectory.clusterIDs
+            clusters = self.action_step.armTrajectory.clusters
+            n_clusters = len(cluster_ids)
+            cluster_colors = []
 
-            main_marker = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
-                                lifetime=rospy.Duration(2),
-                                scale=Vector3(0.02, 0.02, 0.02),
-                                header=Header(frame_id=frame_id),
-                                color=ColorRGBA(0.8, 0.4, 0.0, 0.8),
-                                points=point_list)
-            menu_control.markers.append(main_marker)
+            point_list = dict()
+            point_markers = dict()
+            for c in range(n_clusters):
+                r_val = 0.1 + 0.9*c/n_clusters
+                cluster_colors.append(ColorRGBA(r_val, 0.4, 0.0, 0.8))
+                point_list[c] = []
+
+            for j in range(n_points):
+                c = clusters[j]
+                point_list[c].append(self._get_traj_pose(j).position)
+
+            # Plotting the trajectories
+            for c in range(n_clusters):
+                point_markers[c] = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
+                                    lifetime=rospy.Duration(2),
+                                    scale=Vector3(0.02, 0.02, 0.02),
+                                    header=Header(frame_id=frame_id),
+                                    color=cluster_colors[c],
+                                    points=point_list[c])
+
+                menu_control.markers.append(point_markers[c])
+
+            # Larger sphere for start point
             menu_control.markers.append(ActionStepMarker.make_sphere_marker(
                                 self.get_uid() + 2000,
                                 self._get_traj_pose(0), frame_id, 0.05))
+            
+
+            # Larger sphere for end point
             last_index = len(self.action_step.armTrajectory.timing) - 1
             menu_control.markers.append(ActionStepMarker.make_sphere_marker(
                 self.get_uid() + 3000, self._get_traj_pose(last_index),

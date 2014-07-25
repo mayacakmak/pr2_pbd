@@ -197,12 +197,26 @@ class Interaction:
 
             waited_time = Interaction._arm_trajectory.timing[0]
 
-            for i in range(len(Interaction._arm_trajectory.timing)):
+            n_points = len(Interaction._arm_trajectory.timing)
+            for i in range(n_points):
                 Interaction._arm_trajectory.timing[i] -= waited_time
                 Interaction._arm_trajectory.timing[i] += rospy.Duration(0.1)
             
+            clusterIDs = [1, 2, 3]
+            clusters = []
+            for i in range(n_points):
+                if (i < n_points/3):
+                    clusters.append(clusterIDs[0])
+                elif (i < 2*n_points/3):
+                    clusters.append(clusterIDs[1])
+                else:
+                    clusters.append(clusterIDs[2])
+
+
             '''If motion was relative, record transformed pose'''
             traj_step.armTrajectory = ArmTrajectory(
+                clusterIDs,
+                clusters,
                 Interaction._arm_trajectory.rArm[:],
                 Interaction._arm_trajectory.lArm[:],
                 Interaction._arm_trajectory.timing[:],
@@ -453,4 +467,4 @@ class Interaction:
             action = self.session.get_current_action()
             action.update_viz()
 
-        time.sleep(0.1)
+        time.sleep(0.04)
