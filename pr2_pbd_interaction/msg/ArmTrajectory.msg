@@ -1,5 +1,5 @@
-int[] clusterIDs
-int[] clusters
+uint8[] clusterIDs
+uint8[] clusters
 ArmState[] rArm
 ArmState[] lArm
 duration[] timing
