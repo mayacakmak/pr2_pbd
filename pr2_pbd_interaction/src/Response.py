@@ -21,6 +21,7 @@ class Response:
   gaze_client = None
   _sound_client = None
   _robot_speech = None
+  _marker_publisher = None
   _sounds_dir = roslib.packages.get_pkg_dir('pr2_pbd_interaction')
   _sounds_dir = os.path.join(_sounds_dir, 'sounds', '')
   glance_actions = [GazeGoal.GLANCE_RIGHT_EE, GazeGoal.GLANCE_LEFT_EE]
@@ -63,8 +64,8 @@ class Response:
       if (Response._sound_client == None):
         Response._sound_client = SoundClient()
 
-      if (Response.marker_publisher == None):
-        Response.marker_publisher = rospy.Publisher('visualization_marker', Marker)
+      if (Response._marker_publisher == None):
+        Response._marker_publisher = rospy.Publisher('visualization_marker', Marker)
 
   def respond(self):
     ''' Triggers the defined response'''
@@ -105,7 +106,7 @@ class Response:
                  scale=Vector3(0.06, 0.06, 0.06),
                  header=Header(frame_id='base_link'),
                  color=ColorRGBA(0.0, 1.0, 0.0, 0.8), text=text)
-      Response.marker_publisher.publish(marker)
+      Response._marker_publisher.publish(marker)
 
   @staticmethod
   def respond_with_sound(speech_resp):
