@@ -333,17 +333,17 @@ class ActionStepMarker:
             cluster_ids = self.action_step.armTrajectory.clusterIDs
             clusters = self.action_step.armTrajectory.clusters
             n_clusters = len(cluster_ids)
-            cluster_colors = []
 
             print 'n_points', n_points
             print 'len(clusters)', len(clusters)
             print cluster_ids
 
+            cluster_colors = dict()
             point_list = dict()
             point_markers = dict()
             for c in range(n_clusters):
                 r_val = 0.1 + 0.9*c/n_clusters
-                cluster_colors.append(ColorRGBA(r_val, 0.4, 0.0, 0.8))
+                cluster_colors[c] = ColorRGBA(r_val, 0.4, 0.0, 0.8)
                 point_list[c] = []
 
             for j in range(n_points):
