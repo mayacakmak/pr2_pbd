@@ -322,12 +322,15 @@ class ActionStepMarker:
         abs_step_size = 1.0 / float(n_colors - 1) if n_colors > 1 else 0.0
         abs_pos = abs_step_size * index
 
-        r = 1.0
-        g = 1.0 - abs_pos
-        b = 0.0
-        # r = 0.0
-        # g = 1.0 - bucket_pos
-        # b = 1.0
+        if (index % 2 == 0):
+            r = 1.0
+            g = 1.0 - abs_pos
+            b = 0.0
+        else:
+            r = 0.0
+            g = 1.0 - abs_pos
+            b = 1.0
+        
         return ColorRGBA(r, g, b, 0.8)
 
     def _update_viz_core(self):
