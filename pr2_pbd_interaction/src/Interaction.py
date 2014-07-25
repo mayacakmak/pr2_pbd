@@ -216,13 +216,13 @@ class Interaction:
         index = 0
         while (clusters[index] != 3):
             clusters[index] = 1
-            index++
+            index = index + 1
 
         # Assign points at the end beginning as exit
         index = n_points - 1
         while (clusters[index] != 3):
             clusters[index] = 5
-            index--
+            index = index -1
 
         # Assign mid points based on their diff
         for i in range(n_points-1):
