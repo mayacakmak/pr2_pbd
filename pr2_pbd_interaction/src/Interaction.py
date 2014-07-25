@@ -126,7 +126,7 @@ class Interaction:
             self._demo_state == DemoState.READY_FOR_DEMO or
             self._demo_state == DemoState.HAS_RECORDED_DEMO):
 
-            Response.perform_gaze_action(GazeGoal.LOOK_DOWN, wait=True)
+            Response.perform_gaze_action(GazeGoal.LOOK_DOWN)
             self._move_to_arm_pose('away', 0, wait=True)
             time.sleep(2.0)
 
@@ -231,7 +231,7 @@ class Interaction:
                 next_point_z = r_traj[i+1].ee_pose.position.z
                 diff_z = next_point_z - point_z
 
-                if (diff_z) >= 0):
+                if (diff_z) >= 0:
                     clusters[i] = 4
                 else:
                     clusters[i] = 2
