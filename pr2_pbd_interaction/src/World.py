@@ -11,6 +11,7 @@ from numpy import array
 # ROS libraries
 #from actionlib_msgs.msg import
 import rospy
+import numpy
 import tf
 from tf import TransformListener, TransformBroadcaster
 from manipulation_msgs.msg import GraspableObjectList
@@ -104,7 +105,7 @@ class World:
         # The following is to get the fiducial information
         rospy.Subscriber("ar_pose_marker",
                          AlvarMarkers, self.receive_ar_markers)
-        
+
         self.marker_dims = Vector3(0.04, 0.04, 0.01)
 
 
@@ -157,9 +158,30 @@ class World:
             self._lock.release()
             return None
         elif (len(self.objects) > 4):
-            rospy.logwarn('There are more than four fiducials for surface, will use first four.')
+            rospy.logwarn('There are more than four fiducials for surface, will use four with closest height.')
+            all_pts_z = []
+            pts_ind = []
+            for i in range(len(World.objects)):
+                all_pts_z.append(World.objects[i].position.z)
+            median_z = numpy.median(all_pts_z)
 
-        pts = [World.objects[0].position, World.objects[1].position,
+            for i in range(len(all_pts_z)):
+                if (numpy.abs(median_z - all_pts_z[i]) < 0.04):
+                    pts_ind.append(i)
+                else:
+                    rospy.loginfo('Outlier point with height ' + str(all_pts_z[i]) + 
+                                    ' where median height is ' + str(median_z))
+
+            if (len(pts_ind) != 4):
+                rospy.logwarn('Could not find four points of similar height.')
+                self._lock.release()
+                return None
+            else:
+                rospy.loginfo('Found exacly four points of similar height.')
+                pts = [World.objects[pts_ind[0]].position, World.objects[pts_ind[1]].position,
+                    World.objects[pts_ind[2]].position, World.objects[pts_ind[3]].position]
+        else:
+            pts = [World.objects[0].position, World.objects[1].position,
                     World.objects[2].position, World.objects[3].position]
         
         xmin = min([pts[0].x, pts[1].x, pts[2].x, pts[3].x])
@@ -169,9 +191,9 @@ class World:
         depth = xmax - xmin
         width = ymax - ymin
 
-        pose = Pose(Point(xmin + depth / 2, 
-                             ymin + width / 2, 
-                             World.objects[0].position.z), 
+        pose = Pose(Point(xmin + depth / 2,
+                             ymin + width / 2,
+                             World.objects[0].position.z + 0.04), 
                     World.objects[0].orientation)
 
         dimensions = Vector3(depth, width, 0.01)
