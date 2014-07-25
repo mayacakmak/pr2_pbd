@@ -319,13 +319,20 @@ class Arm:
                           ' has been filtered.')
             traj_goal = JointTrajectoryGoal()
 
+            n_points = len(traj_goal.trajectory.points)
+
+            for i in range(n_points):
+                print traj_goal.trajectory.points[i].positions
+                print traj_goal.trajectory.points[i].velocities
+
             traj_goal.trajectory = output.trajectory
             traj_goal.trajectory.header.stamp = (rospy.Time.now() +
                                                 rospy.Duration(0.1))
             traj_goal.trajectory.joint_names = self.joint_names
 
             # Sends the goal to the trajectory server
-            self.traj_action_client.send_goal(traj_goal)
+            # DISABLING FOR DEBUGGING
+            #self.traj_action_client.send_goal(traj_goal)
             return True
 
         else:
