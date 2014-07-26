@@ -112,7 +112,7 @@ class Interaction:
                 self.arms.set_gripper_state(0, GripperState.OPEN, wait=True)
                 self._demo_state = DemoState.NO_TOOL_NO_SURFACE
             else:
-                self.session.new_action(self.tool_id)
+                self.session.new_action(self.tool_id, self.world.get_frame_list())
                 Response.say(RobotSpeech.RECOGNIZED_TOOL + str(self.tool_id))
                 self._demo_state = DemoState.HAS_TOOL_NO_SURFACE
                 self.detect_surface()
@@ -504,6 +504,9 @@ class Interaction:
         else:
             rospy.logwarn('Ignoring GUI command during execution: ' +
                                 command.command)
+
+    def save_experiment_state(self):
+        pass
 
     def update(self):
         '''General update for the main loop'''

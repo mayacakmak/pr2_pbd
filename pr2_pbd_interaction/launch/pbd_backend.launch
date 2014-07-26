@@ -1,48 +1,22 @@
 <launch>
+  <!-- This file runs the PbD backend. It may be run on the robot or on the
+  desktop (to run in simulation). If running on the desktop, make sure
+  to pass in sim:=true to get the simulated Kinect. -->
 
-  <!-- This is the main state machine for interaction and PbD -->
-  <arg name="isReload" value="False" />
-  <arg name="dataRoot" value="$(env HOME)" />
-  <arg name="experimentNumber" value="3" />
-  
-  <!-- This runs the interactive manipulation -->
-  
-  <node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_left_arm_kinematics_simple" output="screen">
-   <param name="tip_name" value="l_wrist_roll_link" />
-   <param name="root_name" value="torso_lift_link" />
-   <param name="maxIterations" value="10000" />
-  </node>
+  <!-- These arguments can be passed in. -->
+  <!-- ================================= -->
 
-  <node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_right_arm_kinematics_simple" output="screen">
-   <param name="tip_name" value="r_wrist_roll_link" />
-   <param name="root_name" value="torso_lift_link" />
-   <param name="maxIterations" value="10000" />
-  </node>
-  
-  <include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_robot.launch" >
-    <arg name="sim" value="false" />
+  <!-- Are we running in simulation or on the real robot? -->
+  <arg name="sim" default="true" />
+
+  <!-- This runs all of the prerequisite nodes for the PbD backend to
+  work, such as interactive manipulation backend and social gaze. -->
+  <include file="$(find pr2_pbd_interaction)/launch/pbd_backend_prereqs.launch">
+    <arg name="sim" value="$(arg sim)" />
   </include>
 
-  
-  <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="interaction.py" output="screen">
-    <param name="dataRoot" value="$(arg dataRoot)" />
-    <param name="isReload" value="$(arg isReload)" />
-    <param name="experimentNumber" value="$(arg experimentNumber)" />
-  </node>
-  
-  <!-- This makes the robot look around appropriately -->
 
-  <include file="$(find pr2_social_gaze)/launch/gaze.launch"/>
-
-  <!-- This is needed for filling in the velocity of replayed trajectories -->
-
-  <node pkg="trajectory_filter_server" name="trajectory_filter" type="trajectory_filter_server" output="screen">
-   <rosparam command="load" file="$(find trajectory_filter_server)/config/joint_limits.yaml"/>
-   <rosparam command="load" file="$(find pr2_pbd_interaction)/config/filters.yaml"/>
-  </node>
-
-  <include file="$(find ar_track_alvar)/launch/pr2_indiv.launch"/>
-
-  <node pkg="sound_play" name="soundplay_node" type="soundplay_node" output="screen" />
-  
+  <!-- This runs the interaction node itself. It is the main state
+  machine for interaction and PbD -->
+  <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="main.py" output="screen" />
 </launch>

@@ -141,9 +141,16 @@ class World:
             rospy.logwarn('There are more than one fiducials, returning the highest one as tool ID.')
             marker_z = []
             for i in range(len(World.objects)):
-                marker_z.append(World.objects[i].position.z)
-            index = marker_z.index(max(marker_z))
-            tool_id = World.objects[index].marker_id
+                if numpy.abs(World.objects[i].position.y) < 0.05:
+                    marker_z.append(World.objects[i].position.z)
+                else:
+                    marker_z.append(0)
+
+            if (max(marker_z) < 0.40):
+                tool_id = None
+            else:
+                index = marker_z.index(max(marker_z))
+                tool_id = World.objects[index].marker_id
         else:
             tool_id = World.objects[0].marker_id
 
@@ -178,11 +185,15 @@ class World:
                 return None
             else:
                 rospy.loginfo('Found exacly four points of similar height.')
-                pts = [World.objects[pts_ind[0]].position, World.objects[pts_ind[1]].position,
-                    World.objects[pts_ind[2]].position, World.objects[pts_ind[3]].position]
         else:
-            pts = [World.objects[0].position, World.objects[1].position,
-                    World.objects[2].position, World.objects[3].position]
+            pts_ind = [0, 1, 2, 3]
+
+        pts = [World.objects[pts_ind[0]].position, World.objects[pts_ind[1]].position,
+            World.objects[pts_ind[2]].position, World.objects[pts_ind[3]].position]
+        poses = [World.objects[pts_ind[0]], World.objects[pts_ind[1]],
+            World.objects[pts_ind[2]], World.objects[pts_ind[3]]]
+        height = World.objects[pts_ind[0]].position.z
+        orientation = World.objects[pts_ind[0]].orientation
         
         xmin = min([pts[0].x, pts[1].x, pts[2].x, pts[3].x])
         ymin = min([pts[0].y, pts[1].y, pts[2].y, pts[3].y])
@@ -193,18 +204,16 @@ class World:
 
         pose = Pose(Point(xmin + depth / 2,
                              ymin + width / 2,
-                             World.objects[0].position.z + 0.04), 
-                    World.objects[0].orientation)
-
+                             height + 0.04), 
+                             orientation)
         dimensions = Vector3(depth, width, 0.01)
         self.surface = World._get_surface_marker(pose, dimensions)
         self._im_server.insert(self.surface,
                              self.marker_feedback_cb)
         self._im_server.applyChanges()
 
-        s = Surface(pts)
         self._lock.release()
-        return s
+        return poses
 
     @staticmethod
     def get_pose_from_transform(transform):

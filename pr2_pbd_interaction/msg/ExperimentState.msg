@@ -1,5 +1,8 @@
+uint8 n_experiments
+uint8 i_current_experiment
 uint8 n_actions
 uint8 i_current_action
+string[] action_names
 uint8 n_steps
 uint8[] frame_types
 uint8 i_current_step

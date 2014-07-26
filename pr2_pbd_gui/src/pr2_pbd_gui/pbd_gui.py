@@ -33,7 +33,7 @@ class ClickableLabel(QtGui.QLabel):
 
 
 class ActionIcon(QtGui.QGridLayout):
-    def __init__(self, parent, index, clickCallback):
+    def __init__(self, parent, index, name, clickCallback):
         QtGui.QGridLayout.__init__(self)
         self.setSpacing(0)
         path = os.popen('rospack find pr2_pbd_gui').read()
@@ -90,6 +90,7 @@ class PbDGUI(Plugin):
         
         self.currentAction = -1
         self.currentStep = -1
+        self.current_experiment = -1
 
         allWidgetsBox = QtGui.QVBoxLayout()
         actionBox = QGroupBox('Demonstrations', self._widget)
@@ -229,10 +230,20 @@ class PbDGUI(Plugin):
     def update_state(self, state):
         qWarning('Received new state')
         
+        self.n_experiments = state.n_experiments 
+        n_actions = len(self.actionIcons.keys())
+
+        if self.current_experiment != state.i_current_experiment:
+            for i in range(n_actions):
+                icon = self.actionGrid.takeAt(i + 6)
+                del icon
+            self.actionIcons = dict()
+            self.current_experiment = state.i_current_experiment
+            
         n_actions = len(self.actionIcons.keys())
         if n_actions < state.n_actions:
             for i in range(n_actions, state.n_actions):
-                self.new_action()
+                self.new_action(state.action_names[i])
 
         if (self.currentAction != (state.i_current_action - 1)):
             self.delete_all_steps()
@@ -310,13 +321,13 @@ class PbDGUI(Plugin):
     def n_actions(self):
         return len(self.actionIcons.keys())
 
-    def new_action(self):
+    def new_action(self, name):
         nColumns = 6
         actionIndex = self.n_actions()
         for key in self.actionIcons.keys():
              self.actionIcons[key].selected = False
              self.actionIcons[key].updateView()
-        actIcon = ActionIcon(self._widget, actionIndex, self.action_pressed)
+        actIcon = ActionIcon(self._widget, actionIndex, name, self.action_pressed)
         self.actionGrid.addLayout(actIcon, int(actionIndex/nColumns), 
                                   actionIndex%nColumns)
         self.actionIcons[actionIndex] = actIcon

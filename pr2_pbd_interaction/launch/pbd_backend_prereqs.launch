@@ -1,0 +1,47 @@
+<launch>
+<!-- This launches everything in the PbD backend stack EXCEPT for
+PbD itself (the interaction node).
+
+The purpose of splitting the launch files this way is for testing,
+both manual and automated. If the interaction node goes down, it can
+be brought up separately from all of its prerequisites.
+
+Note that this DOES NOT include the simulated robot. This (and
+pbd_backend in general) work on both the real and simulated robot.
+-->
+
+  <!-- These arguments can be passed in. -->
+  <arg name="sim" default="false" />
+
+  <!-- This runs the interactive manipulation. -->
+  <node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_left_arm_kinematics_simple" output="screen">
+    <param name="tip_name" value="l_wrist_roll_link" />
+    <param name="root_name" value="torso_lift_link" />
+    <param name="maxIterations" value="10000" />
+  </node>
+  <node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_right_arm_kinematics_simple" output="screen">
+    <param name="tip_name" value="r_wrist_roll_link" />
+    <param name="root_name" value="torso_lift_link" />
+    <param name="maxIterations" value="10000" />
+  </node>
+
+  <include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_robot.launch" >
+    <arg name="sim" value="$(arg sim)" />
+  </include>
+
+  <!-- This makes the robot look around appropriately -->
+  <include file="$(find pr2_social_gaze)/launch/gaze.launch"/>
+
+  <!-- This is needed for filling in the velocity of replayed trajectories -->
+  <node pkg="trajectory_filter_server" name="trajectory_filter" type="trajectory_filter_server" output="screen">
+    <rosparam command="load" file="$(find trajectory_filter_server)/config/joint_limits.yaml"/>
+    <rosparam command="load" file="$(find pr2_pbd_interaction)/config/filters.yaml"/>
+  </node>
+
+  <include file="$(find ar_track_alvar)/launch/pr2_indiv.launch"/>
+
+  <node pkg="sound_play" name="soundplay_node" type="soundplay_node" output="screen" />
+
+</launch>
+
+  

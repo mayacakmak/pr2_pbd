@@ -14,59 +14,111 @@ class Session:
     '''This class holds and maintains experimental data'''
 
     def __init__(self, object_list, is_debug=False):
-        self._is_reload = rospy.get_param('/pr2_pbd_interaction/isReload')
 
         self._exp_number = None
         self._selected_step = 0
         self._object_list = object_list
         self.pose_set = dict()
 
-        self._exp_number = rospy.get_param(
-                            '/pr2_pbd_interaction/experimentNumber')
-        self._data_dir = self._get_data_dir(self._exp_number)
-        
-        parent_dir = os.path.abspath(os.path.join(self._data_dir, os.pardir))
-
-        if (not os.path.exists(parent_dir)):
-            os.mkdir(parent_dir)
-
-        if (not os.path.exists(self._data_dir)):
-            os.mkdir(self._data_dir)
-
-        rospack = rospkg.RosPack()
-        self._pose_dir = rospack.get_path('pr2_pbd_interaction') + '/data/'
-        self.load_arm_poses()
-
-        rospy.set_param('data_directory', self._data_dir)
-
-        self.actions = dict()
-        self.current_action_index = 0
-
-        if (self._is_reload):
-            self._load_session_state(object_list)
-            rospy.loginfo("Session state loaded.")
-
-        n_actions = dict()
-        for k in self.actions.keys():
-            n_actions[str(k)] = self.actions[k].n_frames()
-
         self._state_publisher = rospy.Publisher('experiment_state',
                                                 ExperimentState)
+        rospack = rospkg.RosPack()
+        self._path = rospack.get_path('pr2_pbd_interaction')
+        self._pose_dir = self._path + '/data/'
+
+        self.load_arm_poses()
+
+        self.n_experiments = self.count_existing_experiments()
+        rospy.loginfo(str(self.n_experiments) + ' experiments already exist.')
+
+        if (self.n_experiments == 0):
+            self.create_new_experiment()
+        else:
+            self.switch_to_experiment(self.n_experiments-1, object_list)
+
         rospy.Service('get_experiment_state', GetExperimentState,
                       self.get_experiment_state_cb)
 
+    def create_new_experiment(self):
+
+        self._exp_number = self.n_experiments
+        self.n_experiments = self.n_experiments + 1
+        self._data_dir = self._path + '/data/experiment' + str(self._exp_number) + '/'
+        self.actions = dict()
+        self.current_action_index = 0
+
+        #rospy.set_param('data_directory', self._data_dir)
+
+        if (os.path.exists(self._data_dir)):
+            rospy.logwarn('File already exists for new experiment, this should not happen.')
+        else:
+            os.mkdir(self._data_dir)
+
         self._update_experiment_state()
+
+    def switch_to_experiment(self, exp_number, object_list):
+
+        if (exp_number < self.n_experiments and exp_number >= 0):
+            self._exp_number = exp_number
+            self._data_dir = self._path + '/data/experiment' + str(self._exp_number) + '/'
+
+            if (not os.path.exists(self._data_dir)):
+                rospy.logwarn('Directory does not exists for existing experiment, this should not happen.')
+            
+            self.load_actions(object_list)
+
+        else:
+            rospy.logerr('Cannot switch to experiment ' + str(exp_number))
+
+        self._update_experiment_state()
+
+    def load_actions(self, object_list):
+        self.current_action_index = 0
+        self.actions = dict()
+
+        pose_files = os.listdir(self._data_dir)
+        for pose_file_name in pose_files:
+            if pose_file_name.count('.') > 0:
+                name = pose_file_name[0:pose_file_name.index('.')]
+                extension = pose_file_name[(pose_file_name.index('.')+1):(len(pose_file_name)+1)]
+                if (extension == 'bag'):
+                    dummy_action = ProgrammedAction(0, self._selected_step_cb)
+                    dummy_action.load(self._data_dir, name)
+                    self.actions.update({self.current_action_index:
+                                     ProgrammedAction(name,
+                                                      self._selected_step_cb)})
+                    self.current_action_index = self.current_action_index + 1
+                    print 'Loaded existing demo ', pose_file_name, 'with', dummy_action.n_frames(), 'frames.'
+
+        # Stay at the last action..
+        if (self.n_actions() > 0):
+            self.current_action_index = self.n_actions() - 1
+            self.get_current_action().initialize_viz(object_list)
+        else:
+            rospy.logwarn('Did not find any actions in experiment ' + str(self._exp_number))
+
+    def count_existing_experiments(self):
+        has_found_experiment = True
+        n_experiments = 0
+        while (has_found_experiment):
+            data_dir = self._path + '/data/experiment' + str(n_experiments) + '/'
+            if (not os.path.exists(data_dir)):
+                has_found_experiment = False
+            else:
+                n_experiments = n_experiments + 1
+        return n_experiments
 
     def load_arm_poses(self):
         pose_files = os.listdir(self._pose_dir)
         for pose_file_name in pose_files:
-            name = pose_file_name[0:pose_file_name.index('.')]
-            extension = pose_file_name[(pose_file_name.index('.')+1):(len(pose_file_name)+1)]
-            if (extension == 'bag'):
-                dummy_action = ProgrammedAction(0, self._selected_step_cb)
-                dummy_action.load(self._pose_dir, name)
-                self.pose_set[name] = dummy_action
-                print 'Loaded', pose_file_name, 'with', dummy_action.n_frames(), 'frames.'
+            if pose_file_name.count('.') > 0:
+                name = pose_file_name[0:pose_file_name.index('.')]
+                extension = pose_file_name[(pose_file_name.index('.')+1):(len(pose_file_name)+1)]
+                if (extension == 'bag'):
+                    dummy_action = ProgrammedAction(0, self._selected_step_cb)
+                    dummy_action.load(self._pose_dir, name)
+                    self.pose_set[name] = dummy_action
+                    print 'Loaded', pose_file_name, 'with', dummy_action.n_frames(), 'frames.'
         print 'Loaded ' + str(len(self.pose_set)) + ' poses.'
 
     def _selected_step_cb(self, selected_step):
@@ -86,8 +138,12 @@ class Session:
 
     def _get_experiment_state(self):
         ''' Creates a message with the latest state'''
-        return ExperimentState(self.n_actions(),
+        return ExperimentState(
+                    self.n_experiments,
+                    self._exp_number,
+                    self.n_actions(),
                     self.current_action_index,
+                    self._get_action_names(),
                     self.n_frames(),
                     self.frame_types(),
                     self._selected_step,
@@ -96,6 +152,12 @@ class Session:
                     self._get_ref_frames(0),
                     self._get_ref_frames(1),
                     self._object_list)
+
+    def _get_action_names(self):
+        names = []
+        for i in self.actions.keys():
+            names.append(self.actions[i].name)
+        return names
 
     def _get_ref_frames(self, arm_index):
         ''' Returns the reference frames for the steps of the
@@ -123,75 +185,27 @@ class Session:
         self.actions[self.current_action_index].select_step(step_id)
         self._selected_step = step_id
 
-    def _get_participant_id(self):
-        '''Gets the experiment number from the command line'''
-        while (self._exp_number == None):
-            try:
-                self._exp_number = int(raw_input(
-                                    'Please enter participant ID:'))
-            except ValueError:
-                rospy.logerr("Participant ID needs to be a number")
-
-            self._data_dir = Session._get_data_dir(self._exp_number)
-            if (not os.path.exists(self._data_dir)):
-                os.makedirs(self._data_dir)
-            else:
-                rospy.logwarn('A directory for this participant ' +
-                              'ID already exists: ' + self._data_dir)
-                overwrite = raw_input('Do you want to overwrite? ' +
-                                      'Type r to reload the last state ' +
-                                      'of the experiment. [y/n/r]')
-                if (overwrite == 'y'):
-                    continue
-                elif (overwrite == 'n'):
-                    self._exp_number = None
-                elif (overwrite == 'r'):
-                    self._is_reload = True
-                else:
-                    rospy.logerr('Invalid response, try again.')
-
-    @staticmethod
-    def _get_data_dir(exp_number):
-        '''Returns the directory where action information is saved'''
-        return (rospy.get_param('/pr2_pbd_interaction/dataRoot') +
-                    '/data/experiment' + str(exp_number) + '/')
-
-    def save_session_state(self, is_save_actions=True):
-        '''Saves the session state onto hard drive'''
-        exp_state = dict()
-        exp_state['nProgrammedActions'] = self.n_actions()
-        exp_state['currentProgrammedActionIndex'] = self.current_action_index
-        state_file = open(self._data_dir + 'experimentState.yaml', 'w')
-        state_file.write(yaml.dump(exp_state))
-        state_file.close()
-
-        if (is_save_actions):
-            for i in range(self.n_actions()):
-                self.actions[i].save(self._data_dir)
-
-    def _load_session_state(self, object_list):
-        '''Loads the experiment state from the hard drive'''
-        state_file = open(self._data_dir + 'experimentState.yaml', 'r')
-        exp_state = yaml.load(state_file)
-        n_actions = exp_state['nProgrammedActions']
-        for i in range(n_actions):
-            self.actions.update({(i + 1): ProgrammedAction(i + 1,
-                                            self._selected_step_cb)})
-            self.actions[(i + 1)].load(self._data_dir)
-        self.current_action_index = exp_state['currentProgrammedActionIndex']
-        self.actions[self.current_action_index].initialize_viz(object_list)
-        state_file.close()
-
-    def new_action(self, action_id):
+    def new_action(self, action_id, object_list):
         '''Creates new action'''
+        tool_name = 'Tool' + str(action_id)
+        names = self._get_action_names()
+
         if (self.n_actions() > 0):
             self.get_current_action().reset_viz()
-        self.current_action_index = action_id
-        ## TODO: Check if the action already exists
-        self.actions.update({self.current_action_index:
-                             ProgrammedAction(self.current_action_index,
-                                              self._selected_step_cb)})
-        self._update_experiment_state()
+
+        if names.count(tool_name) == 0:
+            self.actions.update({self.current_action_index:
+                                 ProgrammedAction(tool_name,
+                                                  self._selected_step_cb)})
+            self.current_action_index = self.n_actions() - 1
+            self._update_experiment_state()
+            return True
+        else:
+            rospy.logwarn('Demonstration for this tool already exists.')
+            self.current_action_index = self.actions.keys()[names.index(tool_name)]
+            self._update_experiment_state()
+            self.get_current_action().initialize_viz(object_list)
+            return False
 
     def n_actions(self):
         '''Returns the number of actions programmed so far'''
@@ -200,9 +214,6 @@ class Session:
     def get_current_action(self):
         '''Returns the current action'''
         return self.actions[self.current_action_index]
-
-#     def get_current_action_name(self):
-#         return self.actions[self.current_action_index].get_name()
 
     def clear_current_action(self):
         '''Removes all steps in the current action'''
@@ -224,7 +235,6 @@ class Session:
         '''Save current action onto hard drive'''
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].save(self._data_dir)
-            self.save_session_state(is_save_actions=False)
         else:
             rospy.logwarn('No skills created yet.')
 

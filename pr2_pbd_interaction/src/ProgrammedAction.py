@@ -24,9 +24,9 @@ class ProgrammedAction:
 
     _marker_publisher = None
 
-    def __init__(self, action_index, step_click_cb):
+    def __init__(self, name, step_click_cb):
         self.seq = ActionStepSequence()
-        self.action_index = action_index
+        self.name = name
         self.step_click_cb = step_click_cb
         self.r_markers = []
         self.l_markers = []
@@ -40,7 +40,7 @@ class ProgrammedAction:
 
     def get_name(self):
         '''Returns the name of the action'''
-        return 'Action' + str(self.action_index)
+        return self.name
 
     def add_action_step(self, step, object_list):
         '''Function to add a new step to the action'''
@@ -94,7 +94,7 @@ class ProgrammedAction:
             self.l_markers[i].update_ref_frames(object_list)
         self.lock.release()
 
-    def _update_markers(self):
+    def update_markers(self):
         '''Updates the markers after a change'''
         for i in range(len(self.r_markers)):
             self.r_markers[i].update_viz()
@@ -418,7 +418,7 @@ class ProgrammedAction:
 
     def copy(self):
         '''Makes a copy of the instance'''
-        action = ProgrammedAction(self.action_index, self.step_click_cb)
+        action = ProgrammedAction(self.name, self.step_click_cb)
         action.seq = ActionStepSequence()
         for i in range(len(self.seq.seq)):
             action_step = self.seq.seq[i]
