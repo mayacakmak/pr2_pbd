@@ -87,7 +87,7 @@ class ProgrammedAction:
     def update_objects(self, object_list):
         '''Updates the object list for all action steps'''
         self.lock.acquire()
-        self._update_markers()
+        self.update_markers()
         for i in range(len(self.r_markers)):
             self.r_markers[i].update_ref_frames(object_list)
         for i in range(len(self.l_markers)):
@@ -131,7 +131,7 @@ class ProgrammedAction:
 
         if (to_delete != None):
             self.update_viz()
-            self._update_markers()
+            self.update_markers()
 
     def _delete_step(self, to_delete):
         '''Deletes a step from the action'''
@@ -349,7 +349,7 @@ class ProgrammedAction:
                     self.r_links[i] = self._get_link(0, i)
                     self.l_links[i] = self._get_link(1, i)
 
-        self._update_markers()
+        self.update_markers()
         self.lock.release()
 
     def get_last_step(self):

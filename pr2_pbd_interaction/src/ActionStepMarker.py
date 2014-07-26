@@ -330,7 +330,7 @@ class ActionStepMarker:
             r = 0.0
             g = 1.0 - abs_pos
             b = 1.0
-        
+
         return ColorRGBA(r, g, b, 0.8)
 
     def _update_viz_core(self):
@@ -350,33 +350,43 @@ class ActionStepMarker:
             clusters = self.action_step.armTrajectory.clusters
             n_clusters = len(cluster_ids)
 
-            cluster_colors = dict()
-            point_list = dict()
-            point_markers = dict()
-            for c in range(n_clusters):
-                cluster_colors[cluster_ids[c]] = self.get_marker_color(c, n_clusters)
-                point_list[cluster_ids[c]] = []
-
-            for j in range(n_points):
-                c = clusters[j]
-                point_list[c].append(self._get_traj_pose(j).position)
-
-            # Plotting the trajectories
-            for c in range(n_clusters):
-                point_markers[cluster_ids[c]] = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
+            if len(clusters) != n_points:
+                rospy.logwarn('Clustes do not have enough points: ' + str(len(clusters)))
+                point_list = []
+                for j in range(n_points):
+                    point_list.append(self._get_traj_pose(j).position)
+                menu_control.markers.append(Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
                                     lifetime=rospy.Duration(2),
                                     scale=Vector3(0.01, 0.01, 0.01),
                                     header=Header(frame_id=frame_id),
-                                    color=cluster_colors[cluster_ids[c]],
-                                    points=point_list[cluster_ids[c]])
+                                    color=ColorRGBA(1.0, 0.5, 0.0, 0.8), points=point_list))
+            else:
+                cluster_colors = dict()
+                point_list = dict()
+                point_markers = dict()
+                for c in range(n_clusters):
+                    cluster_colors[cluster_ids[c]] = self.get_marker_color(c, n_clusters)
+                    point_list[cluster_ids[c]] = []
 
-                menu_control.markers.append(point_markers[cluster_ids[c]])
+                for j in range(n_points):
+                    c = clusters[j]
+                    point_list[c].append(self._get_traj_pose(j).position)
+
+                # Plotting the trajectories
+                for c in range(n_clusters):
+                    point_markers[cluster_ids[c]] = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
+                                        lifetime=rospy.Duration(2),
+                                        scale=Vector3(0.01, 0.01, 0.01),
+                                        header=Header(frame_id=frame_id),
+                                        color=cluster_colors[cluster_ids[c]],
+                                        points=point_list[cluster_ids[c]])
+
+                    menu_control.markers.append(point_markers[cluster_ids[c]])
 
             # Larger sphere for start point
             menu_control.markers.append(ActionStepMarker.make_sphere_marker(
                                 self.get_uid() + 2000,
                                 self._get_traj_pose(0), frame_id, 0.05))
-            
 
             # Larger sphere for end point
             last_index = len(self.action_step.armTrajectory.timing) - 1

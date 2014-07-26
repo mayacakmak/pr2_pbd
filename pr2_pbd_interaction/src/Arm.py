@@ -326,9 +326,9 @@ class Arm:
             traj_goal.trajectory.joint_names = self.joint_names
 
             n_points = len(traj_goal.trajectory.points)
-            for i in range(n_points):
-                print traj_goal.trajectory.points[i].positions
-                print traj_goal.trajectory.points[i].velocities
+            #for i in range(n_points):
+            #    print traj_goal.trajectory.points[i].positions
+            #    print traj_goal.trajectory.points[i].velocities
 
             # Sends the goal to the trajectory server
             # DISABLING FOR DEBUGGING
