@@ -126,8 +126,12 @@ class Interaction:
         else:
             Response.say(RobotSpeech.ERROR_NOT_IN_TAKE_STATE)
 
-        rospy.loginfo('Current state: ' + self._demo_state)
+        self.log_current_state()
         self._is_busy = False
+
+    def log_current_state(self):
+        self.session.update_interaction_state(self._demo_state)
+        rospy.loginfo('Current state: ' + self._demo_state)
 
     def detect_surface(self, dummy=None):
         self._is_busy = True
@@ -171,7 +175,7 @@ class Interaction:
             Response.perform_gaze_action(GazeGoal.SHAKE)
             Response.say(RobotSpeech.ERROR_NOT_IN_RELEASE_STATE)
 
-        rospy.loginfo('Current state: ' + self._demo_state)
+        self.log_current_state()
         self.busy = False
 
     def start_recording(self, dummy=None):
@@ -202,7 +206,7 @@ class Interaction:
             Response.perform_gaze_action(GazeGoal.SHAKE)
             Response.say(RobotSpeech.ERROR_NOT_READY_TO_RECORD)
 
-        rospy.loginfo('Current state: ' + self._demo_state)
+        self.log_current_state()
         self.busy = False
 
 
@@ -317,7 +321,7 @@ class Interaction:
             Response.say(RobotSpeech.ERROR_NOT_RECORDING)
             Response.perform_gaze_action(GazeGoal.SHAKE)
 
-        rospy.loginfo('Current state: ' + self._demo_state)
+        self.log_current_state()
         self.busy = False
 
     def replay_demonstration(self, dummy=None):
@@ -344,7 +348,7 @@ class Interaction:
             Response.say(RobotSpeech.ERROR_CANNOT_REPLAY)
             Response.perform_gaze_action(GazeGoal.SHAKE)
 
-        rospy.loginfo('Current state: ' + self._demo_state)
+        self.log_current_state()
         self.busy = False
 
     def _end_replay(self):
@@ -387,7 +391,7 @@ class Interaction:
         if (gaze_resp != None):
             Response.perform_gaze_action(gaze_resp)
 
-        rospy.loginfo('Current state: ' + self._demo_state)
+        self.log_current_state()
         self.busy = False
 
     def relax_arm(self, arm_index):

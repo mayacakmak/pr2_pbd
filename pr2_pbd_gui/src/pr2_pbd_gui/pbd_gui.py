@@ -171,14 +171,17 @@ class PbDGUI(Plugin):
         misc_grid2.addWidget(btn)
         misc_grid2.addStretch(1)
                 
-        speechGroupBox = QGroupBox('Robot Speech', self._widget)
+        speechGroupBox = QGroupBox('Interaction State', self._widget)
         speechGroupBox.setObjectName('RobotSpeechGroup')
         speechBox = QtGui.QHBoxLayout()
+        self.stateLabel = QtGui.QLabel('Interaction state information not received yet')
         self.speechLabel = QtGui.QLabel('Robot has not spoken yet')
         palette = QtGui.QPalette()
         palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.blue)
+        self.stateLabel.setPalette(palette)
         self.speechLabel.setPalette(palette)
-        speechBox.addWidget(self.speechLabel)
+        speechBox.addWidget(self.stateLabel)
+        # speechBox.addWidget(self.speechLabel)
         speechGroupBox.setLayout(speechBox)
 
         allWidgetsBox.addWidget(experimentBox)
@@ -329,6 +332,8 @@ class PbDGUI(Plugin):
         state.r_ref_frames
         state.l_ref_frames
         state.objects
+
+        self.stateLabel.setText(state.interaction_state)
             
         if (self.currentStep != state.i_current_step):
             if (self.n_steps() > 0):

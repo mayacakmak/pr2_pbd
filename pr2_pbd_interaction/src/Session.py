@@ -16,11 +16,12 @@ class Session:
 
     def __init__(self, object_list, is_debug=False):
 
-        self._exp_number = None
+        self.current_experiment = None
         self._selected_step = 0
         self._object_list = object_list
         self.pose_set = dict()
         self.lock = threading.Lock()
+        self._interaction_state = 'UNKNOWN'
 
         self._state_publisher = rospy.Publisher('experiment_state',
                                                 ExperimentState)
@@ -38,15 +39,16 @@ class Session:
         else:
             self.switch_to_experiment(self.n_experiments-1, object_list)
 
+
         rospy.Service('get_experiment_state', GetExperimentState,
                       self.get_experiment_state_cb)
 
     def create_new_experiment(self):
 
         self.lock.acquire()
-        self._exp_number = self.n_experiments
+        self.current_experiment = self.n_experiments
         self.n_experiments = self.n_experiments + 1
-        self._data_dir = self._path + '/data/experiment' + str(self._exp_number) + '/'
+        self._data_dir = self._path + '/data/experiment' + str(self.current_experiment) + '/'
         self.actions = dict()
         self.current_action_index = 0
 
@@ -64,9 +66,9 @@ class Session:
 
         self.lock.acquire()
         if (exp_number < self.n_experiments and exp_number >= 0):
-            self._exp_number = exp_number
-            rospy.loginfo('Current experiment: ' + str(self._exp_number))
-            self._data_dir = self._path + '/data/experiment' + str(self._exp_number) + '/'
+            self.current_experiment = exp_number
+            rospy.loginfo('Current experiment: ' + str(self.current_experiment))
+            self._data_dir = self._path + '/data/experiment' + str(self.current_experiment) + '/'
             if (not os.path.exists(self._data_dir)):
                 rospy.logwarn('Directory does not exists for existing experiment, this should not happen.')
             self._load_actions(object_list)
@@ -97,7 +99,7 @@ class Session:
             self.current_action_index = self.n_actions() - 1
             self._current_action().initialize_viz(object_list)
         else:
-            rospy.logwarn('Did not find any actions in experiment ' + str(self._exp_number))
+            rospy.logwarn('Did not find any actions in experiment ' + str(self.current_experiment))
 
     def _count_existing_experiments(self):
         has_found_experiment = True
@@ -129,6 +131,10 @@ class Session:
         self._selected_step = selected_step
         self._update_experiment_state()
 
+    def update_interaction_state(self, state):
+        self._interaction_state = state
+        self._update_experiment_state()
+
     def get_experiment_state_cb(self, dummy):
         ''' Response to the experiment state service call'''
         return GetExperimentStateResponse(self._get_experiment_state())
@@ -143,7 +149,7 @@ class Session:
         self.lock.acquire()
         es = ExperimentState(
                     self.n_experiments,
-                    self._exp_number,
+                    self.current_experiment,
                     self.n_actions(),
                     self.current_action_index,
                     self._get_action_names(),
@@ -154,7 +160,8 @@ class Session:
                     self._get_gripper_states(1),
                     self._get_ref_frames(0),
                     self._get_ref_frames(1),
-                    self._object_list)
+                    self._object_list,
+                    self._interaction_state)
         self.lock.release()
         return es
 

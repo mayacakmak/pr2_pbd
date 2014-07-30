@@ -11,3 +11,4 @@ uint8[] l_gripper_states
 string[] r_ref_frames
 string[] l_ref_frames
 pr2_pbd_interaction/Object[] objects
+string interaction_state
