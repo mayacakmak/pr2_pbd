@@ -218,7 +218,7 @@ class World:
                              ymin + width / 2,
                              height + 0.04), 
                              orientation)
-        dimensions = Vector3(depth, width, 0.01)
+        dimensions = Vector3(width, depth, 0.01)
         self.surface = World._get_surface_marker(pose, dimensions)
         self._im_server.insert(self.surface,
                              self.marker_feedback_cb)
@@ -348,7 +348,7 @@ class World:
         text_pos.z = (World.objects[index].object.pose.position.z +
                      World.objects[index].object.dimensions.z / 2 + 0.06)
         button_control.markers.append(Marker(type=Marker.TEXT_VIEW_FACING,
-                id=index, scale=Vector3(0, 0, 0.06),
+                id=index, scale=Vector3(0, 0, 0.03),
                 text=int_marker.name, color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
                 header=Header(frame_id='base_link'),
                 pose=Pose(text_pos, Quaternion(0, 0, 0, 1))))

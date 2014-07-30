@@ -223,7 +223,7 @@ class Interaction:
         for i in range(n_points):
             point_z = r_traj[i].ee_pose.position.z
             all_z.append(point_z)
-            clusters.append(0) #unassigned    
+            clusters.append(-1) #unassigned    
 
         min_z = min(all_z)
 
@@ -245,17 +245,24 @@ class Interaction:
             clusters[index] = ArmTrajectory.END
             index = index -1
 
-        # Assign mid points based on their diff
+        # Assign mid points based on their diff and z from lowest point
         for i in range(n_points-1):
-            if clusters[i] == 0:
-                point_z = r_traj[i].ee_pose.position.z
-                next_point_z = r_traj[i+1].ee_pose.position.z
-                diff_z = next_point_z - point_z
+            point_z = r_traj[i].ee_pose.position.z
+            if (numpy.abs(point_z - min_z) < 0.12):
+                if clusters[i] != ArmTrajectory.APPLICATION:
 
-                if (diff_z) >= 0:
-                    clusters[i] = ArmTrajectory.EXIT
-                else:
-                    clusters[i] = ArmTrajectory.ENTRY
+                    next_point_z = r_traj[i+1].ee_pose.position.z
+                    diff_z = next_point_z - point_z
+
+                    if (diff_z) >= 0:
+                        clusters[i] = ArmTrajectory.EXIT
+                    else:
+                        clusters[i] = ArmTrajectory.ENTRY
+
+        #Everything else is connectors
+        for i in range(n_points-1):
+            if clusters[i] == -1:
+                clusters[i] = ArmTrajectory.CONNECTOR
 
         # Finally do some smoothing
         for i in range(n_points-2):

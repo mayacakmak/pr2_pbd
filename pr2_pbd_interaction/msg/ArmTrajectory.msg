@@ -3,6 +3,7 @@ uint8 END = 1
 uint8 APPLICATION = 2
 uint8 ENTRY = 3
 uint8 EXIT = 4
+uint8 CONNECTOR = 5
 geometry_msgs/Pose[] table_corners
 ArmState[] rArm
 ArmState[] lArm

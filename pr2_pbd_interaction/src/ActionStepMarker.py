@@ -5,7 +5,7 @@ roslib.load_manifest('pr2_pbd_interaction')
 import numpy
 import rospy
 import tf
-from pr2_pbd_interaction.msg import ActionStep, ArmState, Object, GripperState
+from pr2_pbd_interaction.msg import ActionStep, ArmState, Object, GripperState, ArmTrajectory
 from geometry_msgs.msg import Quaternion, Vector3, Point, Pose
 from std_msgs.msg import Header, ColorRGBA
 from visualization_msgs.msg import Marker, InteractiveMarker
@@ -317,12 +317,12 @@ class ActionStepMarker:
             rospy.logerr('Cannot request trajectory pose ' +
                          'on non-trajectory action step.')
 
-    def get_marker_color(self, index, n_colors):
+    def get_marker_color(self, index, n_colors, is_reds=True):
 
         abs_step_size = 1.0 / float(n_colors - 1) if n_colors > 1 else 0.0
         abs_pos = abs_step_size * index
 
-        if (index % 2 == 0):
+        if is_reds:
             r = 1.0
             g = 1.0 - abs_pos
             b = 0.0
@@ -345,46 +345,9 @@ class ActionStepMarker:
             menu_control = self._make_gripper_marker(menu_control,
                                                   self._is_hand_open())
         elif (self.action_step.type == ActionStep.ARM_TRAJECTORY):
-            n_points = len(self.action_step.armTrajectory.timing)
-            clusters = self.action_step.armTrajectory.clusters
-
-            if (clusters is None) or (len(clusters) == 0):
-
-                rospy.logwarn('Clusters do not have enough points: ' + str(len(clusters)) + ' versus ' + str(n_points))
-                point_list = []
-                for j in range(n_points):
-                    point_list.append(self._get_traj_pose(j).position)
-                menu_control.markers.append(Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
-                                    lifetime=rospy.Duration(2),
-                                    scale=Vector3(0.005, 0.005, 0.005),
-                                    header=Header(frame_id=frame_id),
-                                    color=ColorRGBA(0.6, 0.5, 0.4, 0.8), points=point_list))
-            else:
-
-                cluster_ids = list(set(clusters))
-                n_clusters = len(cluster_ids)
-
-                cluster_colors = dict()
-                point_list = dict()
-                point_markers = dict()
-                for c in range(n_clusters):
-                    cluster_colors[cluster_ids[c]] = self.get_marker_color(c, n_clusters)
-                    point_list[cluster_ids[c]] = []
-
-                for j in range(n_points):
-                    c = clusters[j]
-                    point_list[c].append(self._get_traj_pose(j).position)
-
-                # Plotting the trajectories
-                for c in range(n_clusters):
-                    point_markers[cluster_ids[c]] = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
-                                        lifetime=rospy.Duration(2),
-                                        scale=Vector3(0.01, 0.01, 0.01),
-                                        header=Header(frame_id=frame_id),
-                                        color=cluster_colors[cluster_ids[c]],
-                                        points=point_list[cluster_ids[c]])
-
-                    menu_control.markers.append(point_markers[cluster_ids[c]])
+            
+            self._add_table_markers(menu_control, frame_id)
+            self._add_trajectory_marker(menu_control, frame_id)
 
             # Larger sphere for start point
             menu_control.markers.append(ActionStepMarker.make_sphere_marker(
@@ -416,7 +379,7 @@ class ActionStepMarker:
         text_pos.z = pose.position.z + 0.1
         menu_control.markers.append(Marker(type=Marker.TEXT_VIEW_FACING,
                         id=self.get_uid(), scale=Vector3(0, 0, 0.03),
-                        text='Step' + str(self.step_number),
+                        text='demonstration',
                         color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
                         header=Header(frame_id=frame_id),
                         pose=Pose(text_pos, Quaternion(0, 0, 0, 1))))
@@ -431,6 +394,79 @@ class ActionStepMarker:
         int_marker.controls.append(menu_control)
         ActionStepMarker._im_server.insert(int_marker,
                                            self.marker_feedback_cb)
+
+    def _add_table_markers(self, menu_control, frame_id):
+        corner_poses = self.action_step.armTrajectory.table_corners
+        if (len(corner_poses) == 4):
+            for p in corner_poses:
+                for d in range(3):
+                    start = Point(p.position.x, p.position.y, p.position.z)
+                    end = Point(p.position.x, p.position.y, p.position.z)
+                    if d == 0:
+                        end.x = end.x + 0.05
+                    elif d == 1:
+                        end.y = end.y + 0.05
+                    else:
+                        end.z = end.z + 0.05
+                    menu_control.markers.append(Marker(type=Marker.ARROW, id=self.get_uid(),
+                                        lifetime=rospy.Duration(2),
+                                        scale=Vector3(0.005, 0.005, 0.001),
+                                        header=Header(frame_id=frame_id),
+                                        color=ColorRGBA(0.0, 0.4, 0.0, 0.8), points=[start, end]))
+        else:
+            rospy.logwarn('Table should be specified by four corners!')
+
+    def _add_trajectory_marker(self, menu_control, frame_id):
+        n_points = len(self.action_step.armTrajectory.timing)
+        clusters = self.action_step.armTrajectory.clusters
+
+        if (clusters is None) or (len(clusters) == 0):
+
+            rospy.logwarn('Clusters do not have enough points: ' + str(len(clusters)) + ' versus ' + str(n_points))
+            point_list = []
+            for j in range(n_points):
+                point_list.append(self._get_traj_pose(j).position)
+            menu_control.markers.append(Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
+                                lifetime=rospy.Duration(2),
+                                scale=Vector3(0.005, 0.005, 0.005),
+                                header=Header(frame_id=frame_id),
+                                color=ColorRGBA(0.8, 0.4, 0.0, 0.8), points=point_list))
+
+        # If clusters have been computed, then color the sequence accordingly
+        else:
+            cluster_ids = list(set(clusters))
+            n_clusters = len(cluster_ids)
+
+            cluster_colors = dict()
+            point_list = dict()
+            point_markers = dict()
+            for c in range(n_clusters):
+                if cluster_ids[c] == ArmTrajectory.START or cluster_ids[c] == ArmTrajectory.END:
+                    cluster_colors[cluster_ids[c]] = self.get_marker_color(2, 5)
+                elif cluster_ids[c] == ArmTrajectory.ENTRY:
+                    cluster_colors[cluster_ids[c]] = self.get_marker_color(4, 5)
+                elif cluster_ids[c] == ArmTrajectory.EXIT:
+                    cluster_colors[cluster_ids[c]] = self.get_marker_color(0, 5)
+                elif cluster_ids[c] == ArmTrajectory.CONNECTOR:
+                    cluster_colors[cluster_ids[c]] = ColorRGBA(0.5, 0.5, 0.5, 0.8)
+                else:
+                    cluster_colors[cluster_ids[c]] = self.get_marker_color(3, 5, False)
+                point_list[cluster_ids[c]] = []
+
+            for j in range(n_points):
+                c = clusters[j]
+                point_list[c].append(self._get_traj_pose(j).position)
+
+            # Plotting the trajectories
+            for c in range(n_clusters):
+                point_markers[cluster_ids[c]] = Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
+                                    lifetime=rospy.Duration(2),
+                                    scale=Vector3(0.01, 0.01, 0.01),
+                                    header=Header(frame_id=frame_id),
+                                    color=cluster_colors[cluster_ids[c]],
+                                    points=point_list[cluster_ids[c]])
+
+                menu_control.markers.append(point_markers[cluster_ids[c]])
 
     @staticmethod
     def make_sphere_marker(uid, pose, frame_id, radius):
