@@ -19,17 +19,34 @@ class SimWorld:
 
         self.marker_publisher = rospy.Publisher('ar_pose_marker',
                                                 AlvarMarkers)
-        self.table_poses = {
-            1: Pose(Point(0.5, 0.1, 0.5), Quaternion(0, 0, 1, 1)),
-            2: Pose(Point(0.5, -0.1, 0.5), Quaternion(0, 0, 1, 1)),
-            3: Pose(Point(0.7, 0.1, 0.5), Quaternion(0, 0, 1, 1)),
-            4: Pose(Point(0.7, -0.1, 0.5), Quaternion(0, 0, 1, 1))
-        }
-
         self.tool_pose = Pose(Point(0.5, 0.0, 1.2), Quaternion(0, 1, 0, 1))
+
+        self.table_w = 0.4
+        self.table_h = 0.3
+
+        self.update_table_markers()
+
+    def update_table_markers(self):
+        self.table_poses = {
+            1: Pose(Point(0.4, self.table_w/2, 0.5), Quaternion(0, 0, 1, 1)),
+            2: Pose(Point(0.4, -self.table_w/2, 0.5), Quaternion(0, 0, 1, 1)),
+            3: Pose(Point(0.4 + self.table_h, self.table_w/2, 0.5), Quaternion(0, 0, 1, 1)),
+            4: Pose(Point(0.4 + self.table_h, -self.table_w/2, 0.5), Quaternion(0, 0, 1, 1))
+        }
 
     def get_markers(self):
         m_all = AlvarMarkers()
+
+        tool_id = 99
+        if rospy.has_param('cleaning_tool_id'):
+            tool_id = rospy.get_param('cleaning_tool_id')
+            
+        if rospy.has_param('table_w'):
+            table_w = rospy.get_param('table_w')
+        if rospy.has_param('table_h'):
+            table_h = rospy.get_param('table_h')
+
+        self.update_table_markers()
 
         for k in self.table_poses.keys():
             m = AlvarMarker()
@@ -37,10 +54,6 @@ class SimWorld:
             m.pose.pose = self.table_poses[k]
             m_all.markers.append(m)
 
-        tool_id = 99
-        if rospy.has_param('cleaning_tool_id'):
-            tool_id = rospy.get_param('cleaning_tool_id')
-            
         mt = AlvarMarker()
         mt.id = tool_id
         mt.pose.pose = self.tool_pose

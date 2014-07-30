@@ -78,7 +78,6 @@ class PbDGUI(Plugin):
         self.gui_cmd_publisher = rospy.Publisher('gui_command', GuiCommand)
         
         rospy.Subscriber('experiment_state', ExperimentState, self.exp_state_cb)
-        rospy.Subscriber('robotsound', SoundRequest, self.robotSoundReceived)
         
         QtGui.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
         self.exp_state_sig.connect(self.update_state)
@@ -160,28 +159,37 @@ class PbDGUI(Plugin):
         misc_grid.addStretch(1)
         
         misc_grid2 = QtGui.QHBoxLayout()
-        exp_btn = QtGui.QPushButton("New experiment", self._widget)
-        exp_btn.clicked.connect(self.new_experiment_command)
         self.tool_id_text = QtGui.QLineEdit()
         self.tool_id_text.setText("99")
-        btn = QtGui.QPushButton("Set fake tool ID", self._widget)
-        btn.clicked.connect(self.update_tool_id)
-        misc_grid2.addWidget(exp_btn)
+        self.table_w_text = QtGui.QLineEdit()
+        self.table_w_text.setText("0.4")
+        self.table_h_text = QtGui.QLineEdit()
+        self.table_h_text.setText("0.3")
+        tool_btn = QtGui.QPushButton("Set fake tool ID", self._widget)
+        tool_btn.clicked.connect(self.update_tool_id)
+        table_btn = QtGui.QPushButton("Set fake table dimensions", self._widget)
+        table_btn.clicked.connect(self.update_table_dimensions)
         misc_grid2.addWidget(self.tool_id_text)
-        misc_grid2.addWidget(btn)
+        misc_grid2.addWidget(tool_btn)
+        misc_grid2.addWidget(self.table_w_text)
+        misc_grid2.addWidget(self.table_h_text)
+        misc_grid2.addWidget(table_btn)
         misc_grid2.addStretch(1)
                 
+        misc_grid3 = QtGui.QHBoxLayout()
+        exp_btn = QtGui.QPushButton("New experiment", self._widget)
+        exp_btn.clicked.connect(self.new_experiment_command)
+        misc_grid3.addWidget(exp_btn)
+        misc_grid3.addStretch(1)
+
         speechGroupBox = QGroupBox('Interaction State', self._widget)
         speechGroupBox.setObjectName('RobotSpeechGroup')
         speechBox = QtGui.QHBoxLayout()
         self.stateLabel = QtGui.QLabel('Interaction state information not received yet')
-        self.speechLabel = QtGui.QLabel('Robot has not spoken yet')
         palette = QtGui.QPalette()
         palette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.blue)
         self.stateLabel.setPalette(palette)
-        self.speechLabel.setPalette(palette)
         speechBox.addWidget(self.stateLabel)
-        # speechBox.addWidget(self.speechLabel)
         speechGroupBox.setLayout(speechBox)
 
         allWidgetsBox.addWidget(experimentBox)
@@ -196,8 +204,9 @@ class PbDGUI(Plugin):
         allWidgetsBox.addLayout(misc_grid)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(misc_grid2)
-        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 40))
-        
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
+        allWidgetsBox.addLayout(misc_grid3)
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addWidget(speechGroupBox)
         allWidgetsBox.addStretch(1)
         
@@ -221,6 +230,8 @@ class PbDGUI(Plugin):
         rospy.loginfo('Got response from the experiment state service...')
 
         response = exp_state_srv()
+        self.update_tool_id()
+        self.update_table_dimensions()
         self.update_state(response.state)
 
     def _create_table_view(self, model, row_click_cb):
@@ -238,6 +249,12 @@ class PbDGUI(Plugin):
     def update_tool_id(self):
         tool_id = self.tool_id_text.text()
         rospy.set_param('cleaning_tool_id', int(tool_id))
+
+    def update_table_dimensions(self):
+        table_w = self.table_w_text.text()
+        table_h = self.table_h_text.text()
+        rospy.set_param('table_w', int(table_w))
+        rospy.set_param('table_h', int(table_h))
 
     def get_uid(self, arm_index, index):
         '''Returns a unique id of the marker'''
@@ -468,11 +485,6 @@ class PbDGUI(Plugin):
                 command.command = key
                 self.speech_cmd_publisher.publish(command)
         
-    def robotSoundReceived(self, soundReq):
-        if (soundReq.command == SoundRequest.SAY):
-            qWarning('Robot said: ' + soundReq.arg)
-            self.speechLabel.setText('Robot sound: ' + soundReq.arg)
-    
     def exp_state_cb(self, state):
         qWarning('Received new experiment state.')
         self.exp_state_sig.emit(state)
