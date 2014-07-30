@@ -33,13 +33,16 @@ class ClickableLabel(QtGui.QLabel):
 
 
 class ActionIcon(QtGui.QGridLayout):
-    def __init__(self, parent, index, name, clickCallback):
+    def __init__(self, parent, index, name, clickCallback, is_experiment=False):
         QtGui.QGridLayout.__init__(self)
         self.setSpacing(0)
         path = os.popen('rospack find pr2_pbd_gui').read()
         path = path[0:len(path)-1]
         self.notSelectedIconPath = path + '/icons/actions0.png'
         self.selectedIconPath = path + '/icons/actions1.png'
+        self.notSelectedIconPathExp = path + '/icons/experiments0.png'
+        self.selectedIconPathExp = path + '/icons/experiments1.png'
+        self.is_experiment = is_experiment
         self.selected = True
         self.actionIconWidth = 50
         self.index = index
@@ -52,9 +55,15 @@ class ActionIcon(QtGui.QGridLayout):
     
     def updateView(self):
         if self.selected:
-            pixmap = QtGui.QPixmap(self.selectedIconPath)
+            if self.is_experiment:
+                pixmap = QtGui.QPixmap(self.selectedIconPathExp)
+            else:
+                pixmap = QtGui.QPixmap(self.selectedIconPath)
         else:
-            pixmap = QtGui.QPixmap(self.notSelectedIconPath)
+            if self.is_experiment:
+                pixmap = QtGui.QPixmap(self.notSelectedIconPathExp)
+            else:
+                pixmap = QtGui.QPixmap(self.notSelectedIconPath)
         self.icon.setPixmap(pixmap.scaledToWidth(self.actionIconWidth, QtCore.Qt.SmoothTransformation))
 
     def removeView(self):
@@ -193,6 +202,8 @@ class PbDGUI(Plugin):
         speechGroupBox.setLayout(speechBox)
 
         allWidgetsBox.addWidget(experimentBox)
+        allWidgetsBox.addLayout(misc_grid3)
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addWidget(self.actionBox)
         allWidgetsBox.addLayout(actionButtonGrid)
         
@@ -204,8 +215,6 @@ class PbDGUI(Plugin):
         allWidgetsBox.addLayout(misc_grid)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(misc_grid2)
-        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
-        allWidgetsBox.addLayout(misc_grid3)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addWidget(speechGroupBox)
         allWidgetsBox.addStretch(1)
@@ -253,8 +262,8 @@ class PbDGUI(Plugin):
     def update_table_dimensions(self):
         table_w = self.table_w_text.text()
         table_h = self.table_h_text.text()
-        rospy.set_param('table_w', int(table_w))
-        rospy.set_param('table_h', int(table_h))
+        rospy.set_param('table_w', float(table_w))
+        rospy.set_param('table_h', float(table_h))
 
     def get_uid(self, arm_index, index):
         '''Returns a unique id of the marker'''
@@ -431,8 +440,8 @@ class PbDGUI(Plugin):
         for key in self.experimentIcons.keys():
              self.experimentIcons[key].selected = False
              self.experimentIcons[key].updateView()
-        expIcon = ActionIcon(self._widget, experimentIndex, name, self.experiment_pressed)
-        self.experimentGrid.addLayout(expIcon, int(experimentIndex/nColumns), 
+        expIcon = ActionIcon(self._widget, experimentIndex, name, self.experiment_pressed, True)
+        self.experimentGrid.addLayout(expIcon, int(experimentIndex/nColumns),
                                   experimentIndex%nColumns)
         self.experimentIcons[experimentIndex] = expIcon
 

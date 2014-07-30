@@ -28,10 +28,10 @@ class SimWorld:
 
     def update_table_markers(self):
         self.table_poses = {
-            1: Pose(Point(0.4, self.table_w/2, 0.5), Quaternion(0, 0, 1, 1)),
-            2: Pose(Point(0.4, -self.table_w/2, 0.5), Quaternion(0, 0, 1, 1)),
-            3: Pose(Point(0.4 + self.table_h, self.table_w/2, 0.5), Quaternion(0, 0, 1, 1)),
-            4: Pose(Point(0.4 + self.table_h, -self.table_w/2, 0.5), Quaternion(0, 0, 1, 1))
+            1: Pose(Point(0.4, self.table_w/2.0, 0.5), Quaternion(0, 0, 1, 1)),
+            2: Pose(Point(0.4, -self.table_w/2.0, 0.5), Quaternion(0, 0, 1, 1)),
+            3: Pose(Point(0.4 + self.table_h, self.table_w/2.0, 0.5), Quaternion(0, 0, 1, 1)),
+            4: Pose(Point(0.4 + self.table_h, -self.table_w/2.0, 0.5), Quaternion(0, 0, 1, 1))
         }
 
     def get_markers(self):
@@ -42,9 +42,9 @@ class SimWorld:
             tool_id = rospy.get_param('cleaning_tool_id')
             
         if rospy.has_param('table_w'):
-            table_w = rospy.get_param('table_w')
+            self.table_w = rospy.get_param('table_w')
         if rospy.has_param('table_h'):
-            table_h = rospy.get_param('table_h')
+            self.table_h = rospy.get_param('table_h')
 
         self.update_table_markers()
 

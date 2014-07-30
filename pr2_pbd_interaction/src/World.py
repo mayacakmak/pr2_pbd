@@ -61,6 +61,18 @@ class WorldObject:
         self.is_removed = False
         self.menu_handler.insert('Remove from scene', callback=self.remove)
 
+    def update_pose(self, pose):
+        self.position = pose.position
+        self.orientation = pose.orientation
+        if (self.int_marker != None):
+            self.int_marker.pose = pose
+            self.object.pose = pose
+            self.int_marker.controls[0].markers[0].pose = pose
+            self.int_marker.controls[0].markers[1].pose.position.x = pose.position.x
+            self.int_marker.controls[0].markers[1].pose.position.y = pose.position.y
+            self.int_marker.controls[0].markers[1].pose.position.z = (pose.position.z + 
+                                                self.object.dimensions.z / 2 + 0.06)
+
     def remove(self, dummy):
         '''Function for removing object from the world'''
         rospy.loginfo('Will remove object' + self.get_name())
@@ -269,16 +281,15 @@ class World:
     def _add_new_object(self, pose, dimensions, id=None, mesh=None):
         '''Function to add new objects'''
         dist_threshold = 0.02
-        to_remove = None
 
         for i in range(len(World.objects)):
-            if (World.pose_distance(World.objects[i].object.pose, pose)
-                    < dist_threshold and
-                World.objects[i].marker_id == id):
-                ## This means we are re-detecting the same object
-                ## So we'll just update it's info
-                World.objects[i].int_marker.pose = pose
+            if (World.objects[i].marker_id == id):
+            #if (World.pose_distance(World.objects[i].object.pose, pose)
+            #        < dist_threshold):
+                World.objects[i].update_pose(pose)
                 World.objects[i].last_detected_time = rospy.get_time()
+                self._im_server.setPose(World.objects[i].get_name(), pose)
+                self._im_server.applyChanges()
                 return False
 
         n_objects = len(World.objects)
@@ -299,6 +310,7 @@ class World:
         rospy.loginfo('Removing object ' + obj.int_marker.name)
         self._im_server.erase(obj.int_marker.name)
         self._im_server.applyChanges()
+        del obj
 
     def _remove_surface(self):
         '''Function to request removing surface'''
