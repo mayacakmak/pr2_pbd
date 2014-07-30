@@ -346,21 +346,24 @@ class ActionStepMarker:
                                                   self._is_hand_open())
         elif (self.action_step.type == ActionStep.ARM_TRAJECTORY):
             n_points = len(self.action_step.armTrajectory.timing)
-            cluster_ids = self.action_step.armTrajectory.clusterIDs
             clusters = self.action_step.armTrajectory.clusters
-            n_clusters = len(cluster_ids)
 
-            if len(clusters) != n_points:
+            if (clusters is None) or (len(clusters) == 0):
+
                 rospy.logwarn('Clusters do not have enough points: ' + str(len(clusters)) + ' versus ' + str(n_points))
                 point_list = []
                 for j in range(n_points):
                     point_list.append(self._get_traj_pose(j).position)
                 menu_control.markers.append(Marker(type=Marker.SPHERE_LIST, id=self.get_uid(),
                                     lifetime=rospy.Duration(2),
-                                    scale=Vector3(0.01, 0.01, 0.01),
+                                    scale=Vector3(0.005, 0.005, 0.005),
                                     header=Header(frame_id=frame_id),
-                                    color=ColorRGBA(1.0, 0.5, 0.0, 0.8), points=point_list))
+                                    color=ColorRGBA(0.6, 0.5, 0.4, 0.8), points=point_list))
             else:
+
+                cluster_ids = list(set(clusters))
+                n_clusters = len(cluster_ids)
+
                 cluster_colors = dict()
                 point_list = dict()
                 point_markers = dict()

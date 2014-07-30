@@ -202,8 +202,8 @@ class World:
 
         pts = [World.objects[pts_ind[0]].position, World.objects[pts_ind[1]].position,
             World.objects[pts_ind[2]].position, World.objects[pts_ind[3]].position]
-        poses = [World.objects[pts_ind[0]], World.objects[pts_ind[1]],
-            World.objects[pts_ind[2]], World.objects[pts_ind[3]]]
+        poses = [World.objects[pts_ind[0]].object.pose, World.objects[pts_ind[1]].object.pose,
+            World.objects[pts_ind[2]].object.pose, World.objects[pts_ind[3]].object.pose]
         height = World.objects[pts_ind[0]].position.z
         orientation = World.objects[pts_ind[0]].orientation
         

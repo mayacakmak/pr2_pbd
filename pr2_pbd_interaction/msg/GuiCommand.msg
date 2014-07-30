@@ -1,6 +1,8 @@
-string SWITCH_TO_ACTION = switch-to-action
-string SELECT_ACTION_STEP = select-action-step
-string SWITCH_TO_EXPERIMENT = switch-to-experiment
-string NEW_EXPERIMENT = new-experiment
+string SWITCH_TO_ACTION = SWITCH_TO_ACTION
+string SELECT_ACTION_STEP = SELECT_ACTION_STEP
+string SWITCH_TO_EXPERIMENT = SWITCH_TO_EXPERIMENT
+string NEW_EXPERIMENT = NEW_EXPERIMENT
+string COMPUTE_CLUSTERS = COMPUTE_CLUSTERS
+string COMPUTE_TRAJECTORY = COMPUTE_TRAJECTORY
 string command
 uint8 param

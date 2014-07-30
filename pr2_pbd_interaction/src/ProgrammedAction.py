@@ -298,6 +298,13 @@ class ProgrammedAction:
         self.l_links = dict()
         self.lock.release()
 
+    def update_trajectory(self, clusters=None):
+        step = self.get_step(0)
+        step_viz = self.r_markers[0].action_step
+        step.armTrajectory.clusters = clusters
+        step_viz.armTrajectory.clusters = clusters
+        self.r_markers[0].update_viz()
+
     def marker_click_cb(self, uid, is_selected):
         '''Callback for when one of the markers is clicked.
         Goes over all markers and un-selects them'''
@@ -351,6 +358,18 @@ class ProgrammedAction:
 
         self.update_markers()
         self.lock.release()
+
+    def get_trajectory(self):
+        if self.n_frames() == 1:
+            step = self.get_step(0)
+            if step.type == ActionStep.ARM_TRAJECTORY:
+                return step.armTrajectory
+            else:
+                rospy.logwarn('Action should only have one trajectory step.')
+                return None
+        else:
+            rospy.logwarn('Action should not have more than one trajectory step.')
+            return None
 
     def get_last_step(self):
         '''Returns the last step of the action'''
@@ -444,8 +463,6 @@ class ProgrammedAction:
         elif (copy.type == ActionStep.ARM_TRAJECTORY):
             copy.armTrajectory = ArmTrajectory()
             copy.armTrajectory.timing = action_step.armTrajectory.timing[:]
-            copy.armTrajectory.clusters = action_step.armTrajectory.clusters
-            copy.armTrajectory.clusterIDs = action_step.armTrajectory.clusterIDs
             n_points = len(action_step.armTrajectory.timing)
             for j in range(n_points):
                 copy.armTrajectory.rArm.append(
@@ -463,6 +480,12 @@ class ProgrammedAction:
             l_obj = action_step.armTrajectory.lRefFrameObject
             copy.armTrajectory.rRefFrameObject = r_obj
             copy.armTrajectory.lRefFrameObject = l_obj
+
+            copy.armTrajectory.table_corners = action_step.armTrajectory.table_corners
+            copy.armTrajectory.clusters = action_step.armTrajectory.clusters
+            copy.armTrajectory.repetitions = action_step.armTrajectory.repetitions
+            copy.armTrajectory.landmarks = action_step.armTrajectory.landmarks
+
         copy.gripperAction = GripperAction(action_step.gripperAction.rGripper,
                                            action_step.gripperAction.lGripper)
         return copy

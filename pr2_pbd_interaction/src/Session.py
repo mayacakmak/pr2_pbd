@@ -20,6 +20,7 @@ class Session:
         self._selected_step = 0
         self._object_list = object_list
         self.pose_set = dict()
+        self.actions = dict()
         self.lock = threading.Lock()
         self._interaction_state = 'UNKNOWN'
 
@@ -66,6 +67,9 @@ class Session:
 
         self.lock.acquire()
         if (exp_number < self.n_experiments and exp_number >= 0):
+            act = self._current_action()
+            if act is not None:
+                act.reset_viz()
             self.current_experiment = exp_number
             rospy.loginfo('Current experiment: ' + str(self.current_experiment))
             self._data_dir = self._path + '/data/experiment' + str(self.current_experiment) + '/'
@@ -211,16 +215,16 @@ class Session:
             self.actions.update({self.current_action_index:
                                  ProgrammedAction(tool_name,
                                                   self._selected_step_cb)})
-            no_demo_exists = True
+            demo_exists = False
         else:
             rospy.logwarn('Demonstration for this tool already exists.')
             self.current_action_index = self.actions.keys()[names.index(tool_name)]
             self._current_action().initialize_viz(object_list)
-            no_demo_exists = False
+            demo_exists = True
 
         self.lock.release()
         self._update_experiment_state()
-        return no_demo_exists
+        return demo_exists
 
     def n_actions(self):
         '''Returns the number of actions programmed so far'''
@@ -241,14 +245,18 @@ class Session:
         return ca
 
     def _current_action(self):
-        return self.actions[self.current_action_index]
+        if (len(self.actions) > 0):
+            return self.actions[self.current_action_index]
+        else:
+            rospy.logwarn('No demonstrations yet.')
+            return None
 
     def clear_current_action(self):
         '''Removes all steps in the current action'''
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].clear()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
         self._update_experiment_state()
 
     def undo_clear(self):
@@ -256,7 +264,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].undoClear()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
         self._update_experiment_state()
 
     def save_current_action(self):
@@ -264,7 +272,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].save(self._data_dir)
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
 
     def add_step_to_action(self, step, object_list):
         '''Add a new step to the current action'''
@@ -272,7 +280,7 @@ class Session:
             self.actions[self.current_action_index].add_action_step(step,
                                                                 object_list)
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
         self._object_list = object_list
         self._update_experiment_state()
 
@@ -281,7 +289,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].delete_last_step()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
         self._update_experiment_state()
 
     def repeat_step(self):
@@ -289,7 +297,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].repeat_step()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
         self._update_experiment_state()
         
     def resume_deleted_step(self):
@@ -297,7 +305,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].resume_deleted_step()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
         self._update_experiment_state()
 
     def is_current_tool(self, id):
@@ -320,7 +328,7 @@ class Session:
                               + str(action_number))
                 success = False
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
             success = False
         self._object_list = object_list
         self._update_experiment_state()
@@ -337,7 +345,7 @@ class Session:
             else:
                 success = False
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
             success = False
         self._object_list = object_list
         self._update_experiment_state()
@@ -354,7 +362,7 @@ class Session:
             else:
                 success = False
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
             success = False
         self._object_list = object_list
         self._update_experiment_state()
@@ -365,7 +373,7 @@ class Session:
         if (self.n_actions() > 0):
             return self.actions[self.current_action_index].n_frames()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
             return 0
     
     def frame_types(self):
@@ -373,5 +381,5 @@ class Session:
         if (self.n_actions() > 0):
             return self.actions[self.current_action_index].frame_types()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No demonstrations yet.')
             return []

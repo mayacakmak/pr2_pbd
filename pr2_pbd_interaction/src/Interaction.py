@@ -210,14 +210,13 @@ class Interaction:
         self.busy = False
 
 
-    def cluster_demonstration(self):
+    def _cluster_demonstration(self, arm_trajectory):
         ''' Find meaningful clusters in the trajectory'''
 
-        clusterIDs = [1, 2, 3, 4, 5]  #entry, re-entry, application, re-exit, exit
         clusters = []
         
-        n_points = len(Interaction._arm_trajectory.timing)
-        r_traj = Interaction._arm_trajectory.rArm[:]
+        n_points = len(arm_trajectory.timing)
+        r_traj = arm_trajectory.rArm[:]
 
         # First determine the lowest point in the trajectory
         all_z = []
@@ -232,18 +231,18 @@ class Interaction:
         for i in range(n_points):
             point_z = r_traj[i].ee_pose.position.z
             if (numpy.abs(point_z - min_z) < 0.04):
-                clusters[i] = 3
+                clusters[i] = ArmTrajectory.APPLICATION
 
         # Assign points at the beginning as entry
         index = 0
-        while (clusters[index] != 3):
-            clusters[index] = 1
+        while (clusters[index] != ArmTrajectory.APPLICATION):
+            clusters[index] = ArmTrajectory.START
             index = index + 1
 
         # Assign points at the end beginning as exit
         index = n_points - 1
-        while (clusters[index] != 3):
-            clusters[index] = 5
+        while (clusters[index] != ArmTrajectory.APPLICATION):
+            clusters[index] = ArmTrajectory.END
             index = index -1
 
         # Assign mid points based on their diff
@@ -254,9 +253,9 @@ class Interaction:
                 diff_z = next_point_z - point_z
 
                 if (diff_z) >= 0:
-                    clusters[i] = 4
+                    clusters[i] = ArmTrajectory.EXIT
                 else:
-                    clusters[i] = 2
+                    clusters[i] = ArmTrajectory.ENTRY
 
         # Finally do some smoothing
         for i in range(n_points-2):
@@ -267,7 +266,18 @@ class Interaction:
             if c1==c3 and c1!=c2:
                 clusters[i+1] = c1
         
-        return clusterIDs, clusters
+        return clusters
+
+    def compute_clusters(self):
+        action = self.session.get_current_action()
+        if action is not None:
+            arm_trajectory = action.get_trajectory()
+            clusters = self._cluster_demonstration(arm_trajectory)
+            action.update_trajectory(clusters)
+
+    def compute_trajectory(self):
+        #TODO
+        pass
 
     def stop_recording(self, dummy=None):
         '''Stops recording continuous motion'''
@@ -277,28 +287,28 @@ class Interaction:
             
             traj_step = ActionStep()
             traj_step.type = ActionStep.ARM_TRAJECTORY
-
             waited_time = Interaction._arm_trajectory.timing[0]
-
             n_points = len(Interaction._arm_trajectory.timing)
             for i in range(n_points):
                 Interaction._arm_trajectory.timing[i] -= waited_time
                 Interaction._arm_trajectory.timing[i] += rospy.Duration(0.1)
             
             self._demo_state = DemoState.HAS_RECORDED_DEMO
-            clusterIDs, clusters = self.cluster_demonstration()
 
             '''If motion was relative, record transformed pose'''
             traj_step.armTrajectory = ArmTrajectory(
-                clusterIDs,
-                clusters,
+                self.surface,
                 Interaction._arm_trajectory.rArm[:],
                 Interaction._arm_trajectory.lArm[:],
                 Interaction._arm_trajectory.timing[:],
                 Interaction._arm_trajectory.rRefFrame,
                 Interaction._arm_trajectory.lRefFrame,
                 Interaction._arm_trajectory.rRefFrameObject,
-                Interaction._arm_trajectory.lRefFrameObject)
+                Interaction._arm_trajectory.lRefFrameObject,
+                [],
+                [],
+                []
+            )
             
             traj_step.gripperAction = GripperAction(
                                         self.arms.get_gripper_state(0),
@@ -312,9 +322,11 @@ class Interaction:
             Interaction._trajectory_start_time = None
             self.session.save_current_action()
             self.freeze_arm(0)
-
+            
             Response.say(RobotSpeech.STOPPED_RECORDING)
             Response.perform_gaze_action(GazeGoal.NOD)
+            time.sleep(1.5)
+            self._move_to_arm_pose('ready', 0, wait=True)
 
         else:
 
@@ -505,6 +517,12 @@ class Interaction:
                         [RobotSpeech.SWITCH_SKILL + tool_name,
                          GazeGoal.NOD])
                     response.respond()
+                elif (command.command == GuiCommand.COMPUTE_CLUSTERS):
+                    self.compute_clusters()
+                    rospy.loginfo('Computing clusters.')
+                elif (command.command == GuiCommand.COMPUTE_TRAJECTORY):
+                    self.compute_trajectory()
+                    rospy.loginfo('Computing trajectory.')
                 elif (command.command == GuiCommand.SELECT_ACTION_STEP):
                     step_no = command.param
                     self.session.select_action_step(step_no)

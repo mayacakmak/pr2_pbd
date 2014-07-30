@@ -191,6 +191,15 @@ class PbDGUI(Plugin):
         misc_grid3.addWidget(exp_btn)
         misc_grid3.addStretch(1)
 
+        misc_grid4 = QtGui.QHBoxLayout()
+        c_btn = QtGui.QPushButton("Compute clusters", self._widget)
+        c_btn.clicked.connect(self.compute_clusters_command)
+        t_btn = QtGui.QPushButton("Compute trajectory", self._widget)
+        t_btn.clicked.connect(self.compute_trajectory_command)
+        misc_grid4.addWidget(c_btn)
+        misc_grid4.addWidget(t_btn)
+        misc_grid4.addStretch(1)
+
         speechGroupBox = QGroupBox('Interaction State', self._widget)
         speechGroupBox.setObjectName('RobotSpeechGroup')
         speechBox = QtGui.QHBoxLayout()
@@ -215,6 +224,8 @@ class PbDGUI(Plugin):
         allWidgetsBox.addLayout(misc_grid)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addLayout(misc_grid2)
+        allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
+        allWidgetsBox.addLayout(misc_grid4)
         allWidgetsBox.addItem(QtGui.QSpacerItem(100, 20))
         allWidgetsBox.addWidget(speechGroupBox)
         allWidgetsBox.addStretch(1)
@@ -451,6 +462,14 @@ class PbDGUI(Plugin):
 
     def new_experiment_command(self):
         gui_cmd = GuiCommand(GuiCommand.NEW_EXPERIMENT, 0)
+        self.gui_cmd_publisher.publish(gui_cmd)
+
+    def compute_clusters_command(self):
+        gui_cmd = GuiCommand(GuiCommand.COMPUTE_CLUSTERS, 0)
+        self.gui_cmd_publisher.publish(gui_cmd)
+
+    def compute_trajectory_command(self):
+        gui_cmd = GuiCommand(GuiCommand.COMPUTE_TRAJECTORY, 0)
         self.gui_cmd_publisher.publish(gui_cmd)
 
     def action_pressed(self, actionIndex, isPublish=True):
