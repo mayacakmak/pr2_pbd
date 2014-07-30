@@ -4,6 +4,6 @@
 
   <include file="$(find pr2_gazebo)/launch/pr2_table_object.launch"/>
 
-  <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="simulated_world.py" output="screen" />
+  <!-- <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="simulated_world.py" output="screen" /> -->
 
 </launch>

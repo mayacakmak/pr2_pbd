@@ -553,7 +553,7 @@ class World:
                 self._publish_tf_pose(World.objects[i].object.pose,
                     World.objects[i].get_name(), 'base_link')
                 marker_age = rospy.get_time() - World.objects[i].last_detected_time
-                World._update_marker_text(i, ' (' + str(marker_age) + 'seconds old)')        
+                #World._update_marker_text(i, ' (' + str(marker_age) + 'seconds old)')        
                 
                 if (marker_age > 2.0):
                     to_remove = i

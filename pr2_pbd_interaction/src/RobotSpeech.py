@@ -17,6 +17,9 @@ class RobotSpeech:
     STARTED_REPLAY = 'Started replay of demonstration.'
     ENDED_REPLAY = 'Replay complete.'
 
+    SWITCH_SKILL = 'Switched to demonstration for '
+    SWITCH_EXPERIMENT = 'Switched to experiment'
+
     ERROR_NO_SURFACE = 'Could not detect surface.'
     ERROR_TOOL_NOT_RECOGNIZED = 'Tool not recognized. Please take it.'
     ERROR_NOT_IN_TAKE_STATE = 'Cannot take tool in current state.'
@@ -43,7 +46,6 @@ class RobotSpeech:
     DELETED_SKILL = 'Deleted action'
     START_EXECUTION = 'Starting execution of action'
     EXECUTION_ENDED = 'Execution ended'
-    SWITCH_SKILL = 'Switched to action'
     SKILL_EMPTY = 'Skill has no poses to delete.'
     EXECUTION_ERROR_NOIK = 'Cannot execute action'
     EXECUTION_ERROR_NOPOSES = 'Not enough poses in action'

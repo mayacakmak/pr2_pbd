@@ -4,6 +4,7 @@ from ProgrammedAction import ProgrammedAction
 import rospy
 import os
 import yaml
+import threading
 import rospkg
 from pr2_pbd_interaction.msg import ExperimentState
 from pr2_pbd_interaction.srv import GetExperimentState
@@ -19,6 +20,7 @@ class Session:
         self._selected_step = 0
         self._object_list = object_list
         self.pose_set = dict()
+        self.lock = threading.Lock()
 
         self._state_publisher = rospy.Publisher('experiment_state',
                                                 ExperimentState)
@@ -26,9 +28,9 @@ class Session:
         self._path = rospack.get_path('pr2_pbd_interaction')
         self._pose_dir = self._path + '/data/'
 
-        self.load_arm_poses()
+        self._load_arm_poses()
 
-        self.n_experiments = self.count_existing_experiments()
+        self.n_experiments = self._count_existing_experiments()
         rospy.loginfo(str(self.n_experiments) + ' experiments already exist.')
 
         if (self.n_experiments == 0):
@@ -41,6 +43,7 @@ class Session:
 
     def create_new_experiment(self):
 
+        self.lock.acquire()
         self._exp_number = self.n_experiments
         self.n_experiments = self.n_experiments + 1
         self._data_dir = self._path + '/data/experiment' + str(self._exp_number) + '/'
@@ -54,25 +57,26 @@ class Session:
         else:
             os.mkdir(self._data_dir)
 
+        self.lock.release()
         self._update_experiment_state()
 
     def switch_to_experiment(self, exp_number, object_list):
 
+        self.lock.acquire()
         if (exp_number < self.n_experiments and exp_number >= 0):
             self._exp_number = exp_number
+            rospy.loginfo('Current experiment: ' + str(self._exp_number))
             self._data_dir = self._path + '/data/experiment' + str(self._exp_number) + '/'
-
             if (not os.path.exists(self._data_dir)):
                 rospy.logwarn('Directory does not exists for existing experiment, this should not happen.')
-            
-            self.load_actions(object_list)
-
+            self._load_actions(object_list)
         else:
             rospy.logerr('Cannot switch to experiment ' + str(exp_number))
 
+        self.lock.release()
         self._update_experiment_state()
 
-    def load_actions(self, object_list):
+    def _load_actions(self, object_list):
         self.current_action_index = 0
         self.actions = dict()
 
@@ -82,22 +86,20 @@ class Session:
                 name = pose_file_name[0:pose_file_name.index('.')]
                 extension = pose_file_name[(pose_file_name.index('.')+1):(len(pose_file_name)+1)]
                 if (extension == 'bag'):
-                    dummy_action = ProgrammedAction(0, self._selected_step_cb)
+                    dummy_action = ProgrammedAction(name, self._selected_step_cb)
                     dummy_action.load(self._data_dir, name)
-                    self.actions.update({self.current_action_index:
-                                     ProgrammedAction(name,
-                                                      self._selected_step_cb)})
+                    self.actions.update({self.current_action_index: dummy_action})
                     self.current_action_index = self.current_action_index + 1
                     print 'Loaded existing demo ', pose_file_name, 'with', dummy_action.n_frames(), 'frames.'
 
         # Stay at the last action..
         if (self.n_actions() > 0):
             self.current_action_index = self.n_actions() - 1
-            self.get_current_action().initialize_viz(object_list)
+            self._current_action().initialize_viz(object_list)
         else:
             rospy.logwarn('Did not find any actions in experiment ' + str(self._exp_number))
 
-    def count_existing_experiments(self):
+    def _count_existing_experiments(self):
         has_found_experiment = True
         n_experiments = 0
         while (has_found_experiment):
@@ -108,7 +110,7 @@ class Session:
                 n_experiments = n_experiments + 1
         return n_experiments
 
-    def load_arm_poses(self):
+    def _load_arm_poses(self):
         pose_files = os.listdir(self._pose_dir)
         for pose_file_name in pose_files:
             if pose_file_name.count('.') > 0:
@@ -138,7 +140,8 @@ class Session:
 
     def _get_experiment_state(self):
         ''' Creates a message with the latest state'''
-        return ExperimentState(
+        self.lock.acquire()
+        es = ExperimentState(
                     self.n_experiments,
                     self._exp_number,
                     self.n_actions(),
@@ -152,6 +155,8 @@ class Session:
                     self._get_ref_frames(0),
                     self._get_ref_frames(1),
                     self._object_list)
+        self.lock.release()
+        return es
 
     def _get_action_names(self):
         names = []
@@ -185,34 +190,50 @@ class Session:
         self.actions[self.current_action_index].select_step(step_id)
         self._selected_step = step_id
 
-    def new_action(self, action_id, object_list):
+    def new_action(self, tool_id, object_list):
         '''Creates new action'''
-        tool_name = 'Tool' + str(action_id)
+        self.lock.acquire()
+        tool_name = 'Tool' + str(tool_id)
         names = self._get_action_names()
 
         if (self.n_actions() > 0):
-            self.get_current_action().reset_viz()
+            self._current_action().reset_viz()
 
         if names.count(tool_name) == 0:
+            self.current_action_index = self.n_actions()
             self.actions.update({self.current_action_index:
                                  ProgrammedAction(tool_name,
                                                   self._selected_step_cb)})
-            self.current_action_index = self.n_actions() - 1
-            self._update_experiment_state()
-            return True
+            no_demo_exists = True
         else:
             rospy.logwarn('Demonstration for this tool already exists.')
             self.current_action_index = self.actions.keys()[names.index(tool_name)]
-            self._update_experiment_state()
-            self.get_current_action().initialize_viz(object_list)
-            return False
+            self._current_action().initialize_viz(object_list)
+            no_demo_exists = False
+
+        self.lock.release()
+        self._update_experiment_state()
+        return no_demo_exists
 
     def n_actions(self):
         '''Returns the number of actions programmed so far'''
         return len(self.actions)
 
+    def current_action_has_demo(self):
+        '''Returns the current action'''
+        self.lock.acquire()
+        ca = self._current_action()
+        self.lock.release()
+        return (ca.n_frames() > 0)
+
     def get_current_action(self):
         '''Returns the current action'''
+        self.lock.acquire()
+        ca = self._current_action()
+        self.lock.release()
+        return ca
+
+    def _current_action(self):
         return self.actions[self.current_action_index]
 
     def clear_current_action(self):
@@ -272,13 +293,20 @@ class Session:
             rospy.logwarn('No skills created yet.')
         self._update_experiment_state()
 
+    def is_current_tool(self, id):
+        tool_name = 'Tool' + str(id)
+        self.lock.acquire()
+        current_tool_name = self._current_action().name
+        self.lock.release()
+        return (tool_name == current_tool_name)
+
     def switch_to_action(self, action_number, object_list):
         '''Switches to indicated action'''
         if (self.n_actions() > 0):
-            if (action_number <= self.n_actions() and action_number > 0):
-                self.get_current_action().reset_viz()
+            if (action_number < self.n_actions() and action_number >= 0):
+                self._current_action().reset_viz()
                 self.current_action_index = action_number
-                self.get_current_action().initialize_viz(object_list)
+                self._current_action().initialize_viz(object_list)
                 success = True
             else:
                 rospy.logwarn('Cannot switch to action '
@@ -295,9 +323,9 @@ class Session:
         '''Switches to next action'''
         if (self.n_actions() > 0):
             if (self.current_action_index < self.n_actions()):
-                self.get_current_action().reset_viz()
+                self._current_action().reset_viz()
                 self.current_action_index += 1
-                self.get_current_action().initialize_viz(object_list)
+                self._current_action().initialize_viz(object_list)
                 success = True
             else:
                 success = False
@@ -312,9 +340,9 @@ class Session:
         '''Switches to previous action'''
         if (self.n_actions() > 0):
             if (self.current_action_index > 1):
-                self.get_current_action().reset_viz()
+                self._current_action().reset_viz()
                 self.current_action_index -= 1
-                self.get_current_action().initialize_viz(object_list)
+                self._current_action().initialize_viz(object_list)
                 success = True
             else:
                 success = False

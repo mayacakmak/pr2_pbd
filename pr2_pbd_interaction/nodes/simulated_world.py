@@ -19,25 +19,34 @@ class SimWorld:
 
         self.marker_publisher = rospy.Publisher('ar_pose_marker',
                                                 AlvarMarkers)
-        self.m_poses = {
+        self.table_poses = {
             1: Pose(Point(0.5, 0.1, 0.5), Quaternion(0, 0, 1, 1)),
             2: Pose(Point(0.5, -0.1, 0.5), Quaternion(0, 0, 1, 1)),
             3: Pose(Point(0.7, 0.1, 0.5), Quaternion(0, 0, 1, 1)),
-            4: Pose(Point(0.7, -0.1, 0.5), Quaternion(0, 0, 1, 1)),
-            99: Pose(Point(0.5, 0.0, 1.2), Quaternion(0, 1, 0, 1))
+            4: Pose(Point(0.7, -0.1, 0.5), Quaternion(0, 0, 1, 1))
         }
+
+        self.tool_pose = Pose(Point(0.5, 0.0, 1.2), Quaternion(0, 1, 0, 1))
 
     def get_markers(self):
         m_all = AlvarMarkers()
 
-        for k in self.m_poses.keys():
+        for k in self.table_poses.keys():
             m = AlvarMarker()
             m.id = k
-            m.pose.pose = self.m_poses[k]
+            m.pose.pose = self.table_poses[k]
             m_all.markers.append(m)
 
-        return m_all
+        tool_id = 99
+        if rospy.has_param('cleaning_tool_id'):
+            tool_id = rospy.get_param('cleaning_tool_id')
+            
+        mt = AlvarMarker()
+        mt.id = tool_id
+        mt.pose.pose = self.tool_pose
+        m_all.markers.append(mt)
 
+        return m_all
 
     def update(self):
         m = self.get_markers()

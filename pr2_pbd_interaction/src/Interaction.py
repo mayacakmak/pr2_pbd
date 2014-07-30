@@ -51,6 +51,7 @@ class Interaction:
         self._viz_publisher = rospy.Publisher('visualization_marker_array', MarkerArray)
         self._demo_state = None
         self._is_busy = True
+        self.action_exists = False
 
         self.torso_client = SimpleActionClient('torso_controller/position_joint_action',
                                                           SingleJointPositionAction)
@@ -94,6 +95,7 @@ class Interaction:
     def take_tool(self, arm_index):
         '''Robot's response to TAKE_TOOL'''
         self._is_busy = True
+        self.action_exists = False
         if self._demo_state == DemoState.READY_TO_TAKE:
             ## Robot closes the hand
             Arms.set_gripper_state(arm_index, GripperState.CLOSED, wait=True)
@@ -112,8 +114,13 @@ class Interaction:
                 self.arms.set_gripper_state(0, GripperState.OPEN, wait=True)
                 self._demo_state = DemoState.NO_TOOL_NO_SURFACE
             else:
-                self.session.new_action(self.tool_id, self.world.get_frame_list())
-                Response.say(RobotSpeech.RECOGNIZED_TOOL + str(self.tool_id))
+                self.action_exists = self.session.new_action(self.tool_id, self.world.get_frame_list())
+                if (self.action_exists):
+                    Response.say(RobotSpeech.RECOGNIZED_TOOL + str(self.tool_id) 
+                                    + '. A demonstration already exists for tool ' + str(self.tool_id))
+                else:
+                    Response.say(RobotSpeech.RECOGNIZED_TOOL + str(self.tool_id))
+
                 self._demo_state = DemoState.HAS_TOOL_NO_SURFACE
                 self.detect_surface()
         else:
@@ -141,8 +148,12 @@ class Interaction:
             else:
                 Response.say(RobotSpeech.SURFACE_DETECTED)
                 self._move_to_arm_pose('ready', 0, wait=True)
-                Response.say(RobotSpeech.READY_FOR_DEMO)
-                self._demo_state = DemoState.READY_FOR_DEMO
+                if self.action_exists:
+                    Response.say('Ready for a new demonstration or replay of existing demonstration.')
+                    self._demo_state = DemoState.HAS_RECORDED_DEMO
+                else:
+                    Response.say(RobotSpeech.READY_FOR_DEMO)
+                    self._demo_state = DemoState.READY_FOR_DEMO
 
         self._is_busy = False
 
@@ -168,6 +179,11 @@ class Interaction:
         self.busy = True
         if (self._demo_state == DemoState.READY_FOR_DEMO or
             self._demo_state == DemoState.HAS_RECORDED_DEMO):
+
+            if not self.session.is_current_tool(self.tool_id):
+                Response.say('Switching to tool ' + str(self.tool_id) + ' first.')
+                time.sleep(0.5)
+                self.session.new_action(self.tool_id, self.world.get_frame_list())
 
             Interaction._arm_trajectory = ArmTrajectory()
             Interaction._trajectory_start_time = rospy.Time.now()
@@ -265,6 +281,7 @@ class Interaction:
                 Interaction._arm_trajectory.timing[i] -= waited_time
                 Interaction._arm_trajectory.timing[i] += rospy.Duration(0.1)
             
+            self._demo_state = DemoState.HAS_RECORDED_DEMO
             clusterIDs, clusters = self.cluster_demonstration()
 
             '''If motion was relative, record transformed pose'''
@@ -292,8 +309,6 @@ class Interaction:
             self.session.save_current_action()
             self.freeze_arm(0)
 
-            self._demo_state = DemoState.HAS_RECORDED_DEMO
-
             Response.say(RobotSpeech.STOPPED_RECORDING)
             Response.perform_gaze_action(GazeGoal.NOD)
 
@@ -310,11 +325,21 @@ class Interaction:
         self.busy = True
         execution_z_offset = 0.00
         if (self._demo_state == DemoState.HAS_RECORDED_DEMO):
-            self.session.save_current_action()
-            action = self.session.get_current_action()
-            self.arms.start_execution(action, execution_z_offset)
-            Response.say(RobotSpeech.STARTED_REPLAY)
-            self._demo_state = DemoState.PLAYING_DEMO
+            
+            if self.session.current_action_has_demo():
+                if not self.session.is_current_tool(self.tool_id):
+                    Response.say('Warning. The demonstration does not match the current tool.')
+                    time.sleep(1.5)
+
+                self.session.save_current_action()
+                action = self.session.get_current_action()
+                self.arms.start_execution(action, execution_z_offset)
+                Response.say(RobotSpeech.STARTED_REPLAY)
+                self._demo_state = DemoState.PLAYING_DEMO
+            else:
+                Response.say('A demonstration has not been recorded yet.')
+                Response.perform_gaze_action(GazeGoal.SHAKE)
+                self._demo_state = DemoState.READY_FOR_DEMO
         else:
             Response.say(RobotSpeech.ERROR_CANNOT_REPLAY)
             Response.perform_gaze_action(GazeGoal.SHAKE)
@@ -459,48 +484,45 @@ class Interaction:
                     rospy.logwarn('Ignoring speech command during execution or busy: '
                                   + command.command)
         else:
-            switch_command = 'SWITCH_TO_ACTION'
-            if (switch_command in command.command):
-                action_no = command.command[
-                                len(switch_command):len(command.command)]
-                action_no = int(action_no)
-                if (self.session.n_actions() > 0):
-                    self.session.switch_to_action(action_no,
-                                                  self.world.get_frame_list())
-                    response = Response(self.default_response,
-                        [RobotSpeech.SWITCH_SKILL + str(action_no),
-                         GazeGoal.NOD])
-                else:
-                    response = Response(self.default_response,
-                        [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
-                response.respond()
-            else:
-                rospy.logwarn('\033[32m This command (' + command.command
+            rospy.logwarn('\033[32m This command (' + command.command
                               + ') is unknown. \033[0m')
 
     def gui_command_cb(self, command):
         '''Callback for when a GUI command is received'''
         if (not self.arms.is_executing()):
-            if (self.session.n_actions() > 0):
+            if ((self._demo_state != DemoState.RECORDING_DEMO) and
+                (self._demo_state != DemoState.PLAYING_DEMO)):
                 if (command.command == GuiCommand.SWITCH_TO_ACTION):
                     action_no = command.param
                     self.session.switch_to_action(action_no,
                                                   self.world.get_frame_list())
+                    tool_name = self.session.get_current_action().name
                     response = Response(self.default_response,
-                        [RobotSpeech.SWITCH_SKILL + str(action_no),
+                        [RobotSpeech.SWITCH_SKILL + tool_name,
                          GazeGoal.NOD])
                     response.respond()
                 elif (command.command == GuiCommand.SELECT_ACTION_STEP):
                     step_no = command.param
                     self.session.select_action_step(step_no)
                     rospy.loginfo('Selected action step ' + str(step_no))
+                elif (command.command == GuiCommand.NEW_EXPERIMENT):
+                    self.session.create_new_experiment()
+                    Response.say('Created experiment ' + str(self.session.current_experiment))
+                    Response.perform_gaze_action(GazeGoal.NOD)
+                elif (command.command == GuiCommand.SWITCH_TO_EXPERIMENT):
+                    exp_no = command.param
+                    self.session.switch_to_experiment(exp_no,
+                                                  self.world.get_frame_list())
+                    response = Response(self.default_response,
+                        [RobotSpeech.SWITCH_EXPERIMENT + str(exp_no),
+                         GazeGoal.NOD])
+                    response.respond()
                 else:
                     rospy.logwarn('\033[32m This command (' + command.command
                                   + ') is unknown. \033[0m')
             else:
-                response = Response(self.default_response,
-                    [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
-                response.respond()
+                rospy.logwarn('Ignoring GUI command during execution/recording states: ' +
+                                    command.command)
         else:
             rospy.logwarn('Ignoring GUI command during execution: ' +
                                 command.command)

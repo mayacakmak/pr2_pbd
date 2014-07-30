@@ -351,7 +351,7 @@ class ActionStepMarker:
             n_clusters = len(cluster_ids)
 
             if len(clusters) != n_points:
-                rospy.logwarn('Clustes do not have enough points: ' + str(len(clusters)))
+                rospy.logwarn('Clusters do not have enough points: ' + str(len(clusters)) + ' versus ' + str(n_points))
                 point_list = []
                 for j in range(n_points):
                     point_list.append(self._get_traj_pose(j).position)

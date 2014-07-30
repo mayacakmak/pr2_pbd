@@ -12,7 +12,7 @@ from std_msgs.msg import String
 from qt_gui.plugin import Plugin
 from python_qt_binding import QtGui,QtCore
 from python_qt_binding.QtGui import QWidget, QFrame
-from python_qt_binding.QtGui import QGroupBox, QIcon, QTableView
+from python_qt_binding.QtGui import QGroupBox, QIcon, QTableView, QLineEdit
 from python_qt_binding.QtCore import Slot, qDebug, QSignalMapper, QTimer, qWarning, Signal
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_pbd_interaction.msg import GuiCommand
@@ -45,13 +45,10 @@ class ActionIcon(QtGui.QGridLayout):
         self.index = index
         self.icon = ClickableLabel(parent, index, clickCallback)
         self.text = QtGui.QLabel(parent)
-        self.text.setText(self.getName())
+        self.text.setText(name)
         self.updateView()
         self.addWidget(self.icon, 0, 0, QtCore.Qt.AlignCenter)
         self.addWidget(self.text, 1, 0, QtCore.Qt.AlignCenter)
-    
-    def getName(self):
-        return 'Action' + str(self.index + 1)
     
     def updateView(self):
         if self.selected:
@@ -59,6 +56,13 @@ class ActionIcon(QtGui.QGridLayout):
         else:
             pixmap = QtGui.QPixmap(self.notSelectedIconPath)
         self.icon.setPixmap(pixmap.scaledToWidth(self.actionIconWidth, QtCore.Qt.SmoothTransformation))
+
+    def removeView(self):
+        self.icon.hide()
+        self.text.hide()
+        self.removeWidget(self.icon)
+        self.removeWidget(self.text)
+        self.setParent(None)
 
 
 class PbDGUI(Plugin):
@@ -92,17 +96,29 @@ class PbDGUI(Plugin):
         self.currentStep = -1
         self.current_experiment = -1
 
+
         allWidgetsBox = QtGui.QVBoxLayout()
-        actionBox = QGroupBox('Demonstrations', self._widget)
+        experimentBox = QGroupBox('Experiments', self._widget)
+        self.experimentGrid = QtGui.QGridLayout()
+        self.experimentGrid.setHorizontalSpacing(0)
+        for i in range(6):
+            self.experimentGrid.addItem(QtGui.QSpacerItem(90, 20), 0, i, QtCore.Qt.AlignCenter)
+            self.experimentGrid.setColumnStretch(i, 0)
+        experimentBoxLayout = QtGui.QHBoxLayout()
+        experimentBoxLayout.addLayout(self.experimentGrid)
+        self.experimentIcons = dict()
+        experimentBox.setLayout(experimentBoxLayout)
+
+        self.actionBox = QGroupBox('Demonstrations for current experiment', self._widget)
         self.actionGrid = QtGui.QGridLayout()
         self.actionGrid.setHorizontalSpacing(0)
         for i in range(6):
-            self.actionGrid.addItem(QtGui.QSpacerItem(90, 90), 0, i, QtCore.Qt.AlignCenter)
+        #    self.actionGrid.addItem(QtGui.QSpacerItem(90, 90), 0, i, QtCore.Qt.AlignCenter)
             self.actionGrid.setColumnStretch(i, 0)
         self.actionIcons = dict()
         actionBoxLayout = QtGui.QHBoxLayout()
         actionBoxLayout.addLayout(self.actionGrid)
-        actionBox.setLayout(actionBoxLayout)
+        self.actionBox.setLayout(actionBoxLayout)
         
         actionButtonGrid = QtGui.QHBoxLayout()
         self.stepsBox = QGroupBox('No demonstrations', self._widget)
@@ -137,13 +153,22 @@ class PbDGUI(Plugin):
         motionButtonGrid.addWidget(self.create_button(Command.STOP_RECORDING))
 
         misc_grid = QtGui.QHBoxLayout()
+        misc_grid.addWidget(self.create_button(Command.TAKE_TOOL))
+        misc_grid.addWidget(self.create_button(Command.RELEASE_TOOL))
+        misc_grid.addWidget(self.create_button(Command.DETECT_SURFACE))
         misc_grid.addWidget(self.create_button(Command.TEST_MICROPHONE))
         misc_grid.addStretch(1)
         
         misc_grid2 = QtGui.QHBoxLayout()
-        misc_grid2.addWidget(self.create_button(Command.TAKE_TOOL))
-        misc_grid2.addWidget(self.create_button(Command.RELEASE_TOOL))
-        misc_grid2.addWidget(self.create_button(Command.DETECT_SURFACE))
+        exp_btn = QtGui.QPushButton("New experiment", self._widget)
+        exp_btn.clicked.connect(self.new_experiment_command)
+        self.tool_id_text = QtGui.QLineEdit()
+        self.tool_id_text.setText("99")
+        btn = QtGui.QPushButton("Set fake tool ID", self._widget)
+        btn.clicked.connect(self.update_tool_id)
+        misc_grid2.addWidget(exp_btn)
+        misc_grid2.addWidget(self.tool_id_text)
+        misc_grid2.addWidget(btn)
         misc_grid2.addStretch(1)
                 
         speechGroupBox = QGroupBox('Robot Speech', self._widget)
@@ -156,7 +181,8 @@ class PbDGUI(Plugin):
         speechBox.addWidget(self.speechLabel)
         speechGroupBox.setLayout(speechBox)
 
-        allWidgetsBox.addWidget(actionBox)
+        allWidgetsBox.addWidget(experimentBox)
+        allWidgetsBox.addWidget(self.actionBox)
         allWidgetsBox.addLayout(actionButtonGrid)
         
         allWidgetsBox.addWidget(self.stepsBox)
@@ -193,7 +219,7 @@ class PbDGUI(Plugin):
 
         response = exp_state_srv()
         self.update_state(response.state)
-        
+
     def _create_table_view(self, model, row_click_cb):
         proxy = QtGui.QSortFilterProxyModel(self)
         proxy.setSourceModel(model)
@@ -206,6 +232,10 @@ class PbDGUI(Plugin):
         view.setCornerButtonEnabled(False)
         return view
     
+    def update_tool_id(self):
+        tool_id = self.tool_id_text.text()
+        rospy.set_param('cleaning_tool_id', int(tool_id))
+
     def get_uid(self, arm_index, index):
         '''Returns a unique id of the marker'''
         return (2 * (index + 1) + arm_index)
@@ -230,24 +260,57 @@ class PbDGUI(Plugin):
     def update_state(self, state):
         qWarning('Received new state')
         
-        self.n_experiments = state.n_experiments 
+        nColumns = 6
+        n_experiments = len(self.experimentIcons.keys())
         n_actions = len(self.actionIcons.keys())
 
+        print 'n_actions', n_actions
+
+
+        if (n_experiments < state.n_experiments):
+            for i in range(n_experiments, state.n_experiments):
+                self.new_experiment('experiment' + str(i))
+
+        print 'self.current_experiment', self.current_experiment
+        print 'state.i_current_experiment', state.i_current_experiment
+
         if self.current_experiment != state.i_current_experiment:
-            for i in range(n_actions):
-                icon = self.actionGrid.takeAt(i + 6)
-                del icon
+            # Clear all actions of this experiment
+
+            for k in self.actionIcons.keys():
+                
+                #icon = self.actionIcons.pop(0)
+
+                item = self.actionGrid.itemAtPosition(int(k/nColumns) + 1, k%nColumns)
+                if item is not None:
+                    item.removeView()
+                    self.actionGrid.removeItem(item)
+                    widget = item.widget()
+                    if widget is not None:
+                        self.actionGrid.removeWidget(widget)
+                        widget.deleteLater()
+                    else:
+                        print 'widget none'
+                    del item
+                else:
+                    print 'item none'
+                
+                #icon = self.actionGrid.takeAt(i + 6)
+                #icon.remove()
+                #del icon
+
             self.actionIcons = dict()
-            self.current_experiment = state.i_current_experiment
+            self.experiment_pressed(state.i_current_experiment, False)
             
         n_actions = len(self.actionIcons.keys())
         if n_actions < state.n_actions:
             for i in range(n_actions, state.n_actions):
                 self.new_action(state.action_names[i])
 
-        if (self.currentAction != (state.i_current_action - 1)):
+        self.action_pressed(state.i_current_action, False)
+
+        if (self.currentAction != (state.i_current_action)):
             self.delete_all_steps()
-            self.action_pressed(state.i_current_action - 1, False)
 
         n_steps = self.n_steps()
         if (n_steps < state.n_steps):
@@ -280,7 +343,6 @@ class PbDGUI(Plugin):
         if (fr_type > 1):
             rospy.logwarn("Invalid frame type @ save_pose -> get_frame_type: " + str(fr_type))
         return ["Go to pose", "Maneuver"][fr_type]
-    
     
     def save_pose(self, actionIndex=None, frameType=0):
         nColumns = 9
@@ -321,6 +383,9 @@ class PbDGUI(Plugin):
     def n_actions(self):
         return len(self.actionIcons.keys())
 
+    def n_experiments(self):
+        return len(self.experimentIcons.keys())
+
     def new_action(self, name):
         nColumns = 6
         actionIndex = self.n_actions()
@@ -328,12 +393,33 @@ class PbDGUI(Plugin):
              self.actionIcons[key].selected = False
              self.actionIcons[key].updateView()
         actIcon = ActionIcon(self._widget, actionIndex, name, self.action_pressed)
-        self.actionGrid.addLayout(actIcon, int(actionIndex/nColumns), 
+
+        #item = self.actionGrid.itemAtPosition(int(actionIndex/nColumns), 
+        #                            actionIndex%nColumns)
+        self.actionGrid.addLayout(actIcon, int(actionIndex/nColumns) + 1, 
                                   actionIndex%nColumns)
+        #if item is not None:
+        #    self.actionGrid.removeItem(item)
+
         self.actionIcons[actionIndex] = actIcon
+
+    def new_experiment(self, name):
+        nColumns = 6
+        experimentIndex = self.n_experiments()
+        for key in self.experimentIcons.keys():
+             self.experimentIcons[key].selected = False
+             self.experimentIcons[key].updateView()
+        expIcon = ActionIcon(self._widget, experimentIndex, name, self.experiment_pressed)
+        self.experimentGrid.addLayout(expIcon, int(experimentIndex/nColumns), 
+                                  experimentIndex%nColumns)
+        self.experimentIcons[experimentIndex] = expIcon
 
     def step_pressed(self, step_index):
         gui_cmd = GuiCommand(GuiCommand.SELECT_ACTION_STEP, step_index)
+        self.gui_cmd_publisher.publish(gui_cmd)
+
+    def new_experiment_command(self):
+        gui_cmd = GuiCommand(GuiCommand.NEW_EXPERIMENT, 0)
         self.gui_cmd_publisher.publish(gui_cmd)
 
     def action_pressed(self, actionIndex, isPublish=True):
@@ -344,12 +430,30 @@ class PbDGUI(Plugin):
             else:
                  self.actionIcons[key].selected = False
             self.actionIcons[key].updateView()
-        self.currentAction = actionIndex
-        self.stepsBox.setTitle('Steps for Action ' + str(self.currentAction+1))
+        self.stepsBox.setTitle('Steps for Action ' + str(self.currentAction))
         if isPublish:
-            gui_cmd = GuiCommand(GuiCommand.SWITCH_TO_ACTION, (actionIndex+1))
+            gui_cmd = GuiCommand(GuiCommand.SWITCH_TO_ACTION, (actionIndex))
             self.gui_cmd_publisher.publish(gui_cmd)
+        else:
+            self.currentAction = actionIndex
         
+    def experiment_pressed(self, expIndex, isPublish=True):
+        for i in range(len(self.experimentIcons.keys())):
+            key = self.experimentIcons.keys()[i]
+            if key == expIndex:
+                 self.experimentIcons[key].selected = True
+            else:
+                 self.experimentIcons[key].selected = False
+            self.experimentIcons[key].updateView()
+        
+        if isPublish:
+            gui_cmd = GuiCommand(GuiCommand.SWITCH_TO_EXPERIMENT, (expIndex))
+            self.gui_cmd_publisher.publish(gui_cmd)
+        else:
+            self.current_experiment = expIndex
+
+        self.actionBox.setTitle('Demonstrations for Experiment ' + str(self.current_experiment))
+
     def command_cb(self):
         clickedButtonName = self._widget.sender().text()
         for key in self.commands.keys():
