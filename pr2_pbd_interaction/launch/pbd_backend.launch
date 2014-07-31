@@ -7,7 +7,7 @@
   <!-- ================================= -->
 
   <!-- Are we running in simulation or on the real robot? -->
-  <arg name="sim" default="true" />
+  <arg name="sim" default="false" />
 
   <!-- This runs all of the prerequisite nodes for the PbD backend to
   work, such as interactive manipulation backend and social gaze. -->

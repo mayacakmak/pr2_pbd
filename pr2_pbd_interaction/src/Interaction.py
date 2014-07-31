@@ -112,7 +112,7 @@ class Interaction:
                 Response.perform_gaze_action(GazeGoal.SHAKE)
                 time.sleep(1.0)
                 self.arms.set_gripper_state(0, GripperState.OPEN, wait=True)
-                self._demo_state = DemoState.NO_TOOL_NO_SURFACE
+                self._demo_state = DemoState.READY_TO_TAKE
             else:
                 self.action_exists = self.session.new_action(self.tool_id, self.world.get_frame_list())
                 if (self.action_exists):

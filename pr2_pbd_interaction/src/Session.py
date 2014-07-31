@@ -311,9 +311,13 @@ class Session:
     def is_current_tool(self, id):
         tool_name = 'Tool' + str(id)
         self.lock.acquire()
-        current_tool_name = self._current_action().name
+        if (self._current_action() != None):
+            current_tool_name = self._current_action().name
+            is_tool = (tool_name == current_tool_name)
+        else:
+            is_tool = False
         self.lock.release()
-        return (tool_name == current_tool_name)
+        return is_tool
 
     def switch_to_action(self, action_number, object_list):
         '''Switches to indicated action'''
