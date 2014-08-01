@@ -42,9 +42,15 @@ class SimWorld:
             tool_id = rospy.get_param('cleaning_tool_id')
             
         if rospy.has_param('table_w'):
-            self.table_w = rospy.get_param('table_w')
+            table_w = rospy.get_param('table_w')
+            if self.table_w != table_w:
+                rospy.loginfo('Table width changed.')
+                self.table_w = table_w
         if rospy.has_param('table_h'):
-            self.table_h = rospy.get_param('table_h')
+            table_h = rospy.get_param('table_h')
+            if self.table_h != table_h:
+                rospy.loginfo('Table height changed.')
+                self.table_h = table_h
 
         self.update_table_markers()
 

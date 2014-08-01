@@ -2,8 +2,8 @@
 
   <!-- This is Gazebo with a table and an object. To run on the real robot you would instead just 'robot start' -->
 
-  <include file="$(find pr2_gazebo)/launch/pr2_table_object.launch"/>
+  <node name="simulated_markers" pkg="pr2_pbd_interaction" type="simulated_world.py" output="screen" />
 
-  <node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="simulated_world.py" output="screen" />
+  <include file="$(find pr2_gazebo)/launch/pr2_table_object.launch"/>
 
 </launch>
