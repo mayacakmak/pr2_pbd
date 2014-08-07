@@ -319,7 +319,6 @@ class Arm:
                           ' has been filtered.')
             traj_goal = JointTrajectoryGoal()
 
-
             traj_goal.trajectory = output.trajectory
             traj_goal.trajectory.header.stamp = (rospy.Time.now() +
                                                 rospy.Duration(0.1))

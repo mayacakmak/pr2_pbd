@@ -5,6 +5,8 @@ roslib.load_manifest('pr2_pbd_interaction')
 roslib.load_manifest("pr2_controllers_msgs")
 
 # Generic libraries
+import matplotlib.pyplot as plt
+
 import rospy
 import time
 import numpy
@@ -219,13 +221,47 @@ class Interaction:
         r_traj = arm_trajectory.rArm[:]
 
         # First determine the lowest point in the trajectory
+        all_x = []
+        all_y = []
         all_z = []
         for i in range(n_points):
+            point_x = r_traj[i].ee_pose.position.x
+            point_y = r_traj[i].ee_pose.position.y
             point_z = r_traj[i].ee_pose.position.z
+            all_x.append(point_x)
+            all_y.append(point_y)
             all_z.append(point_z)
             clusters.append(-1) #unassigned    
 
         min_z = min(all_z)
+
+        ################################################
+        ######## LETS PLOT STUFF TO GET A BETTER IDEA
+
+        num_bins = 50
+        # the histogram of the data
+        plt.subplot(4, 1, 1)
+        plt.plot(range(n_points), all_x, 'ro-')
+        plt.ylabel('x')
+
+        plt.subplot(4, 1, 2)
+        plt.plot(range(n_points), all_y, 'bo-')
+        plt.ylabel('y')
+
+        plt.subplot(4, 1, 3)
+        plt.plot(range(n_points), all_z, 'go-')
+        plt.ylabel('z')
+
+        plt.subplot(4, 1, 4)
+        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        plt.xlabel('z (histogram bins)')
+        plt.ylabel('occurance')
+
+        # Tweak spacing to prevent clipping of ylabel
+        plt.subplots_adjust(left=0.15)
+        plt.show()
+
+        ################################################
 
         # Assign points close to lowest point as application (cluster 2)
         for i in range(n_points):
