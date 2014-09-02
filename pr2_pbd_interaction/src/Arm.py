@@ -320,14 +320,15 @@ class Arm:
 
 
               # Add frames to the trajectory
-            # trajectory.points.append(JointTrajectoryPoint(positions=positions,
-            #                          velocities=velocities,
-            #                          time_from_start=timing[i]))
             trajectory.points.append(JointTrajectoryPoint(positions=positions,
                                      velocities=velocities,
-                                     time_from_start=new_timing))
+                                     time_from_start=timing[i]))
+            # use the following trajectory if uniformal time slot distribution is prefered:
+            # trajectory.points.append(JointTrajectoryPoint(positions=positions,
+            #                          velocities=velocities,
+            #                          time_from_start=new_timing))
 
-        # added for smoothing the replay trajectory:
+        # added by Joseph for smoothing the replay trajectory:
         added_velocities = [[0]*7]*(len(timing) - 1)
 
         for i in range(len(timing) - 1): 
