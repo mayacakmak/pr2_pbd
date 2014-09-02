@@ -5,7 +5,8 @@ roslib.load_manifest('pr2_pbd_interaction')
 import threading
 import rospy
 import tf
-from numpy import array, sign, pi, dot
+from numpy import array, sign, pi, dot, subtract, diff, divide
+from numpy import *
 from numpy.linalg import norm
 from arm_navigation_msgs.srv import FilterJointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -301,23 +302,52 @@ class Arm:
         trajectory.header.stamp = rospy.Time.now() + rospy.Duration(0.1)
         trajectory.joint_names = self.joint_names
 
-        ## Add all frames of the trajectory as way points
+         ## Add all frames of the trajectory as way points
         for i in range(len(timing)):
             positions = joint_trajectory[i].joint_pose
-            velocities = [0] * len(positions)
-            # Add frames to the trajectory
+            #experimenting with the velocity settings.
+            velocities = [0] * len(positions) 
+
+            # for smoothing the trajectory:
+            # print timing[len(timing)-1].to_sec()
+            # print timing[0].to_sec()
+            # print len(timing)
+
+            # print timing[0]
+            # print timing[len(timing)-1]
+
+            new_timing = timing[0] + rospy.Duration(i*(timing[len(timing)-1].to_sec() - timing[0].to_sec())/len(timing))
+
+
+              # Add frames to the trajectory
+            # trajectory.points.append(JointTrajectoryPoint(positions=positions,
+            #                          velocities=velocities,
+            #                          time_from_start=timing[i]))
             trajectory.points.append(JointTrajectoryPoint(positions=positions,
                                      velocities=velocities,
-                                     time_from_start=timing[i]))
+                                     time_from_start=new_timing))
 
+        # added for smoothing the replay trajectory:
+        added_velocities = [[0]*7]*(len(timing) - 1)
+
+        for i in range(len(timing) - 1): 
+
+            time_diff= subtract(timing[i+1].to_sec(), timing[i].to_sec())
+            joint_diff = subtract(trajectory.points[i+1].positions, trajectory.points[i].positions)
+
+            added_velocities[i] = [x/time_diff for x in joint_diff]
+
+            trajectory.points[i].velocities = added_velocities[i]
+
+        # send the recorded trajectory to the filter
         output = self.filter_service(trajectory=trajectory,
                                      allowed_time=rospy.Duration.from_sec(20))
 
         if(output.error_code.val == output.error_code.SUCCESS):
 
-            rospy.loginfo('Trajectory for arm ' + str(self.arm_index) +
+            rospy.loginfo('Trajectory for arm ' + str(self.arm_index) + 
                           ' has been filtered.')
-            traj_goal = JointTrajectoryGoal()
+            traj_goal = JointTrajectoryGoal()   
 
             traj_goal.trajectory = output.trajectory
             traj_goal.trajectory.header.stamp = (rospy.Time.now() +
@@ -325,12 +355,25 @@ class Arm:
             traj_goal.trajectory.joint_names = self.joint_names
 
             n_points = len(traj_goal.trajectory.points)
-            #for i in range(n_points):
-            #    print traj_goal.trajectory.points[i].positions
-            #    print traj_goal.trajectory.points[i].velocities
+                        
+            
+
+            # added for reducing the jerky motion.
+            # added_velocities = [[0]*7]*(n_points - 1)
+
+            for i in range(n_points - 1): 
+
+                time_diff = subtract(traj_goal.trajectory.points[i+1].time_from_start.to_sec(), traj_goal.trajectory.points[i].time_from_start.to_sec())
+            #     joint_diff = subtract(traj_goal.trajectory.points[i+1].positions, traj_goal.trajectory.points[i].positions)
+                
+            #     added_velocities[i] = [x/time_diff for x in joint_diff]
+
+            #     traj_goal.trajectory.points[i].velocities = added_velocities[i]
+                print time_diff
 
             # Sends the goal to the trajectory server
             # DISABLING FOR DEBUGGING
+
             self.traj_action_client.send_goal(traj_goal)
             return True
 
@@ -347,7 +390,7 @@ class Arm:
                                              rospy.Duration(0.1))
         traj_goal.trajectory.joint_names = self.joint_names
         velocities = [0] * len(joints)
-        traj_goal.trajectory.points.append(JointTrajectoryPoint(
+        traj_goal.trajectory.points.append(JointTrajectoryPoint(    
                         positions=joints,
                         velocities=velocities,
                         time_from_start=rospy.Duration(time_to_joint)))
@@ -424,6 +467,7 @@ class Arm:
         else:
             dist = rot_dist
         return dist
+
 
     def reset_movement_history(self):
         ''' Clears the saved history of arm movements'''

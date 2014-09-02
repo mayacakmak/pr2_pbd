@@ -322,6 +322,57 @@ class Interaction:
         #TODO
         pass
 
+    def plot_trajectory(self):
+
+        action = self.session.get_current_action()
+        if action is not None:
+            arm_trajectory = action.get_trajectory()
+                
+           
+        n_points = len(arm_trajectory.timing)
+        r_traj = arm_trajectory.rArm[:]
+
+        # First determine the lowest point in the trajectory
+        all_x = []
+        all_y = []
+        all_z = []
+        for i in range(n_points):
+            point_x = r_traj[i].ee_pose.position.x
+            point_y = r_traj[i].ee_pose.position.y
+            point_z = r_traj[i].ee_pose.position.z
+            all_x.append(point_x)
+            all_y.append(point_y)
+            all_z.append(point_z)
+      
+
+
+        ################################################
+        ######## LETS PLOT STUFF TO GET A BETTER IDEA
+
+        num_bins = 50
+        # the histogram of the data
+        plt.subplot(4, 1, 1)
+        plt.plot(range(n_points), all_x, 'ro-')
+        plt.ylabel('x')
+
+        plt.subplot(4, 1, 2)
+        plt.plot(range(n_points), all_y, 'bo-')
+        plt.ylabel('y')
+
+        plt.subplot(4, 1, 3)
+        plt.plot(range(n_points), all_z, 'go-')
+        plt.ylabel('z')
+
+        plt.subplot(4, 1, 4)
+        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        plt.xlabel('z (histogram bins)')
+        plt.ylabel('occurance')
+
+        # Tweak spacing to prevent clipping of ylabel
+        plt.subplots_adjust(left=0.15)
+        plt.show()
+
+
     def stop_recording(self, dummy=None):
         '''Stops recording continuous motion'''
         self.busy = True
@@ -566,6 +617,9 @@ class Interaction:
                 elif (command.command == GuiCommand.COMPUTE_TRAJECTORY):
                     self.compute_trajectory()
                     rospy.loginfo('Computing trajectory.')
+                elif (command.command == GuiCommand.PLOT_TRAJECTORY):
+                    self.plot_trajectory()
+                    rospy.loginfo('Ploting trajectory.')
                 elif (command.command == GuiCommand.SELECT_ACTION_STEP):
                     step_no = command.param
                     self.session.select_action_step(step_no)

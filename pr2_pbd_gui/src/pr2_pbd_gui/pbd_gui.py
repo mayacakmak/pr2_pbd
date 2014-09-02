@@ -196,8 +196,11 @@ class PbDGUI(Plugin):
         c_btn.clicked.connect(self.compute_clusters_command)
         t_btn = QtGui.QPushButton("Compute trajectory", self._widget)
         t_btn.clicked.connect(self.compute_trajectory_command)
+        p_btn = QtGui.QPushButton("Plot trajectory and velocity", self._widget)
+        p_btn.clicked.connect(self.plot_trajectory_command)
         misc_grid4.addWidget(c_btn)
         misc_grid4.addWidget(t_btn)
+        misc_grid4.addWidget(p_btn)
         misc_grid4.addStretch(1)
 
         speechGroupBox = QGroupBox('Interaction State', self._widget)
@@ -471,6 +474,11 @@ class PbDGUI(Plugin):
     def compute_trajectory_command(self):
         gui_cmd = GuiCommand(GuiCommand.COMPUTE_TRAJECTORY, 0)
         self.gui_cmd_publisher.publish(gui_cmd)
+
+    def plot_trajectory_command(self):
+        gui_cmd = GuiCommand(GuiCommand.PLOT_TRAJECTORY, 0)
+        self.gui_cmd_publisher.publish(gui_cmd)
+
 
     def action_pressed(self, actionIndex, isPublish=True):
         for i in range(len(self.actionIcons.keys())):
