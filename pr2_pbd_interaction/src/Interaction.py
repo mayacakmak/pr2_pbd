@@ -44,6 +44,10 @@ class Interaction:
 
     _arm_trajectory = None
     _trajectory_start_time = None
+    X_DIR = 0
+    Y_DIR = 1
+    ERROR_NEGATIVE_SLOPES = 2
+    ERROR_INDETERMINATE_DIR = 3
 
     def __init__(self):
         self.arms = Arms()
@@ -666,3 +670,19 @@ class Interaction:
             action.update_viz()
 
         time.sleep(0.01)
+
+    def compute_repetition_direction(points_x, points_y):
+        """ Returns repetition direction """
+        n = len(points_x)
+        t = list(xrange(n))
+        slope_x = numpy.polyfit(t, points_x,1)[0]
+        slope_y = numpy.polyfit(t, points_y,1)[0]
+
+        if (slope_y < 0 and slope_x < 0):
+            return ERROR_NEGATIVE_SLOPES 
+        elif (slope_y > slope_x):
+            return Y_DIR
+        elif (slope_x > slope_y):
+            return X_DIR
+        else:
+            return ERROR_INDETERMINATE_DIR
