@@ -414,6 +414,8 @@ class Interaction:
         # for item in peakind:
         #     peak_index.extend(item)
 
+        # peakind = peakind_ini[1:len(peakind_ini)-1]
+
         # print peakind
         peak_data = []
         for i in peakind:
@@ -430,7 +432,7 @@ class Interaction:
 
         ############# finding Application & Repetition direction ######
 
-        self.compute_repetition_direction(all_x, all_y)
+        
         
     
 
@@ -448,6 +450,7 @@ class Interaction:
         # rospy.loginfo('Size peakind' + str(len(peak_index)))
 
         app_cluster_bounds = []
+        
 
         for i in range(len(peak_index) - 1):
 
@@ -512,8 +515,9 @@ class Interaction:
             current_app_cluster = range(peak_index[i] + _j, peak_index[i + 1] - _k)
             app_cluster_bounds.append(current_app_cluster)
 
-
-
+        rospy.loginfo('First 10 of app_cluster_bounds: ' + str(app_cluster_bounds[0][:10]))
+        clusters[:5] = [-1]*5
+        clusters[(len(clusters) - 5):] = [-1]*5 
 
         #rospy.loginfo('Size clusters: ' + str(len(clusters)))
         #rospy.loginfo('Size previous clusters: ' + str(n_points))
@@ -535,18 +539,22 @@ class Interaction:
 
         outlier_heights = []
         outlier_lengths = []
+        x_app = []
+        y_app = []
         for cluster in app_cluster_bounds:
             heights = []
             lengths = []
             for ind in cluster:
                 heights.append(all_z[ind])
+                x_app.append(all_x[ind])
+                y_app.append(all_y[ind])
                 #lengths.append(repetition)
             mean = numpy.mean(heights)
             outlier_heights.append(mean)
 
 
 
-        outlier_height_indices = find_outliers(outlier_heights)
+        outlier_height_indices = self.find_outliers(outlier_heights)
 
         outliers = []
 
@@ -557,6 +565,15 @@ class Interaction:
 
         for i in outliers:
             clusters[i] = -1
+
+        ###################### detecting the repetition direction ##########
+        x_peak = []
+        y_peak = []
+        for i in peakind:
+            x_peak.append(all_x[i])
+            y_peak.append(all_y[i])
+
+        self.compute_repetition_direction(x_peak, y_peak)
 
         # Assign points at the beginning as entry
 
@@ -599,6 +616,10 @@ class Interaction:
 
             if c1==c3 and c1!=c2:
                 clusters[i+1] = c1
+
+
+        rospy.loginfo('the first 20 of the clusters: ' + str(clusters[:20]))
+        rospy.loginfo('the last 20 of the clusters: ' + str(clusters[20:]))
 
         action.update_trajectory(clusters)
 
@@ -970,7 +991,7 @@ class Interaction:
         else:
             return ERROR_INDETERMINATE_DIR
 
-    def find_outliers(data, m=2):
+    def find_outliers(self, data, m=2):
         d = numpy.abs(data - numpy.median(data))
         mdev = numpy.median(d)
         s = d/mdev if mdev else 0.
