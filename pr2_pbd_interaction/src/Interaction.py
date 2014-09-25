@@ -435,7 +435,10 @@ class Interaction:
 
         rospy.loginfo('Size peakind' + str(len(peak_index)))
 
+        app_cluster_bounds = []
+
         for i in range(len(peak_index) - 1):
+            current_app_cluster = []
             rospy.loginfo('Peakind[i]: ' + str(peak_index[i]))
             rospy.loginfo('Peakind[i + 1]: ' + str(peak_index[i + 1]))
             current_ind = [peak_index[i], peak_index[i+1]]
@@ -473,22 +476,69 @@ class Interaction:
             rospy.loginfo('J value: ' + str(_j))
 
             rospy.loginfo('Size clusters: ' + str(len(clusters)))
+            clusters[(_j + peak_index[i]):(peak_index[i + 1] - _k)] = [ArmTrajectory.APPLICATION] * numpy.absolute(_j + peak_index[i] - (peak_index[i + 1] - _k))
             if (_j < 5):
                 clusters[peak_index[i]: (_j + peak_index[i])] = [ArmTrajectory.APPLICATION] * _j
+                _j = 0
             else:
                 clusters[peak_index[i]: (_j + peak_index[i])] = [ArmTrajectory.ENTRY] * _j
             rospy.loginfo('Size clusters: ' + str(len(clusters)))
-            clusters[(_j + peak_index[i]):(peak_index[i + 1] - _k)] = [ArmTrajectory.APPLICATION] * numpy.absolute(_j + peak_index[i] - (peak_index[i + 1] - _k))
+            
             rospy.loginfo('Size clusters: ' + str(len(clusters)))
             if (_k < 5):
                 clusters[(peak_index[i + 1] - _k):peak_index[i+1]] = [ArmTrajectory.APPLICATION] * _k
+                _k = 0
             else:
                 clusters[(peak_index[i + 1] - _k):peak_index[i+1]] = [ArmTrajectory.EXIT] * _k
 
+            #n = len(peak_index[i + 1] - peak_index[i] - _j - _k)
+            current_app_cluster = range(peak_index[i] + _j, peak_index[i + 1] - _k)
+            app_cluster_bounds.append(current_app_cluster)
 
-        rospy.loginfo('Size clusters: ' + str(len(clusters)))
-        rospy.loginfo('Size previous clusters: ' + str(n_points))
-        rospy.loginfo('Clusters: ' + str(clusters[75:100]))
+
+
+
+        #rospy.loginfo('Size clusters: ' + str(len(clusters)))
+        #rospy.loginfo('Size previous clusters: ' + str(n_points))
+        #rospy.loginfo('Clusters: ' + str(clusters[75:100]))
+
+        #Removing outliers
+
+        # for point in range(len(clusters)):
+        #     if ((clusters[point] == ArmTrajectory.APPLICATION) and ((point == 0) or point == (len(clusters) -1))):
+        #         app_cluster_bounds.append(point)
+        #         continue
+
+        #     if (clusters[point] == ArmTrajectory.APPLICATION):
+        #         if ((point != 0) and (clusters[point - 1] != ArmTrajectory.APPLICATION)):
+        #             app_cluster_bounds.append(point)
+        #         elif ((point != (len(clusters) -1)) and (clusters[point + 1] != ArmTrajectory.APPLICATION)):
+        #             app_cluster_bounds.append(point)
+
+        outlier_heights = []
+        outlier_lengths = []
+        for cluster in app_cluster_bounds:
+            heights = []
+            lengths = []
+            for ind in cluster:
+                heights.append(all_z[ind])
+                #lengths.append(repetition)
+            mean = numpy.mean(heights)
+            outlier_heights.append(mean)
+
+
+
+        outlier_height_indices = find_outliers(outlier_heights)
+
+        outliers = []
+
+        for i in outlier_height_indices:
+            a = app_cluster_bounds[i]
+            for j in a:
+                outliers.append(j)
+
+        for i in outliers:
+            clusters[i] = -1
 
         # Assign points at the beginning as entry
 
@@ -895,3 +945,15 @@ class Interaction:
             return X_DIR
         else:
             return ERROR_INDETERMINATE_DIR
+
+    def find_outliers(data, m=2):
+        d = numpy.abs(data - numpy.median(data))
+        mdev = numpy.median(d)
+        s = d/mdev if mdev else 0.
+        _i = 0
+        outlier_indices = []
+        for i in s:
+            if (i > m):
+                outlier_indices.append(_i)
+            _i = _i + 1
+        return outlier_indices
