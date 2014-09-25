@@ -6,6 +6,7 @@ roslib.load_manifest("pr2_controllers_msgs")
 
 # Generic libraries
 import matplotlib.pyplot as plt
+import scipy.signal as sgnl
 
 import rospy
 import time
@@ -319,15 +320,156 @@ class Interaction:
             action.update_trajectory(clusters)
 
     def compute_trajectory(self):
-        #TODO
-        pass
-
-    def plot_trajectory(self):
-
         action = self.session.get_current_action()
         if action is not None:
             arm_trajectory = action.get_trajectory()
-                
+
+        #recorded table surface:    
+        table_corner = arm_trajectory.table_corners[:]
+
+        #ToDo: add the size of the old table with parameter like H and W
+
+        rospy.loginfo('table corner 1 ' + str(table_corner[0].position.x) + str(table_corner[0].position.y))
+        rospy.loginfo('table corner 2 ' + str(table_corner[1].position.x) + str(table_corner[1].position.y))
+        rospy.loginfo('table corner 3 ' + str(table_corner[2].position.x) + str(table_corner[2].position.y))
+        rospy.loginfo('table corner 4 ' + str(table_corner[3].position.x) + str(table_corner[3].position.y))
+
+        # get the new surface:
+
+        arm_traj_newSurface = arm_trajectory
+
+        arm_traj_newSurface.table_corners = self.world.get_surface()
+
+        new_table = arm_traj_newSurface.table_corners[:]
+
+        rospy.loginfo('new table corner 1 ' + str(new_table[0].position.x) + str(new_table[0].position.y))
+        rospy.loginfo('new table corner 2 ' + str(new_table[1].position.x) + str(new_table[1].position.y))
+        rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + str(new_table[2].position.y))
+        rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + str(new_table[3].position.y))
+
+
+        rospy.loginfo('the size of the new trajecotry is ' + str(len(arm_traj_newSurface.timing)))
+
+
+        # try to create a new cluster and also visualize it.
+
+        clusters = []
+        
+        n_points = len(arm_trajectory.timing)
+        r_traj = arm_trajectory.rArm[:]
+
+        # First determine the lowest point in the trajectory
+        all_x = []
+        all_y = []
+        all_z = []
+        for i in range(n_points):
+
+            #making modification for a new trajectory
+            point_x = r_traj[i].ee_pose.position.x
+            point_y = r_traj[i].ee_pose.position.y
+            point_z = r_traj[i].ee_pose.position.z
+            all_x.append(point_x)
+            all_y.append(point_y)
+            all_z.append(point_z)
+            clusters.append(-1) #unassigned    
+
+            #just a test
+            # r_traj[i].ee_pose.position.x.append(point_x)
+            # r_traj[i].ee_pose.position.y.append(point_y)
+
+
+        min_z = min(all_z)
+
+        ################################################
+
+        peak_z = []
+        # Assign points close to lowest point as application (cluster 2)
+        for i in range(n_points):
+            point_z = r_traj[i].ee_pose.position.z
+            if (numpy.abs(point_z - min_z) < 0.025):
+                clusters[i] = ArmTrajectory.APPLICATION
+                peak_z.append(point_z)
+
+        data = peak_z
+
+        window = sgnl.general_gaussian(51, p=0.5, sig=20)
+        filtered = sgnl.fftconvolve(window, data)
+        filtered = (numpy.average(data) / numpy.average(filtered)) * filtered
+        filtered = numpy.roll(filtered, -25)
+        ''' method 1 '''
+        # peakind = signal.find_peaks_cwt(filtered, np.arange(10,15), noise_perc=0.1)
+        ''' method 2 '''
+        # peakind = signal.find_peaks_cwt(filtered, np.arange(100,200))
+        ''' method 3: finding the maximum values from filtered curves: '''
+        peakind = sgnl.argrelmax(filtered, order=5)
+
+        ''' this is for converting tuple peakind to an array: '''
+        index = []
+        for item in peakind:
+            index.extend(item)
+
+        print peakind
+
+        plt.plot(data)
+        plt.plot(filtered)
+        plt.plot(index, filtered[peakind], 'ro')
+        # plt.plot(peakind, filtered[peakind], 'ro')
+        plt.ylabel('Test numbers')
+        plt.show()
+
+
+
+
+
+        # Assign points at the beginning as entry
+        index = 0
+        while (clusters[index] != ArmTrajectory.APPLICATION):
+            clusters[index] = ArmTrajectory.START
+            index = index + 1
+
+        # Assign points at the end beginning as exit
+        index = n_points - 1
+        while (clusters[index] != ArmTrajectory.APPLICATION):
+            clusters[index] = ArmTrajectory.END
+            index = index -1
+
+        # Assign mid points based on their diff and z from lowest point
+        for i in range(n_points-1):
+            point_z = r_traj[i].ee_pose.position.z
+            if (numpy.abs(point_z - min_z) < 0.12):
+                if clusters[i] != ArmTrajectory.APPLICATION:
+
+                    next_point_z = r_traj[i+1].ee_pose.position.z
+                    diff_z = next_point_z - point_z
+
+                    if (diff_z) >= 0:
+                        clusters[i] = ArmTrajectory.EXIT
+                    else:
+                        clusters[i] = ArmTrajectory.ENTRY
+
+        #Everything else is connectors
+        for i in range(n_points-1):
+            if clusters[i] == -1:
+                clusters[i] = ArmTrajectory.CONNECTOR
+
+        # Finally do some smoothing
+        for i in range(n_points-2):
+            c1 = clusters[i]
+            c2 = clusters[i+1]
+            c3 = clusters[i+2]
+
+            if c1==c3 and c1!=c2:
+                clusters[i+1] = c1
+
+        action.update_trajectory(clusters)
+
+
+
+    def plot_trajectory(self):     
+
+        action = self.session.get_current_action()
+        if action is not None:
+            arm_trajectory = action.get_trajectory()        
            
         n_points = len(arm_trajectory.timing)
         r_traj = arm_trajectory.rArm[:]
@@ -399,7 +541,7 @@ class Interaction:
                 Interaction._arm_trajectory.lRefFrame,
                 Interaction._arm_trajectory.rRefFrameObject,
                 Interaction._arm_trajectory.lRefFrameObject,
-                [],
+                [], 
                 [],
                 []
             )
