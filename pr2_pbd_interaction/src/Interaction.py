@@ -11,6 +11,7 @@ import scipy.signal as sgnl
 import rospy
 import time
 import numpy
+import math
 from visualization_msgs.msg import MarkerArray
 # Local stuff
 from World import World
@@ -353,8 +354,8 @@ class Interaction:
 
         # try to create a new cluster and also visualize it.
 
-        clusters = []
         
+        clusters = []
         n_points = len(arm_trajectory.timing)
         r_traj = arm_trajectory.rArm[:]
 
@@ -384,68 +385,134 @@ class Interaction:
 
         peak_z = []
         # Assign points close to lowest point as application (cluster 2)
-        for i in range(n_points):
-            point_z = r_traj[i].ee_pose.position.z
-            if (numpy.abs(point_z - min_z) < 0.025):
-                clusters[i] = ArmTrajectory.APPLICATION
-                peak_z.append(point_z)
+        # for i in range(n_points):
+        #     point_z = r_traj[i].ee_pose.position.z
+        #     if (numpy.abs(point_z - min_z) < 0.025):
+        #         clusters[i] = ArmTrajectory.APPLICATION
+        #         peak_z.append(point_z)
 
-        data = peak_z
+        data = all_z
 
-        window = sgnl.general_gaussian(51, p=0.5, sig=20)
-        filtered = sgnl.fftconvolve(window, data)
-        filtered = (numpy.average(data) / numpy.average(filtered)) * filtered
-        filtered = numpy.roll(filtered, -25)
+        '''filtering'''
+        # window = sgnl.general_gaussian(51, p=0.5, sig=20)
+        # filtered = sgnl.fftconvolve(window, data)
+        # filtered = (numpy.average(data) / numpy.average(filtered)) * filtered
+        # filtered = numpy.roll(filtered, -25)
         ''' method 1 '''
-        # peakind = signal.find_peaks_cwt(filtered, np.arange(10,15), noise_perc=0.1)
+        peakind = sgnl.find_peaks_cwt(data, numpy.arange(1,200), noise_perc=15)
         ''' method 2 '''
-        # peakind = signal.find_peaks_cwt(filtered, np.arange(100,200))
+        # peakind = sgnl.find_peaks_cwt(filtered, numpy.arange(100,200))
         ''' method 3: finding the maximum values from filtered curves: '''
-        peakind = sgnl.argrelmax(filtered, order=5)
+        # peakind = sgnl.argrelmax(filtered, order=5)
 
         ''' this is for converting tuple peakind to an array: '''
-        index = []
-        for item in peakind:
-            index.extend(item)
+        # peak_index = []
+        # for item in peakind:
+        #     peak_index.extend(item)
 
-        print peakind
+        # print peakind
+        peak_data = []
+        for i in peakind:
+            peak_data.append(data[i])
 
         plt.plot(data)
-        plt.plot(filtered)
-        plt.plot(index, filtered[peakind], 'ro')
-        # plt.plot(peakind, filtered[peakind], 'ro')
+        # plt.plot(filtered)
+        # plt.plot(peak_index, filtered[peakind], 'ro')
+        plt.plot(peakind, peak_data, 'ro')
         plt.ylabel('Test numbers')
         plt.show()
 
+        window_size = 50
+        tolerance = 0.000015
+
+        #clusters = [0]*len(all_z)
+
+        peak_index = peakind
+
+        rospy.loginfo('Size peakind' + str(len(peak_index)))
+
+        for i in range(len(peak_index) - 1):
+            rospy.loginfo('Peakind[i]: ' + str(peak_index[i]))
+            rospy.loginfo('Peakind[i + 1]: ' + str(peak_index[i + 1]))
+            current_ind = [peak_index[i], peak_index[i+1]]
+            z_segment = all_z[current_ind[0]:current_ind[1]]
+            rospy.loginfo('Length z_segment: ' + str(len(z_segment)))
+            sliding_window = []
+            _j = 0
+            for j in range(len(z_segment)):
+                _j = j + 1
+                sliding_window = z_segment[j:j+window_size]
+                rospy.loginfo('Sliding Window: ' + str(sliding_window[0]) + '    ' + str(sliding_window[len(sliding_window) -1]))
+                variance = numpy.var(sliding_window)
+                #rospy.loginfo('Variance: ' + str(variance))
+                if (variance < tolerance):
+                    rospy.loginfo('Found app point')
+                    break
+
+            transition_entry = z_segment[:j]
+
+            _k = 0
+            for k in range(len(z_segment)):
+                _k = _k + 1
+                sliding_window = z_segment[len(z_segment) - k - window_size:len(z_segment) - k]
+                variance = numpy.var(sliding_window)
+                #rospy.loginfo('Variance: ' + str(variance))
+                if (variance < tolerance):
+                    rospy.loginfo('Found app point again!')
+                    break
+
+            transition_exit = z_segment[_k:]
+
+            application_cluster = z_segment[_j:_k]
+
+            rospy.loginfo('K value: ' + str(_k))
+            rospy.loginfo('J value: ' + str(_j))
+
+            rospy.loginfo('Size clusters: ' + str(len(clusters)))
+            if (_j < 5):
+                clusters[peak_index[i]: (_j + peak_index[i])] = [ArmTrajectory.APPLICATION] * _j
+            else:
+                clusters[peak_index[i]: (_j + peak_index[i])] = [ArmTrajectory.ENTRY] * _j
+            rospy.loginfo('Size clusters: ' + str(len(clusters)))
+            clusters[(_j + peak_index[i]):(peak_index[i + 1] - _k)] = [ArmTrajectory.APPLICATION] * numpy.absolute(_j + peak_index[i] - (peak_index[i + 1] - _k))
+            rospy.loginfo('Size clusters: ' + str(len(clusters)))
+            if (_k < 5):
+                clusters[(peak_index[i + 1] - _k):peak_index[i+1]] = [ArmTrajectory.APPLICATION] * _k
+            else:
+                clusters[(peak_index[i + 1] - _k):peak_index[i+1]] = [ArmTrajectory.EXIT] * _k
 
 
-
+        rospy.loginfo('Size clusters: ' + str(len(clusters)))
+        rospy.loginfo('Size previous clusters: ' + str(n_points))
+        rospy.loginfo('Clusters: ' + str(clusters[75:100]))
 
         # Assign points at the beginning as entry
-        index = 0
-        while (clusters[index] != ArmTrajectory.APPLICATION):
-            clusters[index] = ArmTrajectory.START
-            index = index + 1
 
-        # Assign points at the end beginning as exit
-        index = n_points - 1
-        while (clusters[index] != ArmTrajectory.APPLICATION):
-            clusters[index] = ArmTrajectory.END
-            index = index -1
 
-        # Assign mid points based on their diff and z from lowest point
-        for i in range(n_points-1):
-            point_z = r_traj[i].ee_pose.position.z
-            if (numpy.abs(point_z - min_z) < 0.12):
-                if clusters[i] != ArmTrajectory.APPLICATION:
+        # index = 0
+        # while (clusters[index] != ArmTrajectory.APPLICATION):
+        #     clusters[index] = ArmTrajectory.START
+        #     index = index + 1
 
-                    next_point_z = r_traj[i+1].ee_pose.position.z
-                    diff_z = next_point_z - point_z
+        # # Assign points at the end beginning as exit
+        # index = n_points - 1
+        # while (clusters[index] != ArmTrajectory.APPLICATION):
+        #     clusters[index] = ArmTrajectory.END
+        #     index = index -1
 
-                    if (diff_z) >= 0:
-                        clusters[i] = ArmTrajectory.EXIT
-                    else:
-                        clusters[i] = ArmTrajectory.ENTRY
+        # # Assign mid points based on their diff and z from lowest point
+        # for i in range(n_points-1):
+        #     point_z = r_traj[i].ee_pose.position.z
+        #     if (numpy.abs(point_z - min_z) < 0.12):
+        #         if clusters[i] != ArmTrajectory.APPLICATION:
+
+        #             next_point_z = r_traj[i+1].ee_pose.position.z
+        #             diff_z = next_point_z - point_z
+
+        #             if (diff_z) >= 0:
+        #                 clusters[i] = ArmTrajectory.EXIT
+        #             else:
+        #                 clusters[i] = ArmTrajectory.ENTRY
 
         #Everything else is connectors
         for i in range(n_points-1):
@@ -808,3 +875,4 @@ class Interaction:
             action.update_viz()
 
         time.sleep(0.01)
+
