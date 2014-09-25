@@ -516,23 +516,31 @@ class Interaction:
         #             app_cluster_bounds.append(point)
 
         outlier_heights = []
-        outlier_lengths = []
+        outlier_length_x = []
+        outlier_length_y = []
         for cluster in app_cluster_bounds:
             heights = []
-            lengths = []
+            lengths_x = numpy.absolute(all_x[cluster[0]] - all_x[cluster[len(cluster) -1]])
+            lengths_y = numpy.absolute(all_y[cluster[0]] - all_y[cluster[len(cluster) -1]])
             for ind in cluster:
                 heights.append(all_z[ind])
-                #lengths.append(repetition)
+        
             mean = numpy.mean(heights)
+            outlier_length_x = lengths_x
+            outlier_length_y = lengths_y
             outlier_heights.append(mean)
 
 
 
-        outlier_height_indices = find_outliers(outlier_heights)
+        outlier_height_indices = find_outliers(outlier_heights, 2, True)
+        outlier_length_y_indices = find_outliers(outlier_length_y)
+        outlier_length_x_indices = find_outliers(outlier_length_x)
+
+        mergedlist = list(set(outlier_height_indices + outlier_length_x_indices + outlier_length_y_indices))
 
         outliers = []
 
-        for i in outlier_height_indices:
+        for i in mergedlist:
             a = app_cluster_bounds[i]
             for j in a:
                 outliers.append(j)
@@ -946,14 +954,49 @@ class Interaction:
         else:
             return ERROR_INDETERMINATE_DIR
 
-    def find_outliers(data, m=2):
+    def find_outliers(self, data, m=2, height = False):
         d = numpy.abs(data - numpy.median(data))
         mdev = numpy.median(d)
         s = d/mdev if mdev else 0.
         _i = 0
         outlier_indices = []
+        outliers = []
+        non = []
+        non_indices = []
         for i in s:
             if (i > m):
                 outlier_indices.append(_i)
+                outliers.append(i)
+            else:
+                non.append(i)
+                non_indices.append(_i)
             _i = _i + 1
+
+        if ((len(outlier_indices) == len(data)/2) and (height = True)):
+            if (numpy.mean(outliers) < numpy.mean(non)):
+                outlier_indices = non_indices
+
         return outlier_indices
+
+
+        # med = numpy.median(data)
+        # med_ind = data.index(med)
+        # less_than_med = []
+        # for i in data:
+        #     if (i <= med):
+        #         less_than_med.append(i)
+        # data.append(numpy.median(less_than_med))
+        # d = numpy.abs(data - med)
+        # mdev = numpy.median(d)
+        # s = d/mdev if mdev else 0.
+        # _i = 0
+        # outlier_indices = []
+        # for i in s:
+        #     if (i > m):
+        #         outlier_indices.append(_i)
+        #     _i = _i + 1
+
+        # contains_fake = outlier_indices.count(numpy.median(less_than_med))
+        # if (contains_fake):
+        #     outlier_indices.pop(len(outlier_indices) - 1)
+        # return outlier_indices
