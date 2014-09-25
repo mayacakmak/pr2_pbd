@@ -385,7 +385,7 @@ class Interaction:
 
         min_z = min(all_z)
 
-        ################################################
+        ###################Peak detection#############################
 
         peak_z = []
         # Assign points close to lowest point as application (cluster 2)
@@ -426,6 +426,18 @@ class Interaction:
         plt.ylabel('Test numbers')
         plt.show()
 
+        ###############################################################
+
+        ############# finding Application & Repetition direction ######
+
+        self.compute_repetition_direction(all_x, all_y)
+        
+    
+
+
+        ############# new clustering method using sliding window ######
+
+
         window_size = 50
         tolerance = 0.000015
 
@@ -433,24 +445,24 @@ class Interaction:
 
         peak_index = peakind
 
-        rospy.loginfo('Size peakind' + str(len(peak_index)))
+        # rospy.loginfo('Size peakind' + str(len(peak_index)))
 
         for i in range(len(peak_index) - 1):
-            rospy.loginfo('Peakind[i]: ' + str(peak_index[i]))
-            rospy.loginfo('Peakind[i + 1]: ' + str(peak_index[i + 1]))
+            # rospy.loginfo('Peakind[i]: ' + str(peak_index[i]))
+            # rospy.loginfo('Peakind[i + 1]: ' + str(peak_index[i + 1]))
             current_ind = [peak_index[i], peak_index[i+1]]
             z_segment = all_z[current_ind[0]:current_ind[1]]
-            rospy.loginfo('Length z_segment: ' + str(len(z_segment)))
+            # rospy.loginfo('Length z_segment: ' + str(len(z_segment)))
             sliding_window = []
             _j = 0
             for j in range(len(z_segment)):
                 _j = j + 1
                 sliding_window = z_segment[j:j+window_size]
-                rospy.loginfo('Sliding Window: ' + str(sliding_window[0]) + '    ' + str(sliding_window[len(sliding_window) -1]))
+                # rospy.loginfo('Sliding Window: ' + str(sliding_window[0]) + '    ' + str(sliding_window[len(sliding_window) -1]))
                 variance = numpy.var(sliding_window)
                 #rospy.loginfo('Variance: ' + str(variance))
                 if (variance < tolerance):
-                    rospy.loginfo('Found app point')
+                    # rospy.loginfo('Found app point')
                     break
 
             transition_entry = z_segment[:j]
@@ -462,33 +474,33 @@ class Interaction:
                 variance = numpy.var(sliding_window)
                 #rospy.loginfo('Variance: ' + str(variance))
                 if (variance < tolerance):
-                    rospy.loginfo('Found app point again!')
+                    # rospy.loginfo('Found app point again!')
                     break
 
             transition_exit = z_segment[_k:]
 
             application_cluster = z_segment[_j:_k]
 
-            rospy.loginfo('K value: ' + str(_k))
-            rospy.loginfo('J value: ' + str(_j))
+            # rospy.loginfo('K value: ' + str(_k))
+            # rospy.loginfo('J value: ' + str(_j))
 
-            rospy.loginfo('Size clusters: ' + str(len(clusters)))
+            # rospy.loginfo('Size clusters: ' + str(len(clusters)))
             if (_j < 5):
                 clusters[peak_index[i]: (_j + peak_index[i])] = [ArmTrajectory.APPLICATION] * _j
             else:
                 clusters[peak_index[i]: (_j + peak_index[i])] = [ArmTrajectory.ENTRY] * _j
-            rospy.loginfo('Size clusters: ' + str(len(clusters)))
+            # rospy.loginfo('Size clusters: ' + str(len(clusters)))
             clusters[(_j + peak_index[i]):(peak_index[i + 1] - _k)] = [ArmTrajectory.APPLICATION] * numpy.absolute(_j + peak_index[i] - (peak_index[i + 1] - _k))
-            rospy.loginfo('Size clusters: ' + str(len(clusters)))
+            # rospy.loginfo('Size clusters: ' + str(len(clusters)))
             if (_k < 5):
                 clusters[(peak_index[i + 1] - _k):peak_index[i+1]] = [ArmTrajectory.APPLICATION] * _k
             else:
                 clusters[(peak_index[i + 1] - _k):peak_index[i+1]] = [ArmTrajectory.EXIT] * _k
 
 
-        rospy.loginfo('Size clusters: ' + str(len(clusters)))
-        rospy.loginfo('Size previous clusters: ' + str(n_points))
-        rospy.loginfo('Clusters: ' + str(clusters[75:100]))
+        # rospy.loginfo('Size clusters: ' + str(len(clusters)))
+        # rospy.loginfo('Size previous clusters: ' + str(n_points))
+        # rospy.loginfo('Clusters: ' + str(clusters[75:100]))
 
         # Assign points at the beginning as entry
 
@@ -880,7 +892,7 @@ class Interaction:
 
         time.sleep(0.01)
 
-    def compute_repetition_direction(points_x, points_y):
+    def compute_repetition_direction(self, points_x, points_y):
         """ Returns repetition direction """
         n = len(points_x)
         t = list(xrange(n))
@@ -888,10 +900,16 @@ class Interaction:
         slope_y = numpy.polyfit(t, points_y,1)[0]
 
         if (slope_y < 0 and slope_x < 0):
-            return ERROR_NEGATIVE_SLOPES 
+            # return ERROR_NEGATIVE_SLOPES 
+            if (numpy.abs(slope_y) > numpy.abs(slope_x)):
+                rospy.loginfo('Y is the repetition direction.')
+            elif (numpy.abs(slope_y) < numpy.abs(slope_x)):
+                rospy.loginfo('X is the repetition direction.')    
         elif (slope_y > slope_x):
-            return Y_DIR
+            rospy.loginfo('Y is the repetition direction.')
+            # return Y_DIR
         elif (slope_x > slope_y):
-            return X_DIR
+            rospy.loginfo('X is the repetition direction.')
+            # return X_DIR
         else:
             return ERROR_INDETERMINATE_DIR
