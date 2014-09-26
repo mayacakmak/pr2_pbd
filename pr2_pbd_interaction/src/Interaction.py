@@ -540,9 +540,12 @@ class Interaction:
         outlier_heights = []
         outlier_length_x = []
         outlier_length_y = []
-        x_app = []
-        y_app = []
+        
+        slopes_x = 0
+        slopes_y = 0
         for cluster in app_cluster_bounds:
+            x_app = []
+            y_app = []
             heights = []
             lengths_x = numpy.absolute(all_x[cluster[0]] - all_x[cluster[len(cluster) -1]])
             lengths_y = numpy.absolute(all_y[cluster[0]] - all_y[cluster[len(cluster) -1]])
@@ -550,17 +553,31 @@ class Interaction:
                 heights.append(all_z[ind])
                 x_app.append(all_x[ind])
                 y_app.append(all_y[ind])
+            n = len(x_app)
+            t = list(xrange(n))
+            slope_x = numpy.polyfit(t, x_app,1)[0]
+            slope_y = numpy.polyfit(t, y_app,1)[0]
+            # slopes_x.append(slope_x)
+            # slopes_y.append(slope_y)
+            if (numpy.abs(slope_x) > numpy.abs(slope_y)):
+                slopes_x = slopes_x + 1
+            else:
+                slopes_y = slopes_y + 1
+
             mean = numpy.mean(heights)
-            outlier_length_x = lengths_x
-            outlier_length_y = lengths_y
+            outlier_length_x.append(lengths_x)
+            outlier_length_y.append(lengths_y)
             outlier_heights.append(mean)
 
 
-        outlier_height_indices = self.find_outliers(outlier_heights, 2, True)
-        outlier_length_y_indices = self.find_outliers(outlier_length_y)
-        outlier_length_x_indices = self.find_outliers(outlier_length_x)
+        
 
-        mergedlist = list(set(outlier_height_indices + outlier_length_x_indices + outlier_length_y_indices))
+        outlier_height_indices = self.find_outliers(outlier_heights, 2, True)
+        #outlier_length_y_indices = self.find_outliers(outlier_length_y)
+        #outlier_length_x_indices = self.find_outliers(outlier_length_x)
+
+        #mergedlist = list(set(outlier_height_indices + outlier_length_x_indices + outlier_length_y_indices))
+        mergedlist = outlier_height_indices
 
         outliers = []
 
@@ -573,43 +590,17 @@ class Interaction:
             clusters[i] = -1
 
         ###################### detecting the repetition direction ##########
-        x_peak = []
-        y_peak = []
-        for i in peakind:
-            x_peak.append(all_x[i])
-            y_peak.append(all_y[i])
-
-        self.compute_repetition_direction(x_peak, y_peak)
-
-        # Assign points at the beginning as entry
+        # x_peak = []
+        # y_peak = []
+        # for i in peakind:
+        #     x_peak.append(all_x[i])
+        #     y_peak.append(all_y[i])
 
 
-        # index = 0
-        # while (clusters[index] != ArmTrajectory.APPLICATION):
-        #     clusters[index] = ArmTrajectory.START
-        #     index = index + 1
 
-        # # Assign points at the end beginning as exit
-        # index = n_points - 1
-        # while (clusters[index] != ArmTrajectory.APPLICATION):
-        #     clusters[index] = ArmTrajectory.END
-        #     index = index -1
+        # self.compute_repetition_direction(x_peak, y_peak)
 
-        # # Assign mid points based on their diff and z from lowest point
-        # for i in range(n_points-1):
-        #     point_z = r_traj[i].ee_pose.position.z
-        #     if (numpy.abs(point_z - min_z) < 0.12):
-        #         if clusters[i] != ArmTrajectory.APPLICATION:
-
-        #             next_point_z = r_traj[i+1].ee_pose.position.z
-        #             diff_z = next_point_z - point_z
-
-        #             if (diff_z) >= 0:
-        #                 clusters[i] = ArmTrajectory.EXIT
-        #             else:
-        #                 clusters[i] = ArmTrajectory.ENTRY
-
-        #Everything else is connectors
+       
         for i in range(n_points-1):
             if clusters[i] == -1:
                 clusters[i] = ArmTrajectory.CONNECTOR
@@ -624,10 +615,123 @@ class Interaction:
                 clusters[i+1] = c1
 
 
-        rospy.loginfo('the first 20 of the clusters: ' + str(clusters[:20]))
-        rospy.loginfo('the last 20 of the clusters: ' + str(clusters[20:]))
+        # rospy.loginfo('the first 20 of the clusters: ' + str(clusters[:20]))
+        # rospy.loginfo('the last 20 of the clusters: ' + str(clusters[20:]))
 
         action.update_trajectory(clusters)
+        #cleaning_unit_good = False
+        cu_peaks = []
+        cluster_num = 0
+        best_cu = []
+        diff = numpy.inf
+        app_cluster_bounds.pop(0)
+        app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
+        rospy.loginfo('Total repetitions: ' + str(len(app_cluster_bounds)))
+        if (slopes_x > slopes_y):
+            rospy.loginfo('X is App direction')
+            for cluster in app_cluster_bounds:
+                rospy.loginfo('cluster num: ' + str(cluster_num))
+                cluster_num = cluster_num + 1
+                cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster)
+                rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
+                if (diff > numpy.abs(cu_peaks[0] - cu_peaks[1])):
+                    diff =  numpy.abs(cu_peaks[0] - cu_peaks[1])
+                    best_cu = cu_peaks
+        elif (slopes_y > slopes_x):
+            for cluster in app_cluster_bounds:
+                rospy.loginfo('cluster num: ' + str(cluster_num))
+                cluster_num = cluster_num + 1
+                cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster)
+                if (diff > numpy.abs(cu_peaks[0] - cu_peaks[1])):
+                    diff =  numpy.abs(cu_peaks[0] - cu_peaks[1])
+                    best_cu = cu_peaks         
+            rospy.loginfo('Y is App direction')
+        else:
+            rospy.loginfo('Indeterminate direction')
+
+        rospy.loginfo('Best cleaning peaks: ' + str(best_cu))
+
+        
+
+    def find_cleaning_unit(self, repetition_vals, application_vals, indices):
+
+        subset_rep_vals = []
+        subset_app_vals = []
+        for ind in indices:
+            subset_app_vals.append(application_vals[ind])
+            subset_rep_vals.append(repetition_vals[ind])
+        #find peaks in subset_rep_vals  --- cleaning_peaks_indcies
+
+
+        data_rep = subset_rep_vals
+        data_app = subset_app_vals
+
+        '''filtering'''
+        # window = sgnl.general_gaussian(51, p=0.5, sig=20)
+        # filtered = sgnl.fftconvolve(window, data)
+        # filtered = (numpy.average(data) / numpy.average(filtered)) * filtered
+        # filtered = numpy.roll(filtered, -25)
+        ''' method 1 '''
+        peakind = sgnl.find_peaks_cwt(data_rep, numpy.arange(1,20), noise_perc=10)
+        ''' method 2 '''
+        # peakind = sgnl.find_peaks_cwt(filtered, numpy.arange(100,200))
+        ''' method 3: finding the maximum values from filtered curves: '''
+        # peakind = sgnl.argrelmax(filtered, order=5)
+
+        ''' this is for converting tuple peakind to an array: '''
+        # peak_index = []
+        # for item in peakind:
+        #     peak_index.extend(item)
+
+        # peakind = peakind_ini[1:len(peakind_ini)-1]
+
+          # print peakind
+        peak_data_rep = []
+        peak_data_app = []
+        for i in peakind:
+            peak_data_rep.append(data_rep[i])
+            peak_data_app.append(data_app[i])
+
+
+
+        plt.subplot(2, 1, 1)
+        plt.plot(data_rep)
+        plt.plot(peakind, peak_data_rep, 'ro')
+        plt.ylabel('repetiton peaks')
+
+        plt.subplot(2, 1, 2)
+        plt.plot(data_app)
+        plt.plot(peakind, peak_data_app, 'go-')
+        plt.ylabel('application peaks')
+
+        plt.subplots_adjust(left=0.15)
+        plt.show()
+
+        cleaning_peaks_indices = peakind
+
+
+        smallest_so_far = numpy.inf
+        current_cu_peaks = []
+        good_cleaning_peaks = []
+        rejected_peak_pairs = []
+        while(not good_cleaning_peaks):
+            for i in range(len(cleaning_peaks_indices) - 1):
+                if(cleaning_peaks_indices[i] in rejected_peak_pairs):
+                    continue
+                diff = numpy.abs(repetition_vals[cleaning_peaks_indices[i]] - repetition_vals[cleaning_peaks_indices[i + 1]])
+                if (diff < smallest_so_far):
+                    smallest_so_far = diff
+                    current_cu_peaks = [cleaning_peaks_indices[i], cleaning_peaks_indices[i+ 1]]
+            app_peak_vals =  [application_vals[current_cu_peaks[0]],  application_vals[current_cu_peaks[1]]]
+            if (app_peak_vals[0] < app_peak_vals[1]):
+                good_cleaning_peaks = current_cu_peaks
+                return good_cleaning_peaks
+            else:
+                rejected_peak_pairs.append(current_cu_peaks[0])
+        return []
+
+
+        
 
 
 
@@ -1000,7 +1104,10 @@ class Interaction:
     def find_outliers(self, data, m=2, height = False):
         d = numpy.abs(data - numpy.median(data))
         mdev = numpy.median(d)
-        s = d/mdev if mdev else 0.
+        if (mdev):
+            s = d/mdev 
+        else:
+            s = [0]*len(d)
         _i = 0
         outlier_indices = []
         outliers = []
@@ -1015,7 +1122,7 @@ class Interaction:
                 non_indices.append(_i)
             _i = _i + 1
 
-        if ((len(outlier_indices) == len(data)/2) and (height = True)):
+        if ((len(outlier_indices) == len(data)/2) and (height == True)):
             if (numpy.mean(outliers) < numpy.mean(non)):
                 outlier_indices = non_indices
 
