@@ -27,7 +27,7 @@ class ActionStepMarker:
     _marker_click_cb = None
 
     def __init__(self, step_number, arm_index, action_step,
-                 marker_click_cb):
+                 marker_click_cb, name):
 
         if ActionStepMarker._im_server == None:
             im_server = InteractiveMarkerServer('programmed_actions')
@@ -41,6 +41,7 @@ class ActionStepMarker:
         self.is_control_visible = False
         self.is_edited = False
         self.has_object = False
+        self.name = name
 
         self._sub_entries = None
         self._menu_handler = None
@@ -60,8 +61,12 @@ class ActionStepMarker:
 
     def _get_name(self):
         '''Generates the unique name for the marker'''
-        return ('step' + str(self.step_number)
-                                        + 'arm' + str(self.arm_index))
+        if self.arm_index == 0:
+            return self.name
+        else:
+            return 'left'
+        #return ('step' + str(self.step_number)
+        #                                + 'arm' + str(self.arm_index))
 
     def decrease_id(self):
         '''Reduces the index of the marker'''
@@ -352,13 +357,13 @@ class ActionStepMarker:
             # Larger sphere for start point
             menu_control.markers.append(ActionStepMarker.make_sphere_marker(
                                 self.get_uid() + 2000,
-                                self._get_traj_pose(0), frame_id, 0.05))
+                                self._get_traj_pose(0), frame_id, 0.01))
 
             # Larger sphere for end point
             last_index = len(self.action_step.armTrajectory.timing) - 1
             menu_control.markers.append(ActionStepMarker.make_sphere_marker(
                 self.get_uid() + 3000, self._get_traj_pose(last_index),
-                frame_id, 0.05))
+                frame_id, 0.01))
         else:
             rospy.logerr('Non-handled action step type '
                          + str(self.action_step.type))
@@ -379,7 +384,7 @@ class ActionStepMarker:
         text_pos.z = pose.position.z + 0.1
         menu_control.markers.append(Marker(type=Marker.TEXT_VIEW_FACING,
                         id=self.get_uid(), scale=Vector3(0, 0, 0.03),
-                        text='demonstration',
+                        text=self._get_name(),
                         color=ColorRGBA(0.0, 0.0, 0.0, 0.5),
                         header=Header(frame_id=frame_id),
                         pose=Pose(text_pos, Quaternion(0, 0, 0, 1))))
@@ -474,7 +479,7 @@ class ActionStepMarker:
         return Marker(type=Marker.SPHERE, id=uid, lifetime=rospy.Duration(2),
                         scale=Vector3(radius, radius, radius),
                         pose=pose, header=Header(frame_id=frame_id),
-                        color=ColorRGBA(1.0, 0.5, 0.0, 0.8))
+                        color=ColorRGBA(0.5, 1.0, 0.0, 0.8))
 
     def marker_feedback_cb(self, feedback):
         '''Callback for when an event occurs on the marker'''

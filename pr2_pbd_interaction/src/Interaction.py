@@ -345,7 +345,8 @@ class Interaction:
 
         arm_traj_newSurface = arm_trajectory
 
-        arm_traj_newSurface.table_corners = self.world.get_surface()
+        self.surface = self.world.get_surface()
+        arm_traj_newSurface.table_corners = self.surface
 
         new_table = arm_traj_newSurface.table_corners[:]
 
@@ -430,26 +431,18 @@ class Interaction:
         plt.ylabel('Test numbers')
         plt.show()
 
-        ###############################################################
-
-        ############# finding Application & Repetition direction ######
-
         
-        
-    
-
-
-        ############# new clustering method using sliding window ######
-
+        """
+        Using sliding window method to find clusters
+        Starts at peaks and computes variance of points within the window
+        Window moves until the variance is within a tolerance
+        Sections with small variance are considered part of the application
+        """
 
         window_size = 50
         tolerance = 0.000015
 
-        #clusters = [0]*len(all_z)
-
         peak_index = peakind
-
-        # rospy.loginfo('Size peakind' + str(len(peak_index)))
 
         app_cluster_bounds = []
         
@@ -457,22 +450,17 @@ class Interaction:
         for i in range(len(peak_index) - 1):
 
             current_app_cluster = []
-            # rospy.loginfo('Peakind[i]: ' + str(peak_index[i]))
-            # rospy.loginfo('Peakind[i + 1]: ' + str(peak_index[i + 1]))
 
             current_ind = [peak_index[i], peak_index[i+1]]
             z_segment = all_z[current_ind[0]:current_ind[1]]
-            # rospy.loginfo('Length z_segment: ' + str(len(z_segment)))
+            
             sliding_window = []
             _j = 0
             for j in range(len(z_segment)):
                 _j = j + 1
                 sliding_window = z_segment[j:j+window_size]
-                # rospy.loginfo('Sliding Window: ' + str(sliding_window[0]) + '    ' + str(sliding_window[len(sliding_window) -1]))
                 variance = numpy.var(sliding_window)
-                #rospy.loginfo('Variance: ' + str(variance))
                 if (variance < tolerance):
-                    # rospy.loginfo('Found app point')
                     break
 
             transition_entry = z_segment[:j]
@@ -482,20 +470,13 @@ class Interaction:
                 _k = _k + 1
                 sliding_window = z_segment[len(z_segment) - k - window_size:len(z_segment) - k]
                 variance = numpy.var(sliding_window)
-                #rospy.loginfo('Variance: ' + str(variance))
                 if (variance < tolerance):
-                    # rospy.loginfo('Found app point again!')
                     break
 
             transition_exit = z_segment[_k:]
 
             application_cluster = z_segment[_j:_k]
 
-            # rospy.loginfo('K value: ' + str(_k))
-            # rospy.loginfo('J value: ' + str(_j))
-
-
-            # rospy.loginfo('Size clusters: ' + str(len(clusters)))
 
             rospy.loginfo('Size clusters: ' + str(len(clusters)))
             clusters[(_j + peak_index[i]):(peak_index[i + 1] - _k)] = [ArmTrajectory.APPLICATION] * numpy.absolute(_j + peak_index[i] - (peak_index[i + 1] - _k))
@@ -513,7 +494,7 @@ class Interaction:
             else:
                 clusters[(peak_index[i + 1] - _k):peak_index[i+1]] = [ArmTrajectory.EXIT] * _k
 
-            #n = len(peak_index[i + 1] - peak_index[i] - _j - _k)
+    
             current_app_cluster = range(peak_index[i] + _j, peak_index[i + 1] - _k)
             app_cluster_bounds.append(current_app_cluster)
 
@@ -521,23 +502,11 @@ class Interaction:
         clusters[:5] = [-1]*5
         clusters[(len(clusters) - 5):] = [-1]*5 
 
-        #rospy.loginfo('Size clusters: ' + str(len(clusters)))
-        #rospy.loginfo('Size previous clusters: ' + str(n_points))
-        #rospy.loginfo('Clusters: ' + str(clusters[75:100]))
-
-        #Removing outliers
-
-
-        # for point in range(len(clusters)):
-        #     if ((clusters[point] == ArmTrajectory.APPLICATION) and ((point == 0) or point == (len(clusters) -1))):
-        #         app_cluster_bounds.append(point)
-        #         continue
-
-        #     if (clusters[point] == ArmTrajectory.APPLICATION):
-        #         if ((point != 0) and (clusters[point - 1] != ArmTrajectory.APPLICATION)):
-        #             app_cluster_bounds.append(point)
-        #         elif ((point != (len(clusters) -1)) and (clusters[point + 1] != ArmTrajectory.APPLICATION)):
-        #             app_cluster_bounds.append(point)
+    
+        """
+        We remove application segments that have
+        average heights much greater than the median.
+        """
 
         outlier_heights = []
         outlier_length_x = []
@@ -561,8 +530,7 @@ class Interaction:
             t = list(xrange(n))
             slope_x = numpy.polyfit(t, x_app,1)[0]
             slope_y = numpy.polyfit(t, y_app,1)[0]
-            # slopes_x.append(slope_x)
-            # slopes_y.append(slope_y)
+           
             if (numpy.abs(slope_x) > numpy.abs(slope_y)):
                 if (slope_x > 0):
                     slopes_x_pos = slopes_x_pos + 1
@@ -580,13 +548,15 @@ class Interaction:
             outlier_heights.append(mean)
 
 
-        
-
         outlier_height_indices = self.find_outliers(outlier_heights, 2, True)
+
+
+        #Commented out the part that looks for outliers based on x and y
+
         #outlier_length_y_indices = self.find_outliers(outlier_length_y)
         #outlier_length_x_indices = self.find_outliers(outlier_length_x)
-
         #mergedlist = list(set(outlier_height_indices + outlier_length_x_indices + outlier_length_y_indices))
+
         mergedlist = outlier_height_indices
 
         outliers = []
@@ -598,17 +568,6 @@ class Interaction:
 
         for i in outliers:
             clusters[i] = -1
-
-        ###################### detecting the repetition direction ##########
-        # x_peak = []
-        # y_peak = []
-        # for i in peakind:
-        #     x_peak.append(all_x[i])
-        #     y_peak.append(all_y[i])
-
-
-
-        # self.compute_repetition_direction(x_peak, y_peak)
 
        
         for i in range(n_points-1):
@@ -625,8 +584,13 @@ class Interaction:
                 clusters[i+1] = c1
 
 
-        # rospy.loginfo('the first 20 of the clusters: ' + str(clusters[:20]))
-        # rospy.loginfo('the last 20 of the clusters: ' + str(clusters[20:]))
+        """
+        Found slopes over the various segments in the 
+        application and repetition directions.
+        The direction with the greatest absolute slope over
+        the segment is the application direction.
+        """
+
         slopes = [slopes_x_pos, slopes_x_neg, slopes_y_pos, slopes_y_neg]
         
         app_direction = max(slopes)
@@ -658,8 +622,12 @@ class Interaction:
                 return
 
 
-        action.update_trajectory(clusters)
-        #cleaning_unit_good = False
+        """
+        Finding the actual cleaning unit by
+        finding the peaks along individual 
+        repetition direction segments. 
+        """
+
         cu_peaks = []
         cluster_num = 0
         best_cu = []
@@ -745,6 +713,69 @@ class Interaction:
             
 
         rospy.loginfo('Best cleaning peaks: ' + str(best_cu))
+        action.update_trajectory(clusters)
+        
+
+        """
+        Publishing the cleaning unit trajectory and markers
+        """
+
+        timing = arm_trajectory.timing
+        l_traj = arm_trajectory.lArm[:]
+
+        timing_unit = []
+        r_ee_unit = []
+        r_joints_unit = []
+        l_ee_unit = []
+        l_joints_unit = []
+        rArm = []
+        lArm = []
+        for i in range(best_cu[0],best_cu[1]):
+            
+            timing_unit.append(timing[i])
+
+
+            rArm.append(ArmState(ArmState.ROBOT_BASE,
+                            r_traj[i].ee_pose,
+                            r_traj[i].joint_pose, Object()))
+
+            lArm.append(ArmState(ArmState.ROBOT_BASE,
+                            l_traj[i].ee_pose,
+                            l_traj[i].joint_pose, Object()))
+
+
+        traj_step = ActionStep()
+        traj_step.type = ActionStep.ARM_TRAJECTORY
+        
+
+        n_points = len(timing_unit) #TODO
+            
+        traj_step.armTrajectory = ArmTrajectory(
+            self.surface, #TODO
+            rArm[:], #TODO
+            lArm[:], #TODO
+            timing_unit[:], #TODO
+            arm_trajectory.rRefFrame,
+            arm_trajectory.lRefFrame,
+            arm_trajectory.rRefFrameObject,
+            arm_trajectory.lRefFrameObject,
+            [], 
+            [],
+            []
+        )
+            
+        traj_step.gripperAction = GripperAction(GripperState.CLOSED,
+                                        GripperState.CLOSED)
+
+        # Create data structure and visualize
+        self.session.create_execution_trajectory(traj_step,
+                                        self.world.get_frame_list())
+
+        # Execute
+        execution_z_offset = 0.00
+        self.arms.start_execution(self.session.execution, execution_z_offset)
+
+        #timing_unit
 
         
 

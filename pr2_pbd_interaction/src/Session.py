@@ -21,6 +21,7 @@ class Session:
         self._object_list = object_list
         self.pose_set = dict()
         self.actions = dict()
+        self.execution = ProgrammedAction("Execution", self._selected_step_cb)
         self.lock = threading.Lock()
         self._interaction_state = 'UNKNOWN'
 
@@ -200,6 +201,11 @@ class Session:
         step selected, by showing the 6D controls'''
         self.actions[self.current_action_index].select_step(step_id)
         self._selected_step = step_id
+
+    def create_execution_trajectory(self, step, object_list):
+        self.execution.clear()
+        self.execution.add_action_step(step, object_list)
+        self.execution.initialize_viz(object_list)
 
     def new_action(self, tool_id, object_list):
         '''Creates new action'''

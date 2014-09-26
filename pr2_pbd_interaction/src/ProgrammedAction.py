@@ -50,10 +50,10 @@ class ProgrammedAction:
             or step.type == ActionStep.ARM_TRAJECTORY):
             last_step = self.seq.seq[len(self.seq.seq) - 1]
             r_marker = ActionStepMarker(self.n_frames(), 0,
-                        last_step, self.marker_click_cb)
+                        last_step, self.marker_click_cb, self.name)
             r_marker.update_ref_frames(object_list)
             l_marker = ActionStepMarker(self.n_frames(), 1,
-                        last_step, self.marker_click_cb)
+                        last_step, self.marker_click_cb, self.name)
             l_marker.update_ref_frames(object_list)
             self.r_markers.append(r_marker)
             self.l_markers.append(l_marker)
@@ -158,9 +158,9 @@ class ProgrammedAction:
             or step.type == ActionStep.ARM_TRAJECTORY):
             last_step = self.seq.seq[len(self.seq.seq) - 1]
             r_marker = ActionStepMarker(self.n_frames(), 0,
-                        last_step, self.marker_click_cb)
+                        last_step, self.marker_click_cb, self.name)
             l_marker = ActionStepMarker(self.n_frames(), 1,
-                        last_step, self.marker_click_cb)
+                        last_step, self.marker_click_cb, self.name)
             self.r_markers.append(r_marker)
             self.l_markers.append(l_marker)
             if (self.n_frames() > 1):
@@ -342,9 +342,9 @@ class ProgrammedAction:
             if (step.type == ActionStep.ARM_TARGET or
                 step.type == ActionStep.ARM_TRAJECTORY):
                 r_marker = ActionStepMarker(i + 1, 0, step,
-                                            self.marker_click_cb)
+                                            self.marker_click_cb, self.name)
                 l_marker = ActionStepMarker(i + 1, 1, step,
-                                            self.marker_click_cb)
+                                            self.marker_click_cb, self.name)
 
                 r_marker.update_ref_frames(object_list)
                 l_marker.update_ref_frames(object_list)
