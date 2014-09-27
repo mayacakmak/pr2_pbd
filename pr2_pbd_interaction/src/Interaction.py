@@ -649,10 +649,10 @@ class Interaction:
                         cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, False, True)
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
-                        break
+                        continue
                     rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
-                    if (diff > numpy.abs(cu_peaks[0] - cu_peaks[1])):
-                        diff =  numpy.abs(cu_peaks[0] - cu_peaks[1])
+                    if (diff > numpy.abs(all_y[cu_peaks[0]] - all_y[cu_peaks[1]])):
+                        diff =  numpy.abs(all_y[cu_peaks[0]] - all_y[cu_peaks[1]])
                         best_cu = cu_peaks
             elif (app_direction == slopes_y_pos):
                 rospy.loginfo('Positive Y is App direction')
@@ -665,10 +665,10 @@ class Interaction:
                         cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, False, True)
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
-                        break
+                        continue
                     rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
-                    if (diff > numpy.abs(cu_peaks[0] - cu_peaks[1])):
-                        diff =  numpy.abs(cu_peaks[0] - cu_peaks[1])
+                    if (diff > numpy.abs(all_x[cu_peaks[0]] - all_x[cu_peaks[1]])):
+                        diff =  numpy.abs(all_x[cu_peaks[0]] - all_x[cu_peaks[1]])
                         best_cu = cu_peaks         
                 
             elif (app_direction == slopes_x_neg):
@@ -682,10 +682,10 @@ class Interaction:
                         cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, False, False)
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
-                        break
+                        continue
                     rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
-                    if (diff > numpy.abs(cu_peaks[0] - cu_peaks[1])):
-                        diff =  numpy.abs(cu_peaks[0] - cu_peaks[1])
+                    if (diff > numpy.abs(all_y[cu_peaks[0]] - all_y[cu_peaks[1]])):
+                        diff =  numpy.abs(all_y[cu_peaks[0]] - all_y[cu_peaks[1]])
                         best_cu = cu_peaks         
                 
             elif (app_direction == slopes_y_neg):
@@ -699,10 +699,10 @@ class Interaction:
                         cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, False, False)
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
-                        break
+                        continue
                     rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
-                    if (diff > numpy.abs(cu_peaks[0] - cu_peaks[1])):
-                        diff =  numpy.abs(cu_peaks[0] - cu_peaks[1])
+                    if (diff > numpy.abs(all_x[cu_peaks[0]] - all_x[cu_peaks[1]])):
+                        diff =  numpy.abs(all_x[cu_peaks[0]] - all_x[cu_peaks[1]])
                         best_cu = cu_peaks
 
             if not cu_peaks:
@@ -725,22 +725,18 @@ class Interaction:
         l_traj = arm_trajectory.lArm[:]
 
         timing_unit = []
-        r_ee_unit = []
-        r_joints_unit = []
-        l_ee_unit = []
-        l_joints_unit = []
-        rArm = []
-        lArm = []
+        r_unit = []
+        l_unit = []
         for i in range(best_cu[0],best_cu[1]):
             
+            #timing_unit.append(rospy.Duration(i*0.2))
             timing_unit.append(timing[i])
 
-
-            rArm.append(ArmState(ArmState.ROBOT_BASE,
+            r_unit.append(ArmState(ArmState.ROBOT_BASE,
                             r_traj[i].ee_pose,
                             r_traj[i].joint_pose, Object()))
 
-            lArm.append(ArmState(ArmState.ROBOT_BASE,
+            l_unit.append(ArmState(ArmState.ROBOT_BASE,
                             l_traj[i].ee_pose,
                             l_traj[i].joint_pose, Object()))
 
@@ -752,6 +748,12 @@ class Interaction:
         app_offset_x = 0
         app_offset_y = 0
 
+        start_time = timing_unit[0]
+        unit_length = len(timing_unit)
+        for i in range(unit_length):
+            timing_unit[i] = timing_unit[i] - start_time
+        unit_duration = timing_unit[-1]
+
         """for finding the offset of cleaning unit in application direction: """
         if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
             app_offset_x = all_x[best_cu[1]] - all_x[best_cu[0]]
@@ -762,35 +764,40 @@ class Interaction:
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
        
         # decide number of cleaning units
-        number_units = 3
+        number_units = 4
+        timing_gen = []
+        r_traj_gen = []
+        l_traj_gen = []
+
         for j in range(number_units):
             rospy.loginfo('Adding unit: ' + str(j))
-            for i in range(best_cu[0],best_cu[1]):
+            for i in range(unit_length):
                 #timing_unit.append(timing[len(timing) -1] + (timing[i] + timing[i - 1]))
-                timing_unit.append(timing[len(timing) -1] + rospy.Duration(0.2))
+                # timing_unit.append(timing[len(timing) -1] + rospy.Duration(0.1))
+                
+                timing_gen.append(timing_unit[i] + rospy.Duration(j*(unit_duration.to_sec()+0.02)))
 
                 r_new_pose = Pose()
-                r_traj[i].ee_pose
-                rospy.loginfo('Original point: ' + str(r_traj[i].ee_pose.position.x) + ', ' + str(r_traj[i].ee_pose.position.y))
-                r_new_pose.position.x = r_traj[i].ee_pose.position.x + (j + 1)*app_offset_x
-                r_new_pose.position.y = r_traj[i].ee_pose.position.y + (j + 1)*app_offset_y
-                r_new_pose.position.z = r_traj[i].ee_pose.position.z
-
-                r_new_pose.orientation.x = r_traj[i].ee_pose.orientation.x
-                r_new_pose.orientation.y = r_traj[i].ee_pose.orientation.y
-                r_new_pose.orientation.z = r_traj[i].ee_pose.orientation.z
-                r_new_pose.orientation.w = r_traj[i].ee_pose.orientation.w
+                rospy.loginfo('Original point: ' + str(r_unit[i].ee_pose.position.x) + ', ' + str(r_unit[i].ee_pose.position.y))
+                
+                r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x
+                r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y
+                r_new_pose.position.z = r_unit[i].ee_pose.position.z
+                r_new_pose.orientation.x = r_unit[i].ee_pose.orientation.x
+                r_new_pose.orientation.y = r_unit[i].ee_pose.orientation.y
+                r_new_pose.orientation.z = r_unit[i].ee_pose.orientation.z
+                r_new_pose.orientation.w = r_unit[i].ee_pose.orientation.w
 
 
                 rospy.loginfo('New point: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
 
-                rArm.append(ArmState(ArmState.ROBOT_BASE,
+                r_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
                                 r_new_pose,
-                                r_traj[i].joint_pose, Object()))
+                                r_unit[i].joint_pose, Object()))
 
-                lArm.append(ArmState(ArmState.ROBOT_BASE,
-                                l_traj[i].ee_pose,
-                                l_traj[i].joint_pose, Object()))
+                l_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
+                                l_unit[i].ee_pose,
+                                l_unit[i].joint_pose, Object()))
           
 
         """for finding the offset of cleaning unit in repetition direction: """
@@ -804,10 +811,10 @@ class Interaction:
         n_points = len(timing_unit) #TODO
             
         traj_step.armTrajectory = ArmTrajectory(
-            self.surface, #TODO
-            rArm[:], #TODO
-            lArm[:], #TODO
-            timing_unit[:], #TODO
+            self.surface,
+            r_traj_gen[:],
+            l_traj_gen[:],
+            timing_gen[:],
             arm_trajectory.rRefFrame,
             arm_trajectory.lRefFrame,
             arm_trajectory.rRefFrameObject,
