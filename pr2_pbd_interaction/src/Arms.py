@@ -83,6 +83,8 @@ class Arms:
         '''Computes joint positions for all end-effector poses
         in an action'''
         
+        has_solution = []
+        has_all_solutions = True
         prev_arm_state = map(lambda a_ind: Arms.get_ee_state(a_ind), [0, 1])
         # Go over steps of the action
         for i in range(self.action.n_frames()):
@@ -104,11 +106,15 @@ class Arms:
                 self.action.seq.seq[i].armTarget.lArm = l_arm
                 prev_arm_state = [r_arm.ee_pose, l_arm.ee_pose]
                 if (not has_solution_r) or (not has_solution_l):
-                    return False
+                    has_solution.append([False])
+                    has_all_solutions = False
+                else:
+                    has_solution.append([True])
 
             if (self.action.seq.seq[i].type == ActionStep.ARM_TRAJECTORY):
                 n_frames = len(self.action.seq.seq[i].armTrajectory.timing)
                 end_state = prev_arm_state
+                traj_has_solution = []
                 for j in range(n_frames):
                     r_arm, has_solution_r = Arms.solve_ik_for_arm(0,
                             self.action.seq.seq[i].armTrajectory.rArm[j],
@@ -122,9 +128,14 @@ class Arms:
                     self.action.seq.seq[i].armTrajectory.lArm[j] = l_arm
                     end_state = [r_arm.ee_pose, l_arm.ee_pose]
                     if (not has_solution_r) or (not has_solution_l):
-                        return False
+                        traj_has_solution.append(False)
+                        has_all_solutions = False
+                    else:
+                        traj_has_solution.append(True)
                 prev_arm_state = end_state
-        return True
+                has_solution.append(traj_has_solution)
+        
+        return has_solution, has_all_solutions
 
     @staticmethod
     def solve_ik_for_arm(arm_index, arm_state, cur_arm_pose=None, z_offset=0.0):
@@ -238,7 +249,8 @@ class Arms:
             self.status = ExecutionStatus.CONDITION_ERROR
         else:
             # Check that all parts of the action are reachable
-            if (not self.solve_ik_for_action()):
+            solutions, has_all_solutions = self.solve_ik_for_action()
+            if (not has_all_solutions):
                 rospy.logwarn('Problems in finding IK solutions...')
                 self.status = ExecutionStatus.NO_IK
             else:
