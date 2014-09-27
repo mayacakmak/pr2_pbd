@@ -21,6 +21,7 @@ from Response import Response
 from Arms import Arms
 from Arm import ArmMode
 from actionlib import SimpleActionClient
+from geometry_msgs.msg import Pose
 from pr2_pbd_interaction.msg import ArmState, GripperState
 from pr2_pbd_interaction.msg import ActionStep, ArmTarget, Object
 from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
@@ -714,7 +715,7 @@ class Interaction:
 
         rospy.loginfo('Best cleaning peaks: ' + str(best_cu))
         action.update_trajectory(clusters)
-        
+
 
         """
         Publishing the cleaning unit trajectory and markers
@@ -742,6 +743,58 @@ class Interaction:
             lArm.append(ArmState(ArmState.ROBOT_BASE,
                             l_traj[i].ee_pose,
                             l_traj[i].joint_pose, Object()))
+
+        #find the offset
+
+        origin_offset_x = 0
+        origin_offset_y = 0
+
+        app_offset_x = 0
+        app_offset_y = 0
+
+        """for finding the offset of cleaning unit in application direction: """
+        if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
+            app_offset_x = all_x[best_cu[1]] - all_x[best_cu[0]]
+            rospy.loginfo('Application dir offset: ' + str(app_offset_x))
+   
+        elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
+            app_offset_y = all_y[best_cu[1]] - all_y[best_cu[0]]
+            rospy.loginfo('Application dir offset: ' + str(app_offset_y))
+       
+        # decide number of cleaning units
+        number_units = 3
+        for j in range(number_units):
+            rospy.loginfo('Adding unit: ' + str(j))
+            for i in range(best_cu[0],best_cu[1]):
+                #timing_unit.append(timing[len(timing) -1] + (timing[i] + timing[i - 1]))
+                timing_unit.append(timing[len(timing) -1] + rospy.Duration(0.2))
+
+                r_new_pose = Pose()
+                r_traj[i].ee_pose
+                rospy.loginfo('Original point: ' + str(r_traj[i].ee_pose.position.x) + ', ' + str(r_traj[i].ee_pose.position.y))
+                r_new_pose.position.x = r_traj[i].ee_pose.position.x + (j + 1)*app_offset_x
+                r_new_pose.position.y = r_traj[i].ee_pose.position.y + (j + 1)*app_offset_y
+                r_new_pose.position.z = r_traj[i].ee_pose.position.z
+
+                r_new_pose.orientation.x = r_traj[i].ee_pose.orientation.x
+                r_new_pose.orientation.y = r_traj[i].ee_pose.orientation.y
+                r_new_pose.orientation.z = r_traj[i].ee_pose.orientation.z
+                r_new_pose.orientation.w = r_traj[i].ee_pose.orientation.w
+
+
+                rospy.loginfo('New point: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
+
+                rArm.append(ArmState(ArmState.ROBOT_BASE,
+                                r_new_pose,
+                                r_traj[i].joint_pose, Object()))
+
+                lArm.append(ArmState(ArmState.ROBOT_BASE,
+                                l_traj[i].ee_pose,
+                                l_traj[i].joint_pose, Object()))
+          
+
+        """for finding the offset of cleaning unit in repetition direction: """
+
 
 
         traj_step = ActionStep()
