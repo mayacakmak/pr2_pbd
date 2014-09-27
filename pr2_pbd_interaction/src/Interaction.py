@@ -849,7 +849,7 @@ class Interaction:
                     #timing_unit.append(timing[len(timing) -1] + (timing[i] + timing[i - 1]))
                     # timing_unit.append(timing[len(timing) -1] + rospy.Duration(0.1))
                     
-                    timing_gen.append(timing_unit[i] + rospy.Duration((j*(unit_duration.to_sec()+time_step))+number_units_app*k*time_step))
+                    timing_gen.append(timing_unit[i] + rospy.Duration((j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
                     # timing_gen.append(timing_unit[i] + rospy.Duration((j*(unit_duration.to_sec()+time_step))))
 
 
