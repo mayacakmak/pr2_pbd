@@ -446,7 +446,6 @@ class Interaction:
         peak_index = peakind
 
         app_cluster_bounds = []
-        
 
         for i in range(len(peak_index) - 1):
 
@@ -477,7 +476,6 @@ class Interaction:
             transition_exit = z_segment[_k:]
 
             application_cluster = z_segment[_j:_k]
-
 
             rospy.loginfo('Size clusters: ' + str(len(clusters)))
             clusters[(_j + peak_index[i]):(peak_index[i + 1] - _k)] = [ArmTrajectory.APPLICATION] * numpy.absolute(_j + peak_index[i] - (peak_index[i + 1] - _k))
@@ -584,6 +582,8 @@ class Interaction:
             if c1==c3 and c1!=c2:
                 clusters[i+1] = c1
 
+        action.update_trajectory(clusters)
+
 
         """
         Found slopes over the various segments in the 
@@ -600,7 +600,6 @@ class Interaction:
         for i in slopes:
             if (i == app_direction):
                 instances = instances + 1
-            
 
         if (instances > 1):
             rospy.loginfo('Indeterminate direction')
@@ -637,6 +636,12 @@ class Interaction:
         last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
         rospy.loginfo('Total repetitions: ' + str(len(app_cluster_bounds)))
         tried_everything = 0
+
+        cu_list = []
+        diff_list = []
+        var_list_x = []
+        var_list_y = []
+
         while(tried_everything < 2):
             if (app_direction == slopes_x_pos):
                 rospy.loginfo('Positive X is App direction')
@@ -650,10 +655,12 @@ class Interaction:
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
                         continue
-                    rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
-                    if (diff > numpy.abs(all_y[cu_peaks[0]] - all_y[cu_peaks[1]])):
-                        diff =  numpy.abs(all_y[cu_peaks[0]] - all_y[cu_peaks[1]])
-                        best_cu = cu_peaks
+
+                    for i in cu_peaks:
+                        diff = numpy.abs(all_y[i[0]] - all_y[i[1]])
+                        diffs.append(diff)
+                    cu_list = cu_list + cu_peaks
+
             elif (app_direction == slopes_y_pos):
                 rospy.loginfo('Positive Y is App direction')
                 for cluster in app_cluster_bounds:
@@ -666,11 +673,10 @@ class Interaction:
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
                         continue
-                    rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
-                    if (diff > numpy.abs(all_x[cu_peaks[0]] - all_x[cu_peaks[1]])):
-                        diff =  numpy.abs(all_x[cu_peaks[0]] - all_x[cu_peaks[1]])
-                        best_cu = cu_peaks         
-                
+                    for i in cu_peaks:
+                        diff = numpy.abs(all_x[i[0]] - all_x[i[1]])
+                        diffs.append(diff)
+                    cu_list = cu_list + cu_peaks            
             elif (app_direction == slopes_x_neg):
                 rospy.loginfo('Negative X is App direction')
                 for cluster in app_cluster_bounds:
@@ -683,11 +689,10 @@ class Interaction:
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
                         continue
-                    rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
-                    if (diff > numpy.abs(all_y[cu_peaks[0]] - all_y[cu_peaks[1]])):
-                        diff =  numpy.abs(all_y[cu_peaks[0]] - all_y[cu_peaks[1]])
-                        best_cu = cu_peaks         
-                
+                    for i in cu_peaks:
+                        diff = numpy.abs(all_y[i[0]] - all_y[i[1]])
+                        diffs.append(diff)
+                    cu_list = cu_list + cu_peaks                      
             elif (app_direction == slopes_y_neg):
                 rospy.loginfo('Negative Y is App direction')
                 for cluster in app_cluster_bounds:
@@ -700,22 +705,56 @@ class Interaction:
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
                         continue
-                    rospy.loginfo('Cleaning peaks so far: ' + str(cu_peaks))
-                    if (diff > numpy.abs(all_x[cu_peaks[0]] - all_x[cu_peaks[1]])):
-                        diff =  numpy.abs(all_x[cu_peaks[0]] - all_x[cu_peaks[1]])
-                        best_cu = cu_peaks
+                    for i in cu_peaks:
+                        diff = numpy.abs(all_x[i[0]] - all_x[i[1]])
+                        diffs.append(diff)
+                    cu_list = cu_list + cu_peaks
 
-            if not cu_peaks:
+            if not cu_list:
                 app_cluster_bounds = [first, last]
                 tried_everything = tried_everything + 1
             else:
                 break
 
+        
+        """
+        Calculate x and y variances over each cleaning unit
+        """
+
+        for i in cu_list:
+            current_cu_x = []
+            current_cu_y = []
+            for j in range(i[0],i[1]):
+                current_cu_x.append(all_x[j])
+                current_cu_y.append(all_y[j])
+            var_list_x.append(numpy.var(current_cu_x))
+            var_list_y.append(numpy.var(current_cu_y))
+
             
+        """
+        Use variances to reject outliers
+        """
+
+        outlier_x_indices = self.find_outliers(var_list_x, 2, False)
+        outlier_y_indices = self.find_outliers(var_list_y, 2, False)
+
+        merged = list(set(outlier_x_indices + outlier_y_indices))
+
+        for ind in merged:
+            cu_list.pop(ind)
+
+
+        """
+        Pick cleaning unit with closest starting 
+        and ending points in repetition direction
+        """
+
+        min_val = min(diff_list)
+        index = diff_list.index(min_val)
+        best_cu = cu_list[ind]
 
         rospy.loginfo('Best cleaning peaks: ' + str(best_cu))
-        action.update_trajectory(clusters)
-
+        
 
         """
         Publishing the cleaning unit trajectory and markers
@@ -740,7 +779,8 @@ class Interaction:
                             l_traj[i].ee_pose,
                             l_traj[i].joint_pose, Object()))
 
-        #find the offset
+        #TODO: find the offset between the corner of the table 
+        #      and the starting point for the EE
 
         origin_offset_x = 0
         origin_offset_y = 0
@@ -748,13 +788,17 @@ class Interaction:
         app_offset_x = 0
         app_offset_y = 0
 
+
+        """
+        Find distance offset between repetitions of cleaning units
+        """
+
         start_time = timing_unit[0]
         unit_length = len(timing_unit)
         for i in range(unit_length):
             timing_unit[i] = timing_unit[i] - start_time
         unit_duration = timing_unit[-1]
 
-        """for finding the offset of cleaning unit in application direction: """
         if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
             app_offset_x = all_x[best_cu[1]] - all_x[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_x))
@@ -763,14 +807,21 @@ class Interaction:
             app_offset_y = all_y[best_cu[1]] - all_y[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
        
+
         # decide number of cleaning units
         number_units_app = 4
         number_units_rep = 5
+
+
+        #TODO: decide number of cleaning units
+
+        number_units = 4
         timing_gen = []
         r_traj_gen = []
         l_traj_gen = []
 
-        for k in range(number_units_rep)
+
+        # for k in range(number_units_rep)
 
         for j in range(number_units_app):
             rospy.loginfo('Adding unit: ' + str(j))
@@ -803,14 +854,9 @@ class Interaction:
                                 l_unit[i].joint_pose, Object()))
           
 
-        """for finding the offset of cleaning unit in repetition direction: """
-
-
-
         traj_step = ActionStep()
         traj_step.type = ActionStep.ARM_TRAJECTORY
         
-
         n_points = len(timing_unit) #TODO
             
         traj_step.armTrajectory = ArmTrajectory(
@@ -837,12 +883,12 @@ class Interaction:
         # Execute
         execution_z_offset = 0.00
         self.arms.start_execution(self.session.execution, execution_z_offset)
-
-        #timing_unit
-
         
 
     def find_cleaning_unit(self, repetition_vals, application_vals, indices, positive_rep_dir, positive_app_dir):
+        """
+        Isolate individual cleaning unit from segment trajectory
+        """
 
         offset = indices[0]
 
@@ -909,47 +955,37 @@ class Interaction:
         if (len(cleaning_peaks_indices) < 2):
             return []
 
-        while(not good_cleaning_peaks):
-            if (len(rejected_peak_pairs) == (len(cleaning_peaks_indices) -1)):
-                rospy.loginfo('Not enough peaks found')
-                break
-            for i in range(len(cleaning_peaks_indices) - 1):
-                if(cleaning_peaks_indices[i] in rejected_peak_pairs):
-                    rospy.loginfo('Peaks already rejected before')
-                    continue
-                diff = numpy.abs(subset_rep_vals[cleaning_peaks_indices[i]] - subset_rep_vals[cleaning_peaks_indices[i + 1]])
-                rospy.loginfo('Peak values (rep): ' + str(subset_rep_vals[cleaning_peaks_indices[i]]) + ', ' + str(subset_rep_vals[cleaning_peaks_indices[i+1]]))
-                if (diff < smallest_so_far):
-                    smallest_so_far = diff
-                    current_cu_peaks = [cleaning_peaks_indices[i], cleaning_peaks_indices[i+ 1]]
-                    rospy.loginfo('Smaller diff found')
-            app_peak_vals =  [subset_app_vals[current_cu_peaks[0]],  subset_app_vals[current_cu_peaks[1]]]
+        
+        for i in range(len(cleaning_peaks_indices) - 1):
+            diff = numpy.abs(subset_rep_vals[cleaning_peaks_indices[i]] - subset_rep_vals[cleaning_peaks_indices[i + 1]])
+            rospy.loginfo('Peak values (rep): ' + str(subset_rep_vals[cleaning_peaks_indices[i]]) + ', ' + str(subset_rep_vals[cleaning_peaks_indices[i+1]]))
+            # if (diff < smallest_so_far):
+            #     smallest_so_far = diff
+            #     current_cu_peaks = [cleaning_peaks_indices[i], cleaning_peaks_indices[i+ 1]]
+            #     rospy.loginfo('Smaller diff found')
+            current_cu_peaks.append([cleaning_peaks_indices[i], cleaning_peaks_indices[i+ 1]])
+
+        for i in current_cu_peaks:
+            app_peak_vals =  [subset_app_vals[i[0]],  subset_app_vals[i[1]]]
             if (positive_app_dir):
                 rospy.loginfo('Positive app dir')
                 if (app_peak_vals[0] < app_peak_vals[1]):
                     rospy.loginfo('First peak lower. Good.')
                     rospy.loginfo('Peaks: ' + str(app_peak_vals[0]) + ', ' + str(app_peak_vals[1]))
-                    good_cleaning_peaks = [x+offset for x in current_cu_peaks]
-                    return good_cleaning_peaks
+                    good_cleaning_peaks.append([x+offset for x in i])
                 else:
                     rospy.loginfo('First peak higher. Bad.')
                     rospy.loginfo('Peaks: ' + str(app_peak_vals[0]) + ', ' + str(app_peak_vals[1]))
-                    rejected_peak_pairs.append(current_cu_peaks[0])
             else:
                 rospy.loginfo('Negative app dir')
                 if (app_peak_vals[0] > app_peak_vals[1]):
                     rospy.loginfo('First peak higher. Good.')
                     rospy.loginfo('Peaks: ' + str(app_peak_vals[0]) + ', ' + str(app_peak_vals[1]))
-                    good_cleaning_peaks = [x+offset for x in current_cu_peaks]
-                    return good_cleaning_peaks
+                    good_cleaning_peaks.append([x+offset for x in i])
                 else:
                     rospy.loginfo('First peak lower. Bad.')
                     rospy.loginfo('Peaks: ' + str(app_peak_vals[0]) + ', ' + str(app_peak_vals[1]))
-                    rejected_peak_pairs.append(current_cu_peaks[0])
-        return []
-
-
-        
+        return good_cleaning_peaks
 
 
 
