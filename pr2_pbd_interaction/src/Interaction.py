@@ -658,7 +658,7 @@ class Interaction:
 
                     for i in cu_peaks:
                         diff = numpy.abs(all_y[i[0]] - all_y[i[1]])
-                        diffs.append(diff)
+                        diff_list.append(diff)
                     cu_list = cu_list + cu_peaks
 
             elif (app_direction == slopes_y_pos):
@@ -675,7 +675,7 @@ class Interaction:
                         continue
                     for i in cu_peaks:
                         diff = numpy.abs(all_x[i[0]] - all_x[i[1]])
-                        diffs.append(diff)
+                        diff_list.append(diff)
                     cu_list = cu_list + cu_peaks            
             elif (app_direction == slopes_x_neg):
                 rospy.loginfo('Negative X is App direction')
@@ -691,7 +691,7 @@ class Interaction:
                         continue
                     for i in cu_peaks:
                         diff = numpy.abs(all_y[i[0]] - all_y[i[1]])
-                        diffs.append(diff)
+                        diff_list.append(diff)
                     cu_list = cu_list + cu_peaks                      
             elif (app_direction == slopes_y_neg):
                 rospy.loginfo('Negative Y is App direction')
@@ -707,7 +707,7 @@ class Interaction:
                         continue
                     for i in cu_peaks:
                         diff = numpy.abs(all_x[i[0]] - all_x[i[1]])
-                        diffs.append(diff)
+                        diff_list.append(diff)
                     cu_list = cu_list + cu_peaks
 
             if not cu_list:
@@ -740,8 +740,19 @@ class Interaction:
 
         merged = list(set(outlier_x_indices + outlier_y_indices))
 
+        cu_to_remove = []
+        diffs_to_remove = []
+
+
         for ind in merged:
-            cu_list.pop(ind)
+            cu_to_remove.append(cu_list[ind])
+            diffs_to_remove.append(diff_list[ind])
+
+        for cu in cu_to_remove:
+            cu_list.remove(cu)
+
+        for diff in diffs_to_remove:
+            diff_list.remove(diff)
 
 
         """
@@ -751,7 +762,7 @@ class Interaction:
 
         min_val = min(diff_list)
         index = diff_list.index(min_val)
-        best_cu = cu_list[ind]
+        best_cu = cu_list[index]
 
         rospy.loginfo('Best cleaning peaks: ' + str(best_cu))
         
@@ -782,11 +793,17 @@ class Interaction:
         #TODO: find the offset between the corner of the table 
         #      and the starting point for the EE
 
-        origin_offset_x = 0
-        origin_offset_y = 0
+        #rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + str(new_table[3].position.y))
 
+        #Subtract these offsets from cleaning units to position based on table corner
+        origin_offset_x = all_x[best_cu[0]] - new_table[1].position.x
+        origin_offset_y = all_y[best_cu[0]] - new_table[1].position.y
+
+        #These offsets are stitching the individual cleaning units together
         app_offset_x = 0
         app_offset_y = 0
+        rep_offset_x = 0 
+        rep_offset_y = 0
 
 
         """
@@ -802,56 +819,65 @@ class Interaction:
         if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
             app_offset_x = all_x[best_cu[1]] - all_x[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_x))
+            rep_offset_y = 0.10
    
         elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
             app_offset_y = all_y[best_cu[1]] - all_y[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
+            rep_offset_x = 0.10
+
+        
        
 
         # decide number of cleaning units
-        number_units_app = 4
-        number_units_rep = 5
+        number_units_app = 8
+        number_units_rep = 2
 
 
         #TODO: decide number of cleaning units
-
-        number_units = 4
+        time_step = 0.02
         timing_gen = []
         r_traj_gen = []
         l_traj_gen = []
 
 
-        # for k in range(number_units_rep)
+        for k in range(number_units_rep):
 
-        for j in range(number_units_app):
-            rospy.loginfo('Adding unit: ' + str(j))
-            for i in range(unit_length):
-                #timing_unit.append(timing[len(timing) -1] + (timing[i] + timing[i - 1]))
-                # timing_unit.append(timing[len(timing) -1] + rospy.Duration(0.1))
-                
-                timing_gen.append(timing_unit[i] + rospy.Duration(j*(unit_duration.to_sec()+0.02)))
-
-                r_new_pose = Pose()
-                rospy.loginfo('Original point: ' + str(r_unit[i].ee_pose.position.x) + ', ' + str(r_unit[i].ee_pose.position.y))
-                
-                r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x
-                r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y
-                r_new_pose.position.z = r_unit[i].ee_pose.position.z
-                r_new_pose.orientation.x = r_unit[i].ee_pose.orientation.x
-                r_new_pose.orientation.y = r_unit[i].ee_pose.orientation.y
-                r_new_pose.orientation.z = r_unit[i].ee_pose.orientation.z
-                r_new_pose.orientation.w = r_unit[i].ee_pose.orientation.w
+            for j in range(number_units_app):
+                rospy.loginfo('Adding unit: ' + str(j))
+                for i in range(unit_length):
+                    #timing_unit.append(timing[len(timing) -1] + (timing[i] + timing[i - 1]))
+                    # timing_unit.append(timing[len(timing) -1] + rospy.Duration(0.1))
+                    
+                    timing_gen.append(timing_unit[i] + rospy.Duration((j*(unit_duration.to_sec()+time_step))+number_units_app*k*time_step))
+                    # timing_gen.append(timing_unit[i] + rospy.Duration((j*(unit_duration.to_sec()+time_step))))
 
 
-                rospy.loginfo('New point: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
+                    r_new_pose = Pose()
+                    rospy.loginfo('Original point: ' + str(r_unit[i].ee_pose.position.x) + ', ' + str(r_unit[i].ee_pose.position.y))
+                    
+                    # r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x - origin_offset_x 
+                    # r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y - origin_offset_y
+                    r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x - origin_offset_x + k*rep_offset_x
+                    r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y - origin_offset_y + k*rep_offset_y
 
-                r_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
-                                r_new_pose,
-                                r_unit[i].joint_pose, Object()))
 
-                l_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
-                                l_unit[i].ee_pose,
-                                l_unit[i].joint_pose, Object()))
+                    r_new_pose.position.z = r_unit[i].ee_pose.position.z
+                    r_new_pose.orientation.x = r_unit[i].ee_pose.orientation.x
+                    r_new_pose.orientation.y = r_unit[i].ee_pose.orientation.y
+                    r_new_pose.orientation.z = r_unit[i].ee_pose.orientation.z
+                    r_new_pose.orientation.w = r_unit[i].ee_pose.orientation.w
+
+
+                    rospy.loginfo('New point: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
+
+                    r_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
+                                    r_new_pose,
+                                    r_unit[i].joint_pose, Object()))
+
+                    l_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
+                                    l_unit[i].ee_pose,
+                                    l_unit[i].joint_pose, Object()))
           
 
         traj_step = ActionStep()

@@ -375,49 +375,49 @@ class Arm:
 
 
         # send the recorded trajectory to the filter
-        output = self.filter_service(trajectory=trajectory,
-                                     allowed_time=rospy.Duration.from_sec(20))
+        # output = self.filter_service(trajectory=trajectory,
+        #                              allowed_time=rospy.Duration.from_sec(20))
 
-        if(output.error_code.val == output.error_code.SUCCESS):
+        # if(output.error_code.val == output.error_code.SUCCESS):
 
-            rospy.loginfo('Trajectory for arm ' + str(self.arm_index) + 
-                          ' has been filtered.')
-            traj_goal = JointTrajectoryGoal()   
+        #     rospy.loginfo('Trajectory for arm ' + str(self.arm_index) + 
+        #                   ' has been filtered.')
+        traj_goal = JointTrajectoryGoal()   
 
-            #traj_goal.trajectory = output.trajectory
-            
-            traj_goal.trajectory = trajectory
-            traj_goal.trajectory.header.stamp = (rospy.Time.now() +
-                                                rospy.Duration(0.1))
-            traj_goal.trajectory.joint_names = self.joint_names
+        #traj_goal.trajectory = output.trajectory
+        
+        traj_goal.trajectory = trajectory
+        traj_goal.trajectory.header.stamp = (rospy.Time.now() +
+                                            rospy.Duration(0.1))
+        traj_goal.trajectory.joint_names = self.joint_names
 
-            n_points = len(traj_goal.trajectory.points)
+        n_points = len(traj_goal.trajectory.points)
                         
             
 
-            # added for reducing the jerky motion.
-            # added_velocities = [[0]*7]*(n_points - 1)
+        # added for reducing the jerky motion.
+        # added_velocities = [[0]*7]*(n_points - 1)
 
-            for i in range(n_points - 1): 
+        for i in range(n_points - 1): 
 
-                time_diff = subtract(traj_goal.trajectory.points[i+1].time_from_start.to_sec(), traj_goal.trajectory.points[i].time_from_start.to_sec())
-            #     joint_diff = subtract(traj_goal.trajectory.points[i+1].positions, traj_goal.trajectory.points[i].positions)
-                
-            #     added_velocities[i] = [x/time_diff for x in joint_diff]
+            time_diff = subtract(traj_goal.trajectory.points[i+1].time_from_start.to_sec(), traj_goal.trajectory.points[i].time_from_start.to_sec())
+        #     joint_diff = subtract(traj_goal.trajectory.points[i+1].positions, traj_goal.trajectory.points[i].positions)
+            
+        #     added_velocities[i] = [x/time_diff for x in joint_diff]
 
-            #     traj_goal.trajectory.points[i].velocities = added_velocities[i]
-            #    print time_diff
+        #     traj_goal.trajectory.points[i].velocities = added_velocities[i]
+        #    print time_diff
 
-            # Sends the goal to the trajectory server
-            # DISABLING FOR DEBUGGING
+        # Sends the goal to the trajectory server
+        # DISABLING FOR DEBUGGING
 
-            self.traj_action_client.send_goal(traj_goal)
-            return True
+        self.traj_action_client.send_goal(traj_goal)
+        return True
 
-        else:
-            rospy.logwarn('Trajectory filtering failed.')
-            print output.error_code.val
-            return False
+        # else:
+        #     rospy.logwarn('Trajectory filtering failed.')
+        #     print output.error_code.val
+        #     return False
 
     def move_to_joints(self, joints, time_to_joint):
         '''Moves the arm to the desired joints'''
