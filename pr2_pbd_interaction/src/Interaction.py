@@ -764,12 +764,15 @@ class Interaction:
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
        
         # decide number of cleaning units
-        number_units = 4
+        number_units_app = 4
+        number_units_rep = 5
         timing_gen = []
         r_traj_gen = []
         l_traj_gen = []
 
-        for j in range(number_units):
+        for k in range(number_units_rep)
+
+        for j in range(number_units_app):
             rospy.loginfo('Adding unit: ' + str(j))
             for i in range(unit_length):
                 #timing_unit.append(timing[len(timing) -1] + (timing[i] + timing[i - 1]))
