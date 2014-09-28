@@ -337,29 +337,46 @@ class Interaction:
 
         #ToDo: add the size of the old table with parameter like H and W
 
-        rospy.loginfo('table corner 1 ' + str(table_corner[0].position.x) + str(table_corner[0].position.y))
-        rospy.loginfo('table corner 2 ' + str(table_corner[1].position.x) + str(table_corner[1].position.y))
-        rospy.loginfo('table corner 3 ' + str(table_corner[2].position.x) + str(table_corner[2].position.y))
-        rospy.loginfo('table corner 4 ' + str(table_corner[3].position.x) + str(table_corner[3].position.y))
+        rospy.loginfo('table corner 1 ' + str(table_corner[0].position.x) + ' ' + str(table_corner[0].position.y))
+        rospy.loginfo('table corner 2 ' + str(table_corner[1].position.x) + ' ' +str(table_corner[1].position.y))
+        rospy.loginfo('table corner 3 ' + str(table_corner[2].position.x) + ' ' +str(table_corner[2].position.y))
+        rospy.loginfo('table corner 4 ' + str(table_corner[3].position.x) + ' ' +str(table_corner[3].position.y))
         rospy.loginfo('the size of the demonstrated trajecotry is ' + str(len(arm_trajectory.timing)))
 
 
         # get the new surface:
 
-        #arm_traj_newSurface = arm_trajectory
-
-        #arm_traj_newSurface.table_corners = self.surface
-
         self.surface = self.world.get_surface()
         new_table = self.surface #arm_traj_newSurface.table_corners[:]
 
-        rospy.loginfo('new table corner 1 ' + str(new_table[0].position.x) + str(new_table[0].position.y))
-        rospy.loginfo('new table corner 2 ' + str(new_table[1].position.x) + str(new_table[1].position.y))
-        rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + str(new_table[2].position.y))
-        rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + str(new_table[3].position.y))
+        rospy.loginfo('new table corner 1 ' + str(new_table[0].position.x) + ' ' + str(new_table[0].position.y))
+        rospy.loginfo('new table corner 2 ' + str(new_table[1].position.x) + ' ' + str(new_table[1].position.y))
+        rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + ' ' + str(new_table[2].position.y))
+        rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + ' ' + str(new_table[3].position.y))
+
+        """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
 
 
-        #rospy.loginfo('the size of the new trajecotry is ' + str(len(arm_traj_newSurface.timing)))
+        temp_table_0_x = new_table[0].position.x
+        temp_table_0_y = new_table[0].position.y
+
+        temp_table_2_x = new_table[2].position.x
+        temp_table_2_y = new_table[2].position.y
+
+        new_table[0].position.x = new_table[1].position.x
+        new_table[0].position.y = new_table[1].position.y
+
+        new_table[2].position.x = new_table[3].position.x
+        new_table[2].position.y = new_table[3].position.y
+
+
+        new_table[1].position.x = temp_table_0_x
+        new_table[1].position.y = temp_table_0_y
+
+        new_table[3].position.x = temp_table_2_x
+        new_table[3].position.y = temp_table_2_y
+
+
 
 
         # try to create a new cluster and also visualize it.
@@ -1025,6 +1042,10 @@ class Interaction:
         l_traj_gen = []
 
 
+
+        #TODO: add start and end: 
+
+
         for k in range(number_units_rep):
 
             for j in range(number_units_app):
@@ -1042,8 +1063,8 @@ class Interaction:
                     
                     #r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x + tool_offset_x + new_start[0]
                     #r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y + tool_offset_y + new_start[1]
-                    r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x - origin_offset_x + (old_corner[0] - corner[0])
-                    r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y - origin_offset_y + (old_corner[1] - corner[1])
+                    r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x - origin_offset_x -  old_corner[0] + corner[0]
+                    r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y - origin_offset_y -  old_corner[1] + corner[1]
 
 
                     r_new_pose.position.z = r_unit[i].ee_pose.position.z
