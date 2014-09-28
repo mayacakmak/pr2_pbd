@@ -23,15 +23,16 @@ class SimWorld:
 
         self.table_w = 0.4
         self.table_h = 0.3
+        self.table_z = 0.65
 
         self.update_table_markers()
 
     def update_table_markers(self):
         self.table_poses = {
-            1: Pose(Point(0.4, self.table_w/2.0, 0.5), Quaternion(0, 0, 1, 1)),
-            2: Pose(Point(0.4, -self.table_w/2.0, 0.5), Quaternion(0, 0, 1, 1)),
-            3: Pose(Point(0.4 + self.table_h, self.table_w/2.0, 0.5), Quaternion(0, 0, 1, 1)),
-            4: Pose(Point(0.4 + self.table_h, -self.table_w/2.0, 0.5), Quaternion(0, 0, 1, 1))
+            2: Pose(Point(0.4, self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
+            1: Pose(Point(0.4, -self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
+            4: Pose(Point(0.4 + self.table_h, self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
+            3: Pose(Point(0.4 + self.table_h, -self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1))
         }
 
     def get_markers(self):

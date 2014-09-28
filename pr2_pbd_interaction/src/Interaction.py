@@ -357,24 +357,24 @@ class Interaction:
         """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
 
 
-        temp_table_0_x = new_table[0].position.x
-        temp_table_0_y = new_table[0].position.y
+        # temp_table_0_x = table_corner[0].position.x
+        # temp_table_0_y = table_corner[0].position.y
 
-        temp_table_2_x = new_table[2].position.x
-        temp_table_2_y = new_table[2].position.y
+        # temp_table_2_x = table_corner[2].position.x
+        # temp_table_2_y = table_corner[2].position.y
 
-        new_table[0].position.x = new_table[1].position.x
-        new_table[0].position.y = new_table[1].position.y
+        # table_corner[0].position.x = table_corner[1].position.x
+        # table_corner[0].position.y = table_corner[1].position.y
 
-        new_table[2].position.x = new_table[3].position.x
-        new_table[2].position.y = new_table[3].position.y
+        # table_corner[2].position.x = table_corner[3].position.x
+        # table_corner[2].position.y = table_corner[3].position.y
 
 
-        new_table[1].position.x = temp_table_0_x
-        new_table[1].position.y = temp_table_0_y
+        # table_corner[1].position.x = temp_table_0_x
+        # table_corner[1].position.y = temp_table_0_y
 
-        new_table[3].position.x = temp_table_2_x
-        new_table[3].position.y = temp_table_2_y
+        # table_corner[3].position.x = temp_table_2_x
+        # table_corner[3].position.y = temp_table_2_y
 
 
 
@@ -897,7 +897,7 @@ class Interaction:
         for var_x in var_list_x_remove:
             var_list_x.remove(var_x)
 
-        for var_y in var_list_x_remove:
+        for var_y in var_list_y_remove:
             var_list_y.remove(var_y) 
 
 
@@ -922,6 +922,8 @@ class Interaction:
                 count = 1
                 right_length = False
                 while not right_length:
+                    if (count > len(all_x)/2):
+                        break
                     if (numpy.abs(all_x[mid_index + count] - all_x[mid_index - 1]) > 0.04):
                         right_length = True
                         break
@@ -934,6 +936,8 @@ class Interaction:
                 count = 1
                 right_length = False
                 while not right_length:
+                    if (count > len(all_x)/2):
+                        break
                     if (numpy.abs(all_y[mid_index + count] - all_y[mid_index - 1]) > 0.04):
                         right_length = True
                         break
@@ -980,16 +984,6 @@ class Interaction:
         Find starting corner
         """
 
-        # rospy.loginfo('new table corner 1 ' + str(new_table[0].position.x) + str(new_table[0].position.y))
-        # rospy.loginfo('new table corner 2 ' + str(new_table[1].position.x) + str(new_table[1].position.y))
-        # rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + str(new_table[2].position.y))
-        # rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + str(new_table[3].position.y))
-
-        # rospy.loginfo('table corner 1 ' + str(table_corner[0].position.x) + str(table_corner[0].position.y))
-        # rospy.loginfo('table corner 2 ' + str(table_corner[1].position.x) + str(table_corner[1].position.y))
-        # rospy.loginfo('table corner 3 ' + str(table_corner[2].position.x) + str(table_corner[2].position.y))
-        # rospy.loginfo('table corner 4 ' + str(table_corner[3].position.x) + str(table_corner[3].position.y))
-
         corner = []
         old_corner = []
         if ((app_direction == slopes_x_pos) and pos_rep):
@@ -1028,7 +1022,7 @@ class Interaction:
 
         rospy.loginfo('Old corner: ' + str(old_corner))
         rospy.loginfo('New corner: ' + str(corner))
-        rospy.loginfo('Offset between new/old corners: ' + str(old_corner[0] - corner[0]) + ', ' + str(old_corner[1] - corner[1]))
+        rospy.loginfo('Offset between old/new corners: ' + str(old_corner[0] - corner[0]) + ', ' + str(old_corner[1] - corner[1]))
 
         rospy.loginfo('Previous start: ' + str(prev_start))
 
@@ -1064,19 +1058,25 @@ class Interaction:
         if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
             app_offset_x = all_x[best_cu[1]] - all_x[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_x))
+            app_dist = numpy.abs(app_offset_x)
             rep_offset_y = rep_dist
    
         elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
             app_offset_y = all_y[best_cu[1]] - all_y[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
+            app_dist = numpy.abs(app_offset_y)
             rep_offset_x = rep_dist
 
 
 
         
         # decide number of cleaning units
-        number_units_app = int(numpy.floor(corner_dist_app/app_offset_x))
+        number_units_app = int(numpy.floor(corner_dist_app/app_dist))
         number_units_rep = int(numpy.floor(corner_dist_rep/rep_dist))
+
+
+        rospy.loginfo('Number of units_app: ' + str(number_units_app))
+        rospy.loginfo('Number of units_rep: ' + str(number_units_rep))
 
         #TODO: decide number of cleaning units
         time_step = 0.02
@@ -1084,12 +1084,37 @@ class Interaction:
         r_traj_gen = []
         l_traj_gen = []
 
+        num_time_offset = 1
+        num_extra_time_offset = 1
+        time_offset = 1
 
 
-        #TODO: add start and end: 
+        #TODO: add start and end
+        start_pose = Pose()
+        
+        start_pose.position.x = all_x[0]
+        start_pose.position.y = all_y[0]
+        start_pose.position.z = all_z[0]
+
+        timing_gen.append(timing_unit[0])
+
+        start_pose.orientation.x = r_traj[0].ee_pose.orientation.x
+        start_pose.orientation.y = r_traj[0].ee_pose.orientation.y
+        start_pose.orientation.z = r_traj[0].ee_pose.orientation.z
+        start_pose.orientation.w = r_traj[0].ee_pose.orientation.w
+
+
+        r_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
+                        start_pose,
+                        r_traj[0].joint_pose, Object()))
+
+        l_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
+                        l_traj[0].ee_pose,
+                        l_traj[0].joint_pose, Object()))
 
 
         for k in range(number_units_rep):
+            
 
             for j in range(number_units_app):
                 rospy.loginfo('Adding unit: ' + str(j))
@@ -1097,7 +1122,7 @@ class Interaction:
                     #timing_unit.append(timing[len(timing) -1] + (timing[i] + timing[i - 1]))
                     # timing_unit.append(timing[len(timing) -1] + rospy.Duration(0.1))
                     
-                    timing_gen.append(timing_unit[i] + rospy.Duration((j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
+                    # timing_gen.append(timing_unit[i] + rospy.Duration((j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
                     # timing_gen.append(timing_unit[i] + rospy.Duration((j*(unit_duration.to_sec()+time_step))))
 
 
@@ -1106,13 +1131,35 @@ class Interaction:
                     
                     #r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x + tool_offset_x + new_start[0]
                     #r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y + tool_offset_y + new_start[1]
+                    # r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x - origin_offset_x -  old_corner[0] + corner[0]
+                    # r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y - origin_offset_y -  old_corner[1] + corner[1]
                     r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x - origin_offset_x -  old_corner[0] + corner[0]
                     r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y - origin_offset_y -  old_corner[1] + corner[1]
 
-                    if ((j == 0) or (j == (number_units_app - 1))):
+
+
+
+                    if ((j == 0) and (i == 0)):
                         r_new_pose.position.z = r_unit[i].ee_pose.position.z + z_offset
+                        #Very first point only
+                        # if not timing_gen:
+                        #     timing_gen.append(timing_unit[i] + rospy.Duration(time_offset*time_step + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))  
+                        #First point in rep
+                        #else:
+                        num_extra_time_offset = num_time_offset + 50
+                        num_time_offset = num_extra_time_offset
+                        timing_gen.append(timing_unit[i] + rospy.Duration(time_offset*time_step*num_time_offset + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
+                    #Last point in rep
+                    elif ((j == (number_units_app - 1)) and (i == (unit_length -1)) ):
+                        r_new_pose.position.z = r_unit[i].ee_pose.position.z + z_offset
+                        num_extra_time_offset = num_time_offset + 20
+                        timing_gen.append(timing_unit[i] + rospy.Duration(time_step*time_offset*num_extra_time_offset  + time_offset*time_step + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
+                        
+                    #All the middle points
                     else:
                         r_new_pose.position.z = r_unit[i].ee_pose.position.z
+                        num_time_offset = num_time_offset + 0.3
+                        timing_gen.append(timing_unit[i]  + rospy.Duration(time_offset*time_step*num_time_offset + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step )))
                     r_new_pose.orientation.x = r_unit[i].ee_pose.orientation.x
                     r_new_pose.orientation.y = r_unit[i].ee_pose.orientation.y
                     r_new_pose.orientation.z = r_unit[i].ee_pose.orientation.z
@@ -1128,7 +1175,30 @@ class Interaction:
                     l_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
                                     l_unit[i].ee_pose,
                                     l_unit[i].joint_pose, Object()))
-          
+            
+        
+        end_pose = Pose()
+        
+        end_pose.position.x = all_x[0]
+        end_pose.position.y = all_y[0]
+        end_pose.position.z = all_z[0]
+
+        num_extra_time_offset = num_time_offset + 20
+
+        timing_gen.append(timing_unit[i]  + rospy.Duration(time_offset*time_step*num_time_offset + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step )))
+
+        end_pose.orientation.x = r_traj[0].ee_pose.orientation.x
+        end_pose.orientation.y = r_traj[0].ee_pose.orientation.y
+        end_pose.orientation.z = r_traj[0].ee_pose.orientation.z
+        end_pose.orientation.w = r_traj[0].ee_pose.orientation.w    
+
+        r_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
+                                    end_pose,
+                                    r_traj[0].joint_pose, Object()))
+
+        l_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
+                                    l_traj[0].ee_pose,
+                                    l_traj[0].joint_pose, Object())) 
 
         traj_step = ActionStep()
         traj_step.type = ActionStep.ARM_TRAJECTORY
