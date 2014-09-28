@@ -861,17 +861,27 @@ class Interaction:
 
         cu_to_remove = []
         diffs_to_remove = []
+        var_list_x_remove = []
+        var_list_y_remove = []
 
 
         for ind in merged:
             cu_to_remove.append(cu_list[ind])
             diffs_to_remove.append(diff_list[ind])
+            var_list_x_remove.append(var_list_x[ind])
+            var_list_y_remove.append(var_list_y[ind])
 
         for cu in cu_to_remove:
             cu_list.remove(cu)
 
         for diff in diffs_to_remove:
             diff_list.remove(diff)
+
+        for var_x in var_list_x_remove:
+            var_list_x.remove(var_x)
+
+        for var_y in var_list_x_remove:
+            var_list_y.remove(var_y) 
 
 
         """
@@ -882,6 +892,36 @@ class Interaction:
         min_val = min(diff_list)
         index = diff_list.index(min_val)
         best_cu = cu_list[index]
+
+        """
+        Check if cleaning unit is very flat and truncate
+        """
+
+        var_tol = 0.002 #TODO: pick a good variance tolerance to detect flat cleaning units
+
+        if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)): 
+            if ((var_list_y[index] < var_tol) and (numpy.abs(all_x[best_cu[0]] - all_x[best_cu[1]]) > 0.06)):
+                mid_index = int((best_cu[1] - best_cu[0])/2) + best_cu[0]
+                count = 1
+                right_length = False
+                while not right_length:
+                    if (numpy.abs(all_x[mid_index + count] - all_x[mid_index - 1]) > 0.04):
+                        right_length = True
+                        break
+                    count = count + 1
+                best_cu = [mid_index - count, mid_index + count]
+
+        elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)): 
+            if ((var_list_x[index] < var_tol) and (numpy.abs(all_y[best_cu[0]] - all_y[best_cu[1]]) > 0.06)):
+                mid_index = int((best_cu[1] - best_cu[0])/2) + best_cu[0]
+                count = 1
+                right_length = False
+                while not right_length:
+                    if (numpy.abs(all_y[mid_index + count] - all_y[mid_index - 1]) > 0.04):
+                        right_length = True
+                        break
+                    count = count + 1
+                best_cu = [mid_index - count, mid_index + count]
 
         rospy.loginfo('Best cleaning peaks: ' + str(best_cu))
         
