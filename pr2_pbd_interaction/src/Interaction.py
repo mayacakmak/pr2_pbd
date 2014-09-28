@@ -1035,6 +1035,9 @@ class Interaction:
         rep_offset_x = 0 
         rep_offset_y = 0
 
+        #Offset at beginning and end of rep for robot to lift arm
+        z_offset = 0.10
+
         start_time = timing_unit[0]
         unit_length = len(timing_unit)
         for i in range(unit_length):
@@ -1085,8 +1088,10 @@ class Interaction:
                     r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x - origin_offset_x + (old_corner[0] - corner[0])
                     r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y - origin_offset_y + (old_corner[1] - corner[1])
 
-
-                    r_new_pose.position.z = r_unit[i].ee_pose.position.z
+                    if ((j == 0) or (j == (number_units_app - 1))):
+                        r_new_pose.position.z = r_unit[i].ee_pose.position.z + z_offset
+                    else:
+                        r_new_pose.position.z = r_unit[i].ee_pose.position.z
                     r_new_pose.orientation.x = r_unit[i].ee_pose.orientation.x
                     r_new_pose.orientation.y = r_unit[i].ee_pose.orientation.y
                     r_new_pose.orientation.z = r_unit[i].ee_pose.orientation.z
