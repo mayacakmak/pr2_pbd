@@ -445,11 +445,11 @@ class Interaction:
         for i in peakind:
             peak_data.append(data[i])
 
-        plt.plot(data)
-        # plt.plot(filtered)
-        # plt.plot(peak_index, filtered[peakind], 'ro')
-        plt.plot(peakind, peak_data, 'ro')
-        plt.ylabel('Test numbers')
+        # plt.plot(data)
+        # # plt.plot(filtered)
+        # # plt.plot(peak_index, filtered[peakind], 'ro')
+        # plt.plot(peakind, peak_data, 'ro')
+        # plt.ylabel('Test numbers')
         #plt.show()
 
         
