@@ -248,26 +248,26 @@ class Interaction:
 
         num_bins = 50
         # the histogram of the data
-        plt.subplot(4, 1, 1)
-        plt.plot(range(n_points), all_x, 'ro-')
-        plt.ylabel('x')
+        # plt.subplot(4, 1, 1)
+        # plt.plot(range(n_points), all_x, 'ro-')
+        # plt.ylabel('x')
 
-        plt.subplot(4, 1, 2)
-        plt.plot(range(n_points), all_y, 'bo-')
-        plt.ylabel('y')
+        # plt.subplot(4, 1, 2)
+        # plt.plot(range(n_points), all_y, 'bo-')
+        # plt.ylabel('y')
 
-        plt.subplot(4, 1, 3)
-        plt.plot(range(n_points), all_z, 'go-')
-        plt.ylabel('z')
+        # plt.subplot(4, 1, 3)
+        # plt.plot(range(n_points), all_z, 'go-')
+        # plt.ylabel('z')
 
-        plt.subplot(4, 1, 4)
-        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
-        plt.xlabel('z (histogram bins)')
-        plt.ylabel('occurance')
+        # plt.subplot(4, 1, 4)
+        # n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        # plt.xlabel('z (histogram bins)')
+        # plt.ylabel('occurance')
 
-        # Tweak spacing to prevent clipping of ylabel
-        plt.subplots_adjust(left=0.15)
-        plt.show()
+        # # Tweak spacing to prevent clipping of ylabel
+        # plt.subplots_adjust(left=0.15)
+        # plt.show()
 
         ################################################
 
@@ -1279,17 +1279,17 @@ class Interaction:
 
 
 
-        plt.subplot(2, 1, 1)
-        plt.plot(data_rep)
-        plt.plot(peakind, peak_data_rep, 'ro')
-        plt.ylabel('repetiton peaks')
+        # plt.subplot(2, 1, 1)
+        # plt.plot(data_rep)
+        # plt.plot(peakind, peak_data_rep, 'ro')
+        # plt.ylabel('repetiton peaks')
 
-        plt.subplot(2, 1, 2)
-        plt.plot(data_app)
-        plt.plot(peakind, peak_data_app, 'go-')
-        plt.ylabel('application peaks')
+        # plt.subplot(2, 1, 2)
+        # plt.plot(data_app)
+        # plt.plot(peakind, peak_data_app, 'go-')
+        # plt.ylabel('application peaks')
 
-        plt.subplots_adjust(left=0.15)
+        # plt.subplots_adjust(left=0.15)
         #plt.show()
 
         cleaning_peaks_indices = peakind
@@ -1365,26 +1365,26 @@ class Interaction:
 
         num_bins = 50
         # the histogram of the data
-        plt.subplot(4, 1, 1)
-        plt.plot(range(n_points), all_x, 'ro-')
-        plt.ylabel('x')
+        # plt.subplot(4, 1, 1)
+        # plt.plot(range(n_points), all_x, 'ro-')
+        # plt.ylabel('x')
 
-        plt.subplot(4, 1, 2)
-        plt.plot(range(n_points), all_y, 'bo-')
-        plt.ylabel('y')
+        # plt.subplot(4, 1, 2)
+        # plt.plot(range(n_points), all_y, 'bo-')
+        # plt.ylabel('y')
 
-        plt.subplot(4, 1, 3)
-        plt.plot(range(n_points), all_z, 'go-')
-        plt.ylabel('z')
+        # plt.subplot(4, 1, 3)
+        # plt.plot(range(n_points), all_z, 'go-')
+        # plt.ylabel('z')
 
-        plt.subplot(4, 1, 4)
-        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
-        plt.xlabel('z (histogram bins)')
-        plt.ylabel('occurance')
+        # plt.subplot(4, 1, 4)
+        # n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        # plt.xlabel('z (histogram bins)')
+        # plt.ylabel('occurance')
 
-        # Tweak spacing to prevent clipping of ylabel
-        plt.subplots_adjust(left=0.15)
-        plt.show()
+        # # Tweak spacing to prevent clipping of ylabel
+        # plt.subplots_adjust(left=0.15)
+        # plt.show()
 
 
     def stop_recording(self, dummy=None):
