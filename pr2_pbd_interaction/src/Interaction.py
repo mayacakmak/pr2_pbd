@@ -722,7 +722,7 @@ class Interaction:
         neg_dir = 0
         dist_between_means = []
         for k in range(len(means) -1):
-            dist_between_means.append(numpy.abs(means[k] - means[k + 1]))
+            dist_between_means.append(means[k] - means[k + 1])
             if (numpy.abs(means[k] - means[k + 1]) < 0.02):
                     num_reps = num_reps - 1
             if (means[k] < means[k + 1]):
@@ -1075,7 +1075,7 @@ class Interaction:
         
         # decide number of cleaning units
         number_units_app = int(numpy.floor(corner_dist_app/app_dist))
-        number_units_rep = int(numpy.floor(corner_dist_rep/rep_dist))
+        number_units_rep = int(numpy.floor(corner_dist_rep/numpy.abs(rep_dist)))
 
 
         rospy.loginfo('Number of units_app: ' + str(number_units_app))
