@@ -1094,6 +1094,7 @@ class Interaction:
         num_time_offset = 1
         num_extra_time_offset = 1
         time_offset = 1
+        last_timing_unit = None
 
 
         
@@ -1188,6 +1189,8 @@ class Interaction:
                     l_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
                                     l_unit[i].ee_pose,
                                     l_unit[i].joint_pose, Object()))
+
+                    last_timing_unit = timing_unit[i] + rospy.Duration(time_step*time_offset*(num_extra_time_offset) + time_offset*time_step + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step))
             
         
         end_pose = Pose()
@@ -1196,9 +1199,9 @@ class Interaction:
         end_pose.position.y = all_y[0]
         end_pose.position.z = all_z[0]
 
-        num_extra_time_offset = num_time_offset + 20
 
-        timing_gen.append(timing_unit[i]  + rospy.Duration(time_offset*time_step*num_time_offset + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step )))
+
+        timing_gen.append(last_timing_unit + rospy.Duration(2.0))
 
         end_pose.orientation.x = r_traj[0].ee_pose.orientation.x
         end_pose.orientation.y = r_traj[0].ee_pose.orientation.y
@@ -1212,6 +1215,9 @@ class Interaction:
         l_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
                                     l_traj[0].ee_pose,
                                     l_traj[0].joint_pose, Object())) 
+
+
+
 
         traj_step = ActionStep()
         traj_step.type = ActionStep.ARM_TRAJECTORY
