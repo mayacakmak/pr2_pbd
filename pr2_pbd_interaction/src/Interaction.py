@@ -68,7 +68,8 @@ class Interaction:
         self.torso_client.wait_for_server()
         torso_up = .195
         torso_down = .02
-        self.torso_client.send_goal(SingleJointPositionGoal(position = (torso_up + torso_down)/2))
+	torso_pos = torso_down + (torso_up-torso_down)*0.7
+        self.torso_client.send_goal(SingleJointPositionGoal(position = torso_pos))
         self.torso_client.wait_for_result()
 
         rospy.Subscriber('recognized_command', Command, self.speech_command_cb)
