@@ -247,27 +247,27 @@ class Interaction:
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
 
         num_bins = 50
-        # the histogram of the data
-        # plt.subplot(4, 1, 1)
-        # plt.plot(range(n_points), all_x, 'ro-')
-        # plt.ylabel('x')
+        the histogram of the data
+        plt.subplot(4, 1, 1)
+        plt.plot(range(n_points), all_x, 'ro-')
+        plt.ylabel('x')
 
-        # plt.subplot(4, 1, 2)
-        # plt.plot(range(n_points), all_y, 'bo-')
-        # plt.ylabel('y')
+        plt.subplot(4, 1, 2)
+        plt.plot(range(n_points), all_y, 'bo-')
+        plt.ylabel('y')
 
-        # plt.subplot(4, 1, 3)
-        # plt.plot(range(n_points), all_z, 'go-')
-        # plt.ylabel('z')
+        plt.subplot(4, 1, 3)
+        plt.plot(range(n_points), all_z, 'go-')
+        plt.ylabel('z')
 
-        # plt.subplot(4, 1, 4)
-        # n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
-        # plt.xlabel('z (histogram bins)')
-        # plt.ylabel('occurance')
+        plt.subplot(4, 1, 4)
+        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        plt.xlabel('z (histogram bins)')
+        plt.ylabel('occurance')
 
-        # # Tweak spacing to prevent clipping of ylabel
-        # plt.subplots_adjust(left=0.15)
-        # plt.show()
+        # Tweak spacing to prevent clipping of ylabel
+        plt.subplots_adjust(left=0.15)
+        plt.show()
 
         ################################################
 
@@ -445,12 +445,12 @@ class Interaction:
         for i in peakind:
             peak_data.append(data[i])
 
-        # plt.plot(data)
-        # # plt.plot(filtered)
-        # # plt.plot(peak_index, filtered[peakind], 'ro')
-        # plt.plot(peakind, peak_data, 'ro')
-        # plt.ylabel('Test numbers')
-        #plt.show()
+        plt.plot(data)
+        # plt.plot(filtered)
+        # plt.plot(peak_index, filtered[peakind], 'ro')
+        plt.plot(peakind, peak_data, 'ro')
+        plt.ylabel('Test numbers')
+        plt.show()
 
         
         """
@@ -961,21 +961,38 @@ class Interaction:
         timing = arm_trajectory.timing
         l_traj = arm_trajectory.lArm[:]
 
+
+        max_points = 10
+        interval = int(numpy.floor((best_cu[1] - best_cu[0])/max_points))
+
+
         timing_unit = []
         r_unit = []
         l_unit = []
-        for i in range(best_cu[0],best_cu[1]):
-            
-            #timing_unit.append(rospy.Duration(i*0.2))
-            timing_unit.append(timing[i])
+        if (interval > 1):
+            for i in range(best_cu[0],best_cu[1]):
+                
+                #timing_unit.append(rospy.Duration(i*0.2))
+                if ((i == best_cu[0]) or (i == best_cu[1])):
+                    timing_unit.append(timing[i])
 
-            r_unit.append(ArmState(ArmState.ROBOT_BASE,
-                            r_traj[i].ee_pose,
-                            r_traj[i].joint_pose, Object()))
+                    r_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                    r_traj[i].ee_pose,
+                                    r_traj[i].joint_pose, Object()))
 
-            l_unit.append(ArmState(ArmState.ROBOT_BASE,
-                            l_traj[i].ee_pose,
-                            l_traj[i].joint_pose, Object()))
+                    l_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                    l_traj[i].ee_pose,
+                                    l_traj[i].joint_pose, Object()))
+                elif ( i%interval == 0):
+                    timing_unit.append(timing[i])
+
+                    r_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                    r_traj[i].ee_pose,
+                                    r_traj[i].joint_pose, Object()))
+
+                    l_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                    l_traj[i].ee_pose,
+                                    l_traj[i].joint_pose, Object()))
 
         #TODO: find the offset between the corner of the table 
         #      and the starting point for the EE
@@ -994,29 +1011,45 @@ class Interaction:
         corner = []
         old_corner = []
         if ((app_direction == slopes_x_pos) and pos_rep):
-            corner = [new_table[1].position.x, new_table[1].position.y]
-            old_corner = [table_corner[1].position.x, table_corner[1].position.y]
+            rospy.loginfo("Corner 1")
+            corner = [new_table[0].position.x, new_table[0].position.y]
+            old_corner = [table_corner[0].position.x, table_corner[0].position.y]
+
         elif ((app_direction == slopes_x_neg) and pos_rep):
-            corner = [new_table[3].position.x, new_table[3].position.y]
-            old_corner = [table_corner[3].position.x, table_corner[3].position.y]
-        elif ((app_direction == slopes_x_pos) and not pos_rep):
-            corner = [new_table[0].position.x, new_table[0].position.y]
-            old_corner = [table_corner[0].position.x, table_corner[0].position.y]
-        elif ((app_direction == slopes_x_neg) and not pos_rep):
+            rospy.loginfo("Corner 3")
             corner = [new_table[2].position.x, new_table[2].position.y]
             old_corner = [table_corner[2].position.x, table_corner[2].position.y]
-        elif ((app_direction == slopes_y_pos) and pos_rep):
+
+        elif ((app_direction == slopes_x_pos) and not pos_rep):
+            rospy.loginfo("Corner 2")
             corner = [new_table[1].position.x, new_table[1].position.y]
             old_corner = [table_corner[1].position.x, table_corner[1].position.y]
-        elif ((app_direction == slopes_y_neg) and pos_rep):
-            corner = [new_table[0].position.x, new_table[0].position.y]
-            old_corner = [table_corner[0].position.x, table_corner[0].position.y]
-        elif ((app_direction == slopes_y_pos) and not pos_rep):
+
+        elif ((app_direction == slopes_x_neg) and not pos_rep):
+            rospy.loginfo("Corner 4")
             corner = [new_table[3].position.x, new_table[3].position.y]
             old_corner = [table_corner[3].position.x, table_corner[3].position.y]
-        elif ((app_direction == slopes_y_neg) and not pos_rep):
+
+        elif ((app_direction == slopes_y_pos) and pos_rep):
+            rospy.loginfo("Corner 1")
+            corner = [new_table[0].position.x, new_table[0].position.y]
+            old_corner = [table_corner[0].position.x, table_corner[0].position.y]
+
+        elif ((app_direction == slopes_y_neg) and pos_rep):
+            rospy.loginfo("Corner 2")
+            corner = [new_table[1].position.x, new_table[1].position.y]
+            old_corner = [table_corner[1].position.x, table_corner[1].position.y]
+
+        elif ((app_direction == slopes_y_pos) and not pos_rep):
+            rospy.loginfo("Corner 3")
             corner = [new_table[2].position.x, new_table[2].position.y]
             old_corner = [table_corner[2].position.x, table_corner[2].position.y]
+
+        elif ((app_direction == slopes_y_neg) and not pos_rep):
+            rospy.loginfo("Corner 4")
+            corner = [new_table[3].position.x, new_table[3].position.y]
+            old_corner = [table_corner[3].position.x, table_corner[3].position.y]
+
 
 
         """
@@ -1127,6 +1160,8 @@ class Interaction:
         #     number_units_app = number_units_app - 1
 
 
+
+
         for k in range(number_units_rep):
             
 
@@ -1160,6 +1195,8 @@ class Interaction:
                         #     timing_gen.append(timing_unit[i] + rospy.Duration(time_offset*time_step + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))  
                         #First point in rep
                         #else:
+                        if (k == 0):
+                            rospy.loginfo('Point is: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
                         num_extra_time_offset = num_time_offset + 50
                         num_time_offset = num_extra_time_offset
                         timing_gen.append(timing_unit[i] + rospy.Duration(time_offset*time_step*num_time_offset + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
@@ -1247,7 +1284,7 @@ class Interaction:
 
         # Execute
         execution_z_offset = 0.00
-        self.arms.start_execution(self.session.execution, execution_z_offset)
+        #self.arms.start_execution(self.session.execution, execution_z_offset)
 
   
 
