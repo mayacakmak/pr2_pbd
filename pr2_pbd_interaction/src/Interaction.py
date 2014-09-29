@@ -358,24 +358,24 @@ class Interaction:
         """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
 
 
-        # temp_table_0_x = table_corner[0].position.x
-        # temp_table_0_y = table_corner[0].position.y
+        temp_table_0_x = table_corner[0].position.x
+        temp_table_0_y = table_corner[0].position.y
 
-        # temp_table_2_x = table_corner[2].position.x
-        # temp_table_2_y = table_corner[2].position.y
+        temp_table_2_x = table_corner[2].position.x
+        temp_table_2_y = table_corner[2].position.y
 
-        # table_corner[0].position.x = table_corner[1].position.x
-        # table_corner[0].position.y = table_corner[1].position.y
+        table_corner[0].position.x = table_corner[1].position.x
+        table_corner[0].position.y = table_corner[1].position.y
 
-        # table_corner[2].position.x = table_corner[3].position.x
-        # table_corner[2].position.y = table_corner[3].position.y
+        table_corner[2].position.x = table_corner[3].position.x
+        table_corner[2].position.y = table_corner[3].position.y
 
 
-        # table_corner[1].position.x = temp_table_0_x
-        # table_corner[1].position.y = temp_table_0_y
+        table_corner[1].position.x = temp_table_0_x
+        table_corner[1].position.y = temp_table_0_y
 
-        # table_corner[3].position.x = temp_table_2_x
-        # table_corner[3].position.y = temp_table_2_y
+        table_corner[3].position.x = temp_table_2_x
+        table_corner[3].position.y = temp_table_2_y
 
 
 
@@ -536,6 +536,8 @@ class Interaction:
         slopes_y_pos = 0
         slopes_y_neg = 0
         for cluster in app_cluster_bounds:
+            if not cluster:
+                continue
             x_app = []
             y_app = []
             heights = []
