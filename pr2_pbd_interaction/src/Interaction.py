@@ -355,27 +355,27 @@ class Interaction:
         rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + ' ' + str(new_table[2].position.y))
         rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + ' ' + str(new_table[3].position.y))
 
-        """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
+        # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
 
 
-        temp_table_0_x = table_corner[0].position.x
-        temp_table_0_y = table_corner[0].position.y
+        # temp_table_0_x = table_corner[0].position.x
+        # temp_table_0_y = table_corner[0].position.y
 
-        temp_table_2_x = table_corner[2].position.x
-        temp_table_2_y = table_corner[2].position.y
+        # temp_table_2_x = table_corner[2].position.x
+        # temp_table_2_y = table_corner[2].position.y
 
-        table_corner[0].position.x = table_corner[1].position.x
-        table_corner[0].position.y = table_corner[1].position.y
+        # table_corner[0].position.x = table_corner[1].position.x
+        # table_corner[0].position.y = table_corner[1].position.y
 
-        table_corner[2].position.x = table_corner[3].position.x
-        table_corner[2].position.y = table_corner[3].position.y
+        # table_corner[2].position.x = table_corner[3].position.x
+        # table_corner[2].position.y = table_corner[3].position.y
 
 
-        table_corner[1].position.x = temp_table_0_x
-        table_corner[1].position.y = temp_table_0_y
+        # table_corner[1].position.x = temp_table_0_x
+        # table_corner[1].position.y = temp_table_0_y
 
-        table_corner[3].position.x = temp_table_2_x
-        table_corner[3].position.y = temp_table_2_y
+        # table_corner[3].position.x = temp_table_2_x
+        # table_corner[3].position.y = temp_table_2_y
 
 
 
@@ -656,7 +656,7 @@ class Interaction:
          # Assign points close to lowest point as application (cluster 2)
         for i in range(n_points):
             point_z = r_traj[i].ee_pose.position.z
-            if (numpy.abs(point_z - min_z) < 0.04):
+            if (numpy.abs(point_z - min_z) < 0.05):
                 clusters_rep[i] = ArmTrajectory.APPLICATION
                 
         # Assign points at the beginning as entry
@@ -722,18 +722,20 @@ class Interaction:
         neg_dir = 0
         dist_between_means = []
         for k in range(len(means) -1):
-            dist_between_means.append(means[k] - means[k + 1])
+            dist_between_means.append(means[k + 1] - means[k])
             if (numpy.abs(means[k] - means[k + 1]) < 0.02):
-                    num_reps = num_reps - 1
+                num_reps = num_reps - 1
             if (means[k] < means[k + 1]):
                 pos_dir = pos_dir + 1
-            elif (means[k] < means[k + 1]):
+            elif (means[k] > means[k + 1]):
                 neg_dir = neg_dir + 1
 
         pos_rep = None 
         if (pos_dir > neg_dir):
+            rospy.loginfo('Postive rep dir')
             pos_rep = True
         elif (neg_dir > pos_dir):
+            rospy.loginfo('Negative rep dir')
             pos_rep = False
         else:
             rospy.loginfo('Indeterminate repetition direction')
@@ -754,6 +756,8 @@ class Interaction:
         rep_dist = corner_dist_rep/num_reps
         if (numpy.abs(rep_dist - numpy.mean(dist_between_means)) > 0.03):
             rep_dist =  numpy.mean(dist_between_means)
+
+        rospy.loginfo('Rep dist: ' + str(rep_dist))
 
         # In format [rep, app]
         prev_start = [all_x[start_rep[0]], all_y[start_rep[0]]]
@@ -1092,7 +1096,7 @@ class Interaction:
         time_offset = 1
 
 
-        #TODO: add start and end
+        
         start_pose = Pose()
         
         start_pose.position.x = all_x[0]
@@ -1115,6 +1119,12 @@ class Interaction:
                         l_traj[0].ee_pose,
                         l_traj[0].joint_pose, Object()))
 
+        # if (number_units_rep > 1):
+        #     number_units_rep = number_units_rep - 1
+
+        # if (number_units_app > 1):
+        #     number_units_app = number_units_app - 1
+
 
         for k in range(number_units_rep):
             
@@ -1130,7 +1140,7 @@ class Interaction:
 
 
                     r_new_pose = Pose()
-                    rospy.loginfo('Original point: ' + str(r_unit[i].ee_pose.position.x) + ', ' + str(r_unit[i].ee_pose.position.y))
+                    #rospy.loginfo('Original point: ' + str(r_unit[i].ee_pose.position.x) + ', ' + str(r_unit[i].ee_pose.position.y))
                     
                     #r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x + tool_offset_x + new_start[0]
                     #r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y + tool_offset_y + new_start[1]
@@ -1169,7 +1179,7 @@ class Interaction:
                     r_new_pose.orientation.w = r_unit[i].ee_pose.orientation.w
 
 
-                    rospy.loginfo('New point: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
+                    #rospy.loginfo('New point: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
 
                     r_traj_gen.append(ArmState(ArmState.ROBOT_BASE,
                                     r_new_pose,
@@ -1240,7 +1250,11 @@ class Interaction:
         Isolate individual cleaning unit from segment trajectory
         """
 
+        if not indices:
+            return []
+
         offset = indices[0]
+
 
         subset_rep_vals = []
         subset_app_vals = []
