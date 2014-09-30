@@ -697,11 +697,11 @@ class Interaction:
         means = []
 
         for i in range(len(clusters_rep)):
-            if ((i > 0) and (clusters_rep[i] == ArmTrajectory.APPLICATION) and (clusters_rep[i-1] != ArmTrajectory.APPLICATION)):
+            if ((i > 0) and (clusters_rep[i] == ArmTrajectory.APPLICATION) and (clusters_rep[i-1] != ArmTrajectory.APPLICATION) ):
                     num_reps = num_reps + 1
                     start_rep.append(i)
                     rospy.loginfo('Number of reps so far: ' + str(num_reps))
-            if ((i < (len(clusters_rep) - 1)) and (clusters_rep[i] == ArmTrajectory.APPLICATION) and (clusters_rep[i+1] != ArmTrajectory.APPLICATION)):
+            if ((i < (len(clusters_rep) - 1)) and (clusters_rep[i] == ArmTrajectory.APPLICATION) and (clusters_rep[i+1] != ArmTrajectory.APPLICATION) ):
                     end_rep.append(i)
 
         if (len(start_rep) != len(end_rep)):
@@ -922,12 +922,14 @@ class Interaction:
         """
 
         var_tol = 0.002 #TODO: pick a good variance tolerance to detect flat cleaning units
+        truncated = False
 
         if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)): 
             if ((var_list_y[index] < var_tol) and (numpy.abs(all_x[best_cu[0]] - all_x[best_cu[1]]) > 0.06)):
                 mid_index = int((best_cu[1] - best_cu[0])/2) + best_cu[0]
                 count = 1
                 right_length = False
+                truncated = True
                 while not right_length:
                     if (count > len(all_x)/2):
                         break
@@ -942,6 +944,7 @@ class Interaction:
                 mid_index = int((best_cu[1] - best_cu[0])/2) + best_cu[0]
                 count = 1
                 right_length = False
+                truncated = True
                 while not right_length:
                     if (count > len(all_x)/2):
                         break
@@ -1121,15 +1124,16 @@ class Interaction:
             app_dist = numpy.abs(app_offset_x)
             rep_offset_y = rep_dist
             corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*0.4
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/4
    
         elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
             app_offset_y = all_y[best_cu[1]] - all_y[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
             app_dist = numpy.abs(app_offset_y)
             rep_offset_x = rep_dist
-            corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*0.4
+            corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/4
             corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+
 
 
 
@@ -1138,6 +1142,46 @@ class Interaction:
         number_units_app = int(numpy.floor(corner_dist_app/app_dist))
         number_units_rep = int(numpy.floor(corner_dist_rep/numpy.abs(rep_dist)))
 
+        if (truncated):
+            #corner_shift_x = 0
+            #corner_shift_y = 0
+            number_units_app = number_units_app + 1
+            #number_units_rep = number_units_rep + 2
+            if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
+                
+                corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/2
+                corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+       
+            elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
+                
+                corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+                corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/2
+
+
+
+        #if end of last generated unit is not as far in rep dir as end of real, add one more rep
+        if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
+            end_gen_traj = new_start[1] + number_units_rep*rep_dist -  corner_shift_y
+            rospy.loginfo('end_gen_traj: ' + str(end_gen_traj))
+            rospy.loginfo('end cu: ' + str(all_y[end_rep[len(end_rep) -1]]))
+            if (pos_rep):
+                if (end_gen_traj < all_y[end_rep[len(end_rep) -1]]):
+                    number_units_rep = number_units_rep + 1
+            else:
+                if (end_gen_traj > all_y[end_rep[len(end_rep) -1]]):
+                    number_units_rep = number_units_rep + 1
+       
+        elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
+            end_gen_traj = new_start[0] + number_units_rep*rep_dist -  corner_shift_x
+            rospy.loginfo('end_gen_traj: ' + str(end_gen_traj))
+            rospy.loginfo('end cu: ' + str(all_x[end_rep[len(end_rep) -1]]))
+            if (pos_rep):
+                if (end_gen_traj < all_x[end_rep[len(end_rep) -1]]):
+                    number_units_rep = number_units_rep + 1
+            else:
+                if (end_gen_traj > all_x[end_rep[len(end_rep) -1]]):
+                    number_units_rep = number_units_rep + 1
+        
 
         rospy.loginfo('Number of units_app: ' + str(number_units_app))
         rospy.loginfo('Number of units_rep: ' + str(number_units_rep))
