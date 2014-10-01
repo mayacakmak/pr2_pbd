@@ -247,7 +247,7 @@ class Interaction:
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
 
         num_bins = 50
-        the histogram of the data
+        # the histogram of the data
         plt.subplot(4, 1, 1)
         plt.plot(range(n_points), all_x, 'ro-')
         plt.ylabel('x')
@@ -427,7 +427,7 @@ class Interaction:
         # filtered = (numpy.average(data) / numpy.average(filtered)) * filtered
         # filtered = numpy.roll(filtered, -25)
         ''' method 1 '''
-        peakind = sgnl.find_peaks_cwt(data, numpy.arange(1,200), noise_perc=15)
+        peakind = sgnl.find_peaks_cwt(data, numpy.arange(1,250), noise_perc=15)
         ''' method 2 '''
         # peakind = sgnl.find_peaks_cwt(filtered, numpy.arange(100,200))
         ''' method 3: finding the maximum values from filtered curves: '''
@@ -445,11 +445,17 @@ class Interaction:
         for i in peakind:
             peak_data.append(data[i])
 
-        plt.plot(data)
+
+
+        plt.plot(data, linewidth=10)
         # plt.plot(filtered)
         # plt.plot(peak_index, filtered[peakind], 'ro')
-        plt.plot(peakind, peak_data, 'ro')
-        plt.ylabel('Test numbers')
+        plt.plot(peakind, peak_data, 'ro', markersize=30)
+        plt.xlabel('Time stamps(-)',fontsize=40)
+        plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        plt.xlim(0, len(all_z))
+        plt.tick_params(axis='x', labelsize=40)
+        plt.tick_params(axis='y', labelsize=40)
         plt.show()
 
         
@@ -1338,18 +1344,20 @@ class Interaction:
 
 
 
-        # plt.subplot(2, 1, 1)
-        # plt.plot(data_rep)
-        # plt.plot(peakind, peak_data_rep, 'ro')
-        # plt.ylabel('repetiton peaks')
+        plt.subplot(2, 1, 1)
+        plt.plot(data_rep)
+        plt.plot(peakind, peak_data_rep, 'ro')
+        # plt.xlabel('time stamps(-)')
+        plt.ylabel('Repetiton direction (m)')
 
-        # plt.subplot(2, 1, 2)
-        # plt.plot(data_app)
-        # plt.plot(peakind, peak_data_app, 'go-')
-        # plt.ylabel('application peaks')
+        plt.subplot(2, 1, 2)
+        plt.plot(data_app)
+        plt.plot(peakind, peak_data_app, 'go')
+        plt.ylabel('Application direction (m)')
 
-        # plt.subplots_adjust(left=0.15)
-        #plt.show()
+        plt.subplots_adjust(left=0.15)
+        plt.xlabel('time stamps(-)')
+        plt.show()
 
         cleaning_peaks_indices = peakind
 
@@ -1422,28 +1430,39 @@ class Interaction:
         ################################################
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
 
+ 
         num_bins = 50
         # the histogram of the data
-        # plt.subplot(4, 1, 1)
-        # plt.plot(range(n_points), all_x, 'ro-')
-        # plt.ylabel('x')
+        plt.subplot(3, 1, 1)
+        plt.plot(range(n_points), all_x, 'r.-', markersize = 20)
+        plt.ylabel('X (m)',fontsize=40 )
+        plt.xlim(0, len(all_x))
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20) 
 
-        # plt.subplot(4, 1, 2)
-        # plt.plot(range(n_points), all_y, 'bo-')
-        # plt.ylabel('y')
+        plt.subplot(3, 1, 2)
+        plt.plot(range(n_points), all_y, 'b.-', markersize = 20)
+        plt.ylabel('Y (m)', fontsize=40)
+        plt.xlim(0, len(all_y))
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
 
-        # plt.subplot(4, 1, 3)
-        # plt.plot(range(n_points), all_z, 'go-')
-        # plt.ylabel('z')
+        plt.subplot(3, 1, 3)
+        plt.plot(range(n_points), all_z, 'g.-', markersize = 20)
+        plt.ylabel('Z (m)', fontsize=40)
+        plt.xlim(0, len(all_z))
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
 
         # plt.subplot(4, 1, 4)
         # n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
         # plt.xlabel('z (histogram bins)')
         # plt.ylabel('occurance')
 
-        # # Tweak spacing to prevent clipping of ylabel
-        # plt.subplots_adjust(left=0.15)
-        # plt.show()
+        # Tweak spacing to prevent clipping of ylabel
+        plt.subplots_adjust(left=0.15)
+        plt.xlabel('Time stamps (-)',fontsize=50)
+        plt.show()
 
 
     def stop_recording(self, dummy=None):
