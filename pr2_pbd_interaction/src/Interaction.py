@@ -248,26 +248,28 @@ class Interaction:
 
         num_bins = 50
         #the histogram of the data
-        #plt.subplot(4, 1, 1)
-        #plt.plot(range(n_points), all_x, 'ro-')
-        #plt.ylabel('x')
+        plt.subplot(4, 1, 1)
+        plt.plot(range(n_points), all_x, 'ro-')
+        plt.ylabel('x')
 
-        #plt.subplot(4, 1, 2)
-        #plt.plot(range(n_points), all_y, 'bo-')
-        #plt.ylabel('y')
+        plt.subplot(4, 1, 2)
+        plt.plot(range(n_points), all_y, 'bo-')
+        plt.ylabel('y')
 
-        #plt.subplot(4, 1, 3)
-        #plt.plot(range(n_points), all_z, 'go-')
-        #plt.ylabel('z')
+        plt.subplot(4, 1, 3)
+        plt.plot(range(n_points), all_z, 'go-')
+        plt.ylabel('z')
 
-        #plt.subplot(4, 1, 4)
-        #n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
-        #plt.xlabel('z (histogram bins)')
-        #plt.ylabel('occurance')
+        plt.subplot(4, 1, 4)
+        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        plt.xlabel('z (histogram bins)')
+        plt.ylabel('occurance')
 
         # Tweak spacing to prevent clipping of ylabel
         plt.subplots_adjust(left=0.15)
+
         plt.show()
+
 
         ################################################
 
@@ -358,24 +360,24 @@ class Interaction:
         # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
 
 
-        temp_table_0_x = table_corner[0].position.x
-        temp_table_0_y = table_corner[0].position.y
+        # temp_table_0_x = table_corner[0].position.x
+        # temp_table_0_y = table_corner[0].position.y
 
-        temp_table_2_x = table_corner[2].position.x
-        temp_table_2_y = table_corner[2].position.y
+        # temp_table_2_x = table_corner[2].position.x
+        # temp_table_2_y = table_corner[2].position.y
 
-        table_corner[0].position.x = table_corner[1].position.x
-        table_corner[0].position.y = table_corner[1].position.y
+        # table_corner[0].position.x = table_corner[1].position.x
+        # table_corner[0].position.y = table_corner[1].position.y
 
-        table_corner[2].position.x = table_corner[3].position.x
-        table_corner[2].position.y = table_corner[3].position.y
+        # table_corner[2].position.x = table_corner[3].position.x
+        # table_corner[2].position.y = table_corner[3].position.y
 
 
-        table_corner[1].position.x = temp_table_0_x
-        table_corner[1].position.y = temp_table_0_y
+        # table_corner[1].position.x = temp_table_0_x
+        # table_corner[1].position.y = temp_table_0_y
 
-        table_corner[3].position.x = temp_table_2_x
-        table_corner[3].position.y = temp_table_2_y
+        # table_corner[3].position.x = temp_table_2_x
+        # table_corner[3].position.y = temp_table_2_y
 
 
 
@@ -785,11 +787,13 @@ class Interaction:
         cluster_num = 0
         best_cu = []
         diff = numpy.inf
-        using_all = True
+
+        used_all = False
         if (len(app_cluster_bounds) > 2):
             first = app_cluster_bounds.pop(0)
             last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
-            using_all = False
+            using_all = True
+
         rospy.loginfo('Total repetitions: ' + str(len(app_cluster_bounds)))
         tried_everything = 0
 
@@ -866,7 +870,8 @@ class Interaction:
                         diff_list.append(diff)
                     cu_list = cu_list + cu_peaks
 
-            if ((not cu_list) and (not using_all)):
+
+            if not cu_list and not used_all:
                 app_cluster_bounds = [first, last]
                 tried_everything = tried_everything + 1
             else:
@@ -1108,18 +1113,15 @@ class Interaction:
         l_traj = arm_trajectory.lArm[:]
 
 
-        
-
-
         timing_unit = []
         r_unit = []
         l_unit = []
 
-        downsample = True
+        downsample = False
 
         if (downsample):
 
-            max_points = 5
+            max_points = 10
             interval = int(numpy.floor((best_cu[1] - best_cu[0])/max_points))
             if (interval > 1):
                 for i in range(best_cu[0],best_cu[1]):
@@ -1253,7 +1255,7 @@ class Interaction:
         rep_offset_y = 0
 
         #Offset at beginning and end of rep for robot to lift arm
-        z_offset = 0.07
+        z_offset = 0.10
 
         start_time = timing_unit[0]
         unit_length = len(timing_unit)
@@ -1288,17 +1290,17 @@ class Interaction:
         if (truncated):
             #corner_shift_x = 0
             #corner_shift_y = 0
-            #number_units_app = number_units_app + 1
-            number_units_rep = number_units_rep - 1
+            number_units_app = number_units_app + 1
+            #number_units_rep = number_units_rep + 2
             if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
                 
-                corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*0.75
-                corner_shift_y = 2.5*numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+                corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/2
+                corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
        
             elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
                 
-                corner_shift_x = 2.5*numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-                corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*0.75
+                corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+                corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/2
 
 
 
@@ -1495,7 +1497,7 @@ class Interaction:
 
         # Execute
         execution_z_offset = 0.00
-        self.arms.start_execution(self.session.execution, execution_z_offset)
+        #self.arms.start_execution(self.session.execution, execution_z_offset)
 
   
 
@@ -1573,6 +1575,12 @@ class Interaction:
         plt.xlabel('Time stamps (-)',fontsize=40)
         plt.show()
 
+        current_cu_rep = []
+        for j in range(indices[0],indices[len(indices) -1]):
+            current_cu_rep.append(repetition_vals[j])
+        variance = numpy.var(current_cu_rep)
+
+
         cleaning_peaks_indices = peakind
 
 
@@ -1592,13 +1600,12 @@ class Interaction:
             variance = numpy.var(current_cu_rep)
 
             var_tol = 0.002 #TODO: pick a good variance tolerance to detect flat cleaning units
-            truncated = False
 
-          
             if (variance < var_tol):
-                return [[indices[0],indices[len(indices) -1]]]
-        else:
-            return []
+                return [[indices[0], indices[len(indices) -1]]]      
+            else:
+                return []
+
 
         
         for i in range(len(cleaning_peaks_indices) - 1):
