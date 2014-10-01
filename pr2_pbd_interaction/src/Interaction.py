@@ -1599,14 +1599,15 @@ class Interaction:
                 current_cu_rep.append(repetition_vals[j])
             variance = numpy.var(current_cu_rep)
 
-            var_tol = 0.002 #TODO: pick a good variance tolerance to detect flat cleaning units
+            var_tol = 0.003 #TODO: pick a good variance tolerance to detect flat cleaning units
+            truncated = False
 
+            rospy.loginfo('Variance: ' + str(variance))
+          
             if (variance < var_tol):
                 return [[indices[0], indices[len(indices) -1]]]      
             else:
                 return []
-
-
         
         for i in range(len(cleaning_peaks_indices) - 1):
             diff = numpy.abs(subset_rep_vals[cleaning_peaks_indices[i]] - subset_rep_vals[cleaning_peaks_indices[i + 1]])
