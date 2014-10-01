@@ -247,27 +247,26 @@ class Interaction:
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
 
         num_bins = 50
-        # the histogram of the data
-        #plt.subplot(4, 1, 1)
-        #plt.plot(range(n_points), all_x, 'ro-')
-        #plt.ylabel('x')
         #the histogram of the data
+        plt.subplot(4, 1, 1)
+        plt.plot(range(n_points), all_x, 'ro-')
+        plt.ylabel('x')
 
-        #plt.subplot(4, 1, 2)
-        #plt.plot(range(n_points), all_y, 'bo-')
-        #plt.ylabel('y')
+        plt.subplot(4, 1, 2)
+        plt.plot(range(n_points), all_y, 'bo-')
+        plt.ylabel('y')
 
-        #plt.subplot(4, 1, 3)
-        #plt.plot(range(n_points), all_z, 'go-')
-        #plt.ylabel('z')
+        plt.subplot(4, 1, 3)
+        plt.plot(range(n_points), all_z, 'go-')
+        plt.ylabel('z')
 
-        #plt.subplot(4, 1, 4)
-        #n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
-        #plt.xlabel('z (histogram bins)')
-        #plt.ylabel('occurance')
+        plt.subplot(4, 1, 4)
+        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        plt.xlabel('z (histogram bins)')
+        plt.ylabel('occurance')
 
         # Tweak spacing to prevent clipping of ylabel
-        #plt.subplots_adjust(left=0.15)
+        plt.subplots_adjust(left=0.15)
         # plt.show()
 
         ################################################
@@ -337,43 +336,6 @@ class Interaction:
         # arm_trajectory.table_corners = self.surface  
         table_corner = arm_trajectory.table_corners[:]
 
-        # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
-        self.surface = self.world.get_surface()
-	new_table = self.surface #arm_traj_newSurface.table_corners[:]
-
-
-        temp_table_0_x = table_corner[0].position.x
-        temp_table_0_y = table_corner[0].position.y
-
-        temp_table_2_x = table_corner[2].position.x
-        temp_table_2_y = table_corner[2].position.y
-
-        table_corner[0].position.x = table_corner[1].position.x
-        table_corner[0].position.y = table_corner[1].position.y
-
-        table_corner[2].position.x = table_corner[3].position.x
-        table_corner[2].position.y = table_corner[3].position.y
-
-
-        table_corner[1].position.x = temp_table_0_x
-        table_corner[1].position.y = temp_table_0_y
-
-        table_corner[3].position.x = temp_table_2_x
-        table_corner[3].position.y = temp_table_2_y
-
-
-	new_table[1].position.x = 0.462337317022 
-        new_table[1].position.y = -0.163013210848
-
-        new_table[3].position.x = 0.464719900861 
-        new_table[3].position.y = 0.160649359178
-	
-	new_table[0].position.x = 0.776445212529
-        new_table[0].position.y = 0.161052028193
-
-        new_table[2].position.x = 0.77310729071 
-        new_table[2].position.y = -0.16010918399
-
         #ToDo: add the size of the old table with parameter like H and W
 
         rospy.loginfo('table corner 1 ' + str(table_corner[0].position.x) + ' ' + str(table_corner[0].position.y))
@@ -385,26 +347,37 @@ class Interaction:
 
         # get the new surface:
 
+        self.surface = self.world.get_surface()
+        new_table = self.surface #arm_traj_newSurface.table_corners[:]
 
         rospy.loginfo('new table corner 1 ' + str(new_table[0].position.x) + ' ' + str(new_table[0].position.y))
         rospy.loginfo('new table corner 2 ' + str(new_table[1].position.x) + ' ' + str(new_table[1].position.y))
         rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + ' ' + str(new_table[2].position.y))
         rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + ' ' + str(new_table[3].position.y))
 
+        # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
 
 
+        # temp_table_0_x = table_corner[0].position.x
+        # temp_table_0_y = table_corner[0].position.y
 
-	"""
-	table corner 1 0.398209456706 -0.182344795167
-	[INFO] [WallTime: 1412136901.960743] table corner 2 0.403896427614 0.142544210732
-	[INFO] [WallTime: 1412136901.963465] table corner 3 0.71676583096 0.139274603917
-	[INFO] [WallTime: 1412136901.964208] table corner 4 0.713126522102 -0.179704798618
-	[INFO] [WallTime: 1412136901.964722] the size of the demonstrated trajecotry is 652
-	[INFO] [WallTime: 1412136901.997111] new table corner 1 0.464719900861 0.160649359178
-	[INFO] [WallTime: 1412136901.999101] new table corner 2 0.462337317022 -0.163013210848
-	[INFO] [WallTime: 1412136902.000810] new table corner 3 0.77310729071 -0.16010918399
-	[INFO] [WallTime: 1412136902.001669] new table corner 4 0.776445212529 0.161052028193
-	"""
+        # temp_table_2_x = table_corner[2].position.x
+        # temp_table_2_y = table_corner[2].position.y
+
+        # table_corner[0].position.x = table_corner[1].position.x
+        # table_corner[0].position.y = table_corner[1].position.y
+
+        # table_corner[2].position.x = table_corner[3].position.x
+        # table_corner[2].position.y = table_corner[3].position.y
+
+
+        # table_corner[1].position.x = temp_table_0_x
+        # table_corner[1].position.y = temp_table_0_y
+
+        # table_corner[3].position.x = temp_table_2_x
+        # table_corner[3].position.y = temp_table_2_y
+
+
 
 
         # try to create a new cluster and also visualize it.
@@ -472,18 +445,12 @@ class Interaction:
         for i in peakind:
             peak_data.append(data[i])
 
-
-
-        #plt.plot(data, linewidth=10)
-        # plt.plot(filtered)
-        # plt.plot(peak_index, filtered[peakind], 'ro')
-        #plt.plot(peakind, peak_data, 'ro', markersize=30)
-        #plt.xlabel('Time stamps(-)',fontsize=40)
-        #plt.ylabel('End-effector vertcial position (m)', fontsize=50)
-        #plt.xlim(0, len(all_z))
-        #plt.tick_params(axis='x', labelsize=40)
-        #plt.tick_params(axis='y', labelsize=40)
-        #plt.show()
+        # plt.plot(data)
+        # # plt.plot(filtered)
+        # # plt.plot(peak_index, filtered[peakind], 'ro')
+        # plt.plot(peakind, peak_data, 'ro')
+        # plt.ylabel('Test numbers')
+        # plt.show()
 
         
         """
@@ -808,8 +775,11 @@ class Interaction:
         cluster_num = 0
         best_cu = []
         diff = numpy.inf
-        first = app_cluster_bounds.pop(0)
-        last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
+        used_all = False
+        if (len(app_cluster_bounds) > 2):
+            first = app_cluster_bounds.pop(0)
+            last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
+            used_all = True
         rospy.loginfo('Total repetitions: ' + str(len(app_cluster_bounds)))
         tried_everything = 0
 
@@ -886,7 +856,7 @@ class Interaction:
                         diff_list.append(diff)
                     cu_list = cu_list + cu_peaks
 
-            if not cu_list:
+            if not cu_list and not used_all:
                 app_cluster_bounds = [first, last]
                 tried_everything = tried_everything + 1
             else:
@@ -998,18 +968,15 @@ class Interaction:
         l_traj = arm_trajectory.lArm[:]
 
 
-        
-
-
         timing_unit = []
         r_unit = []
         l_unit = []
 
-        downsample = True
+        downsample = False
 
         if (downsample):
 
-            max_points = 5
+            max_points = 10
             interval = int(numpy.floor((best_cu[1] - best_cu[0])/max_points))
             if (interval > 1):
                 for i in range(best_cu[0],best_cu[1]):
@@ -1143,7 +1110,7 @@ class Interaction:
         rep_offset_y = 0
 
         #Offset at beginning and end of rep for robot to lift arm
-        z_offset = 0.07
+        z_offset = 0.10
 
         start_time = timing_unit[0]
         unit_length = len(timing_unit)
@@ -1178,17 +1145,17 @@ class Interaction:
         if (truncated):
             #corner_shift_x = 0
             #corner_shift_y = 0
-            #number_units_app = number_units_app + 1
-            number_units_rep = number_units_rep - 1
+            number_units_app = number_units_app + 1
+            #number_units_rep = number_units_rep + 2
             if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
                 
-                corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*0.75
-                corner_shift_y = 2.5*numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+                corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/2
+                corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
        
             elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
                 
-                corner_shift_x = 2.5*numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-                corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*0.75
+                corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+                corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/2
 
 
 
@@ -1385,7 +1352,7 @@ class Interaction:
 
         # Execute
         execution_z_offset = 0.00
-        self.arms.start_execution(self.session.execution, execution_z_offset)
+        #self.arms.start_execution(self.session.execution, execution_z_offset)
 
   
 
@@ -1439,20 +1406,24 @@ class Interaction:
 
 
 
-        #plt.subplot(2, 1, 1)
-        #plt.plot(data_rep)
-        #plt.plot(peakind, peak_data_rep, 'ro')
-        # plt.xlabel('time stamps(-)')
-        #plt.ylabel('Repetiton direction (m)')
+        # plt.subplot(2, 1, 1)
+        # plt.plot(data_rep)
+        # plt.plot(peakind, peak_data_rep, 'ro')
+        # plt.ylabel('repetiton peaks')
 
-        #plt.subplot(2, 1, 2)
-        #plt.plot(data_app)
-        #plt.plot(peakind, peak_data_app, 'go')
-        #plt.ylabel('Application direction (m)')
+        # plt.subplot(2, 1, 2)
+        # plt.plot(data_app)
+        # plt.plot(peakind, peak_data_app, 'go-')
+        # plt.ylabel('application peaks')
 
-        #plt.subplots_adjust(left=0.15)
-        #plt.xlabel('time stamps(-)')
+        # plt.subplots_adjust(left=0.15)
         #plt.show()
+
+        current_cu_rep = []
+        for j in range(indices[0],indices[len(indices) -1]):
+            current_cu_rep.append(repetition_vals[j])
+        variance = numpy.var(current_cu_rep)
+
 
         cleaning_peaks_indices = peakind
 
@@ -1463,7 +1434,11 @@ class Interaction:
         rejected_peak_pairs = []
 
         if (len(cleaning_peaks_indices) < 2):
-            return []
+            var_tol = 0.002 
+            if (variance < var_tol):
+                return [[indices[0], indices[len(indices) -1]]]      
+            else:
+                return []
 
         
         for i in range(len(cleaning_peaks_indices) - 1):
@@ -1525,41 +1500,29 @@ class Interaction:
         ################################################
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
 
- 
         num_bins = 50
         # the histogram of the data
-	"""
-        plt.subplot(3, 1, 1)
-        plt.plot(range(n_points), all_x, 'r.-', markersize = 20)
-        plt.ylabel('X (m)',fontsize=40 )
-        plt.xlim(0, len(all_x))
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20) 
+        # plt.subplot(4, 1, 1)
+        # plt.plot(range(n_points), all_x, 'ro-')
+        # plt.ylabel('x')
 
-        plt.subplot(3, 1, 2)
-        plt.plot(range(n_points), all_y, 'b.-', markersize = 20)
-        plt.ylabel('Y (m)', fontsize=40)
-        plt.xlim(0, len(all_y))
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20)
+        # plt.subplot(4, 1, 2)
+        # plt.plot(range(n_points), all_y, 'bo-')
+        # plt.ylabel('y')
 
-        plt.subplot(3, 1, 3)
-        plt.plot(range(n_points), all_z, 'g.-', markersize = 20)
-        plt.ylabel('Z (m)', fontsize=40)
-        plt.xlim(0, len(all_z))
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20)
+        # plt.subplot(4, 1, 3)
+        # plt.plot(range(n_points), all_z, 'go-')
+        # plt.ylabel('z')
 
         # plt.subplot(4, 1, 4)
         # n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
         # plt.xlabel('z (histogram bins)')
         # plt.ylabel('occurance')
 
-        # Tweak spacing to prevent clipping of ylabel
-        plt.subplots_adjust(left=0.15)
-        plt.xlabel('Time stamps (-)',fontsize=50)
-        plt.show()
-	"""
+        # # Tweak spacing to prevent clipping of ylabel
+        # plt.subplots_adjust(left=0.15)
+        # plt.show()
+
 
     def stop_recording(self, dummy=None):
         '''Stops recording continuous motion'''
