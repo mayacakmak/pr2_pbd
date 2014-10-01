@@ -251,23 +251,24 @@ class Interaction:
         plt.subplot(4, 1, 1)
         plt.plot(range(n_points), all_x, 'ro-')
         plt.ylabel('x')
+        #the histogram of the data
 
-        plt.subplot(4, 1, 2)
-        plt.plot(range(n_points), all_y, 'bo-')
-        plt.ylabel('y')
+        #plt.subplot(4, 1, 2)
+        #plt.plot(range(n_points), all_y, 'bo-')
+        #plt.ylabel('y')
 
-        plt.subplot(4, 1, 3)
-        plt.plot(range(n_points), all_z, 'go-')
-        plt.ylabel('z')
+        #plt.subplot(4, 1, 3)
+        #plt.plot(range(n_points), all_z, 'go-')
+        #plt.ylabel('z')
 
-        plt.subplot(4, 1, 4)
-        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
-        plt.xlabel('z (histogram bins)')
-        plt.ylabel('occurance')
+        #plt.subplot(4, 1, 4)
+        #n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        #plt.xlabel('z (histogram bins)')
+        #plt.ylabel('occurance')
 
         # Tweak spacing to prevent clipping of ylabel
-        plt.subplots_adjust(left=0.15)
-        plt.show()
+        #plt.subplots_adjust(left=0.15)
+        # plt.show()
 
         ################################################
 
@@ -358,24 +359,24 @@ class Interaction:
         # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
 
 
-        # temp_table_0_x = table_corner[0].position.x
-        # temp_table_0_y = table_corner[0].position.y
+        temp_table_0_x = table_corner[0].position.x
+        temp_table_0_y = table_corner[0].position.y
 
-        # temp_table_2_x = table_corner[2].position.x
-        # temp_table_2_y = table_corner[2].position.y
+        temp_table_2_x = table_corner[2].position.x
+        temp_table_2_y = table_corner[2].position.y
 
-        # table_corner[0].position.x = table_corner[1].position.x
-        # table_corner[0].position.y = table_corner[1].position.y
+        table_corner[0].position.x = table_corner[1].position.x
+        table_corner[0].position.y = table_corner[1].position.y
 
-        # table_corner[2].position.x = table_corner[3].position.x
-        # table_corner[2].position.y = table_corner[3].position.y
+        table_corner[2].position.x = table_corner[3].position.x
+        table_corner[2].position.y = table_corner[3].position.y
 
 
-        # table_corner[1].position.x = temp_table_0_x
-        # table_corner[1].position.y = temp_table_0_y
+        table_corner[1].position.x = temp_table_0_x
+        table_corner[1].position.y = temp_table_0_y
 
-        # table_corner[3].position.x = temp_table_2_x
-        # table_corner[3].position.y = temp_table_2_y
+        table_corner[3].position.x = temp_table_2_x
+        table_corner[3].position.y = temp_table_2_y
 
 
 
@@ -662,12 +663,12 @@ class Interaction:
          # Assign points close to lowest point as application (cluster 2)
         for i in range(n_points):
             point_z = r_traj[i].ee_pose.position.z
-            if (numpy.abs(point_z - min_z) < 0.05):
+            if (numpy.abs(point_z - min_z) < 0.04):
                 clusters_rep[i] = ArmTrajectory.APPLICATION
                 
         # Assign points at the beginning as entry
         index = 0
-        while (clusters[index] != ArmTrajectory.APPLICATION):
+        while (clusters_rep[index] != ArmTrajectory.APPLICATION):
             clusters_rep[index] = ArmTrajectory.START
             index = index + 1
         # Assign points at the end beginning as exit
@@ -703,11 +704,11 @@ class Interaction:
         means = []
 
         for i in range(len(clusters_rep)):
-            if ((i > 0) and (clusters_rep[i] == ArmTrajectory.APPLICATION) and (clusters_rep[i-1] != ArmTrajectory.APPLICATION)):
+            if ((i > 0) and (clusters_rep[i] == ArmTrajectory.APPLICATION) and (clusters_rep[i-1] != ArmTrajectory.APPLICATION) ):
                     num_reps = num_reps + 1
                     start_rep.append(i)
                     rospy.loginfo('Number of reps so far: ' + str(num_reps))
-            if ((i < (len(clusters_rep) - 1)) and (clusters_rep[i] == ArmTrajectory.APPLICATION) and (clusters_rep[i+1] != ArmTrajectory.APPLICATION)):
+            if ((i < (len(clusters_rep) - 1)) and (clusters_rep[i] == ArmTrajectory.APPLICATION) and (clusters_rep[i+1] != ArmTrajectory.APPLICATION) ):
                     end_rep.append(i)
 
         if (len(start_rep) != len(end_rep)):
@@ -765,7 +766,7 @@ class Interaction:
 
         rospy.loginfo('Rep dist: ' + str(rep_dist))
 
-        # In format [rep, app]
+        
         prev_start = [all_x[start_rep[0]], all_y[start_rep[0]]]
 
         #Find repetition direction
@@ -928,12 +929,14 @@ class Interaction:
         """
 
         var_tol = 0.002 #TODO: pick a good variance tolerance to detect flat cleaning units
+        truncated = False
 
         if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)): 
             if ((var_list_y[index] < var_tol) and (numpy.abs(all_x[best_cu[0]] - all_x[best_cu[1]]) > 0.06)):
                 mid_index = int((best_cu[1] - best_cu[0])/2) + best_cu[0]
                 count = 1
                 right_length = False
+                truncated = True
                 while not right_length:
                     if (count > len(all_x)/2):
                         break
@@ -948,6 +951,7 @@ class Interaction:
                 mid_index = int((best_cu[1] - best_cu[0])/2) + best_cu[0]
                 count = 1
                 right_length = False
+                truncated = True
                 while not right_length:
                     if (count > len(all_x)/2):
                         break
@@ -968,37 +972,55 @@ class Interaction:
         l_traj = arm_trajectory.lArm[:]
 
 
-        max_points = 10
-        interval = int(numpy.floor((best_cu[1] - best_cu[0])/max_points))
+        
 
 
         timing_unit = []
         r_unit = []
         l_unit = []
-        if (interval > 1):
+
+        downsample = True
+
+        if (downsample):
+
+            max_points = 5
+            interval = int(numpy.floor((best_cu[1] - best_cu[0])/max_points))
+            if (interval > 1):
+                for i in range(best_cu[0],best_cu[1]):
+                    
+                    #timing_unit.append(rospy.Duration(i*0.2))
+                    if ((i == best_cu[0]) or (i == best_cu[1])):
+                        timing_unit.append(timing[i])
+
+                        r_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                        r_traj[i].ee_pose,
+                                        r_traj[i].joint_pose, Object()))
+
+                        l_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                        l_traj[i].ee_pose,
+                                        l_traj[i].joint_pose, Object()))
+                    elif ( i%interval == 0):
+                        timing_unit.append(timing[i])
+
+                        r_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                        r_traj[i].ee_pose,
+                                        r_traj[i].joint_pose, Object()))
+
+                        l_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                        l_traj[i].ee_pose,
+                                        l_traj[i].joint_pose, Object()))
+        else:
             for i in range(best_cu[0],best_cu[1]):
-                
-                #timing_unit.append(rospy.Duration(i*0.2))
-                if ((i == best_cu[0]) or (i == best_cu[1])):
-                    timing_unit.append(timing[i])
+                timing_unit.append(timing[i])
 
-                    r_unit.append(ArmState(ArmState.ROBOT_BASE,
-                                    r_traj[i].ee_pose,
-                                    r_traj[i].joint_pose, Object()))
+                r_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                r_traj[i].ee_pose,
+                                r_traj[i].joint_pose, Object()))
 
-                    l_unit.append(ArmState(ArmState.ROBOT_BASE,
-                                    l_traj[i].ee_pose,
-                                    l_traj[i].joint_pose, Object()))
-                elif ( i%interval == 0):
-                    timing_unit.append(timing[i])
-
-                    r_unit.append(ArmState(ArmState.ROBOT_BASE,
-                                    r_traj[i].ee_pose,
-                                    r_traj[i].joint_pose, Object()))
-
-                    l_unit.append(ArmState(ArmState.ROBOT_BASE,
-                                    l_traj[i].ee_pose,
-                                    l_traj[i].joint_pose, Object()))
+                l_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                l_traj[i].ee_pose,
+                                l_traj[i].joint_pose, Object()))
+                    
 
         #TODO: find the offset between the corner of the table 
         #      and the starting point for the EE
@@ -1018,43 +1040,43 @@ class Interaction:
         old_corner = []
         if ((app_direction == slopes_x_pos) and pos_rep):
             rospy.loginfo("Corner 1")
-            corner = [new_table[0].position.x, new_table[0].position.y]
-            old_corner = [table_corner[0].position.x, table_corner[0].position.y]
+            corner = [new_table[1].position.x, new_table[1].position.y]
+            old_corner = [table_corner[1].position.x, table_corner[1].position.y]
 
         elif ((app_direction == slopes_x_neg) and pos_rep):
             rospy.loginfo("Corner 3")
-            corner = [new_table[2].position.x, new_table[2].position.y]
-            old_corner = [table_corner[2].position.x, table_corner[2].position.y]
+            corner = [new_table[3].position.x, new_table[3].position.y]
+            old_corner = [table_corner[3].position.x, table_corner[3].position.y]
 
         elif ((app_direction == slopes_x_pos) and not pos_rep):
             rospy.loginfo("Corner 2")
-            corner = [new_table[1].position.x, new_table[1].position.y]
-            old_corner = [table_corner[1].position.x, table_corner[1].position.y]
-
-        elif ((app_direction == slopes_x_neg) and not pos_rep):
-            rospy.loginfo("Corner 4")
-            corner = [new_table[3].position.x, new_table[3].position.y]
-            old_corner = [table_corner[3].position.x, table_corner[3].position.y]
-
-        elif ((app_direction == slopes_y_pos) and pos_rep):
-            rospy.loginfo("Corner 1")
             corner = [new_table[0].position.x, new_table[0].position.y]
             old_corner = [table_corner[0].position.x, table_corner[0].position.y]
 
-        elif ((app_direction == slopes_y_neg) and pos_rep):
-            rospy.loginfo("Corner 2")
-            corner = [new_table[1].position.x, new_table[1].position.y]
-            old_corner = [table_corner[1].position.x, table_corner[1].position.y]
-
-        elif ((app_direction == slopes_y_pos) and not pos_rep):
-            rospy.loginfo("Corner 3")
+        elif ((app_direction == slopes_x_neg) and not pos_rep):
+            rospy.loginfo("Corner 4")
             corner = [new_table[2].position.x, new_table[2].position.y]
             old_corner = [table_corner[2].position.x, table_corner[2].position.y]
 
-        elif ((app_direction == slopes_y_neg) and not pos_rep):
-            rospy.loginfo("Corner 4")
+        elif ((app_direction == slopes_y_pos) and pos_rep):
+            rospy.loginfo("Corner 1")
+            corner = [new_table[1].position.x, new_table[1].position.y]
+            old_corner = [table_corner[1].position.x, table_corner[1].position.y]
+
+        elif ((app_direction == slopes_y_neg) and pos_rep):
+            rospy.loginfo("Corner 2")
+            corner = [new_table[0].position.x, new_table[0].position.y]
+            old_corner = [table_corner[0].position.x, table_corner[0].position.y]
+
+        elif ((app_direction == slopes_y_pos) and not pos_rep):
+            rospy.loginfo("Corner 3")
             corner = [new_table[3].position.x, new_table[3].position.y]
             old_corner = [table_corner[3].position.x, table_corner[3].position.y]
+
+        elif ((app_direction == slopes_y_neg) and not pos_rep):
+            rospy.loginfo("Corner 4")
+            corner = [new_table[2].position.x, new_table[2].position.y]
+            old_corner = [table_corner[2].position.x, table_corner[2].position.y]
 
 
 
@@ -1086,6 +1108,8 @@ class Interaction:
         origin_offset_x = all_x[best_cu[0]] - prev_start[0]
         origin_offset_y = all_y[best_cu[0]] - prev_start[1]
 
+        
+
         #These offsets are stitching the individual cleaning units together
         app_offset_x = 0
         app_offset_y = 0
@@ -1093,7 +1117,7 @@ class Interaction:
         rep_offset_y = 0
 
         #Offset at beginning and end of rep for robot to lift arm
-        z_offset = 0.10
+        z_offset = 0.07
 
         start_time = timing_unit[0]
         unit_length = len(timing_unit)
@@ -1106,12 +1130,17 @@ class Interaction:
             rospy.loginfo('Application dir offset: ' + str(app_offset_x))
             app_dist = numpy.abs(app_offset_x)
             rep_offset_y = rep_dist
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/4
    
         elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
             app_offset_y = all_y[best_cu[1]] - all_y[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
             app_dist = numpy.abs(app_offset_y)
             rep_offset_x = rep_dist
+            corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/4
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+
 
 
 
@@ -1120,6 +1149,46 @@ class Interaction:
         number_units_app = int(numpy.floor(corner_dist_app/app_dist))
         number_units_rep = int(numpy.floor(corner_dist_rep/numpy.abs(rep_dist)))
 
+        if (truncated):
+            #corner_shift_x = 0
+            #corner_shift_y = 0
+            #number_units_app = number_units_app + 1
+            number_units_rep = number_units_rep - 1
+            if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
+                
+                corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*0.75
+                corner_shift_y = 2.5*numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+       
+            elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
+                
+                corner_shift_x = 2.5*numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+                corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*0.75
+
+
+
+        #if end of last generated unit is not as far in rep dir as end of real, add one more rep
+        if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
+            end_gen_traj = new_start[1] + number_units_rep*rep_dist -  corner_shift_y
+            rospy.loginfo('end_gen_traj: ' + str(end_gen_traj))
+            rospy.loginfo('end cu: ' + str(all_y[end_rep[len(end_rep) -1]]))
+            if (pos_rep):
+                if (end_gen_traj < all_y[end_rep[len(end_rep) -1]]):
+                    number_units_rep = number_units_rep + 1
+            else:
+                if (end_gen_traj > all_y[end_rep[len(end_rep) -1]]):
+                    number_units_rep = number_units_rep + 1
+       
+        elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
+            end_gen_traj = new_start[0] + number_units_rep*rep_dist -  corner_shift_x
+            rospy.loginfo('end_gen_traj: ' + str(end_gen_traj))
+            rospy.loginfo('end cu: ' + str(all_x[end_rep[len(end_rep) -1]]))
+            if (pos_rep):
+                if (end_gen_traj < all_x[end_rep[len(end_rep) -1]]):
+                    number_units_rep = number_units_rep + 1
+            else:
+                if (end_gen_traj > all_x[end_rep[len(end_rep) -1]]):
+                    number_units_rep = number_units_rep + 1
+        
 
         rospy.loginfo('Number of units_app: ' + str(number_units_app))
         rospy.loginfo('Number of units_rep: ' + str(number_units_rep))
@@ -1188,8 +1257,8 @@ class Interaction:
                     #r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y + tool_offset_y + new_start[1]
                     # r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x - origin_offset_x -  old_corner[0] + corner[0]
                     # r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y - origin_offset_y -  old_corner[1] + corner[1]
-                    r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x - origin_offset_x -  old_corner[0] + corner[0]
-                    r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y - origin_offset_y -  old_corner[1] + corner[1]
+                    r_new_pose.position.x = r_unit[i].ee_pose.position.x + j*app_offset_x + k*rep_offset_x - origin_offset_x -  old_corner[0] + corner[0] - corner_shift_x
+                    r_new_pose.position.y = r_unit[i].ee_pose.position.y + j*app_offset_y + k*rep_offset_y - origin_offset_y -  old_corner[1] + corner[1] - corner_shift_y
 
 
 
@@ -1290,7 +1359,7 @@ class Interaction:
 
         # Execute
         execution_z_offset = 0.00
-        #self.arms.start_execution(self.session.execution, execution_z_offset)
+        self.arms.start_execution(self.session.execution, execution_z_offset)
 
   
 

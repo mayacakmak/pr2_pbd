@@ -29,10 +29,10 @@ class SimWorld:
 
     def update_table_markers(self):
         self.table_poses = {
-            2: Pose(Point(0.4, self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
-            1: Pose(Point(0.4, -self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
-            4: Pose(Point(0.4 + self.table_h, self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
-            3: Pose(Point(0.4 + self.table_h, -self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1))
+            1: Pose(Point(0.4, self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
+            2: Pose(Point(0.4, -self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
+            3: Pose(Point(0.4 + self.table_h, self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1)),
+            4: Pose(Point(0.4 + self.table_h, -self.table_w/2.0, self.table_z), Quaternion(0, 0, 1, 1))
         }
 
     def get_markers(self):
@@ -64,7 +64,7 @@ class SimWorld:
         mt = AlvarMarker()
         mt.id = tool_id
         mt.pose.pose = self.tool_pose
-        m_all.markers.append(mt)
+        #m_all.markers.append(mt)
 
         return m_all
 
