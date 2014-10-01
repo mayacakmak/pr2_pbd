@@ -248,9 +248,9 @@ class Interaction:
 
         num_bins = 50
         # the histogram of the data
-        plt.subplot(4, 1, 1)
-        plt.plot(range(n_points), all_x, 'ro-')
-        plt.ylabel('x')
+        #plt.subplot(4, 1, 1)
+        #plt.plot(range(n_points), all_x, 'ro-')
+        #plt.ylabel('x')
         #the histogram of the data
 
         #plt.subplot(4, 1, 2)
@@ -337,26 +337,9 @@ class Interaction:
         # arm_trajectory.table_corners = self.surface  
         table_corner = arm_trajectory.table_corners[:]
 
-        #ToDo: add the size of the old table with parameter like H and W
-
-        rospy.loginfo('table corner 1 ' + str(table_corner[0].position.x) + ' ' + str(table_corner[0].position.y))
-        rospy.loginfo('table corner 2 ' + str(table_corner[1].position.x) + ' ' +str(table_corner[1].position.y))
-        rospy.loginfo('table corner 3 ' + str(table_corner[2].position.x) + ' ' +str(table_corner[2].position.y))
-        rospy.loginfo('table corner 4 ' + str(table_corner[3].position.x) + ' ' +str(table_corner[3].position.y))
-        rospy.loginfo('the size of the demonstrated trajecotry is ' + str(len(arm_trajectory.timing)))
-
-
-        # get the new surface:
-
-        self.surface = self.world.get_surface()
-        new_table = self.surface #arm_traj_newSurface.table_corners[:]
-
-        rospy.loginfo('new table corner 1 ' + str(new_table[0].position.x) + ' ' + str(new_table[0].position.y))
-        rospy.loginfo('new table corner 2 ' + str(new_table[1].position.x) + ' ' + str(new_table[1].position.y))
-        rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + ' ' + str(new_table[2].position.y))
-        rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + ' ' + str(new_table[3].position.y))
-
         # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
+        self.surface = self.world.get_surface()
+	new_table = self.surface #arm_traj_newSurface.table_corners[:]
 
 
         temp_table_0_x = table_corner[0].position.x
@@ -379,6 +362,49 @@ class Interaction:
         table_corner[3].position.y = temp_table_2_y
 
 
+	new_table[1].position.x = 0.462337317022 
+        new_table[1].position.y = -0.163013210848
+
+        new_table[3].position.x = 0.464719900861 
+        new_table[3].position.y = 0.160649359178
+	
+	new_table[0].position.x = 0.776445212529
+        new_table[0].position.y = 0.161052028193
+
+        new_table[2].position.x = 0.77310729071 
+        new_table[2].position.y = -0.16010918399
+
+        #ToDo: add the size of the old table with parameter like H and W
+
+        rospy.loginfo('table corner 1 ' + str(table_corner[0].position.x) + ' ' + str(table_corner[0].position.y))
+        rospy.loginfo('table corner 2 ' + str(table_corner[1].position.x) + ' ' +str(table_corner[1].position.y))
+        rospy.loginfo('table corner 3 ' + str(table_corner[2].position.x) + ' ' +str(table_corner[2].position.y))
+        rospy.loginfo('table corner 4 ' + str(table_corner[3].position.x) + ' ' +str(table_corner[3].position.y))
+        rospy.loginfo('the size of the demonstrated trajecotry is ' + str(len(arm_trajectory.timing)))
+
+
+        # get the new surface:
+
+
+        rospy.loginfo('new table corner 1 ' + str(new_table[0].position.x) + ' ' + str(new_table[0].position.y))
+        rospy.loginfo('new table corner 2 ' + str(new_table[1].position.x) + ' ' + str(new_table[1].position.y))
+        rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + ' ' + str(new_table[2].position.y))
+        rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + ' ' + str(new_table[3].position.y))
+
+
+
+
+	"""
+	table corner 1 0.398209456706 -0.182344795167
+	[INFO] [WallTime: 1412136901.960743] table corner 2 0.403896427614 0.142544210732
+	[INFO] [WallTime: 1412136901.963465] table corner 3 0.71676583096 0.139274603917
+	[INFO] [WallTime: 1412136901.964208] table corner 4 0.713126522102 -0.179704798618
+	[INFO] [WallTime: 1412136901.964722] the size of the demonstrated trajecotry is 652
+	[INFO] [WallTime: 1412136901.997111] new table corner 1 0.464719900861 0.160649359178
+	[INFO] [WallTime: 1412136901.999101] new table corner 2 0.462337317022 -0.163013210848
+	[INFO] [WallTime: 1412136902.000810] new table corner 3 0.77310729071 -0.16010918399
+	[INFO] [WallTime: 1412136902.001669] new table corner 4 0.776445212529 0.161052028193
+	"""
 
 
         # try to create a new cluster and also visualize it.
@@ -448,16 +474,16 @@ class Interaction:
 
 
 
-        plt.plot(data, linewidth=10)
+        #plt.plot(data, linewidth=10)
         # plt.plot(filtered)
         # plt.plot(peak_index, filtered[peakind], 'ro')
-        plt.plot(peakind, peak_data, 'ro', markersize=30)
-        plt.xlabel('Time stamps(-)',fontsize=40)
-        plt.ylabel('End-effector vertcial position (m)', fontsize=50)
-        plt.xlim(0, len(all_z))
-        plt.tick_params(axis='x', labelsize=40)
-        plt.tick_params(axis='y', labelsize=40)
-        plt.show()
+        #plt.plot(peakind, peak_data, 'ro', markersize=30)
+        #plt.xlabel('Time stamps(-)',fontsize=40)
+        #plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        #plt.xlim(0, len(all_z))
+        #plt.tick_params(axis='x', labelsize=40)
+        #plt.tick_params(axis='y', labelsize=40)
+        #plt.show()
 
         
         """
@@ -1413,20 +1439,20 @@ class Interaction:
 
 
 
-        plt.subplot(2, 1, 1)
-        plt.plot(data_rep)
-        plt.plot(peakind, peak_data_rep, 'ro')
+        #plt.subplot(2, 1, 1)
+        #plt.plot(data_rep)
+        #plt.plot(peakind, peak_data_rep, 'ro')
         # plt.xlabel('time stamps(-)')
-        plt.ylabel('Repetiton direction (m)')
+        #plt.ylabel('Repetiton direction (m)')
 
-        plt.subplot(2, 1, 2)
-        plt.plot(data_app)
-        plt.plot(peakind, peak_data_app, 'go')
-        plt.ylabel('Application direction (m)')
+        #plt.subplot(2, 1, 2)
+        #plt.plot(data_app)
+        #plt.plot(peakind, peak_data_app, 'go')
+        #plt.ylabel('Application direction (m)')
 
-        plt.subplots_adjust(left=0.15)
-        plt.xlabel('time stamps(-)')
-        plt.show()
+        #plt.subplots_adjust(left=0.15)
+        #plt.xlabel('time stamps(-)')
+        #plt.show()
 
         cleaning_peaks_indices = peakind
 
@@ -1502,6 +1528,7 @@ class Interaction:
  
         num_bins = 50
         # the histogram of the data
+	"""
         plt.subplot(3, 1, 1)
         plt.plot(range(n_points), all_x, 'r.-', markersize = 20)
         plt.ylabel('X (m)',fontsize=40 )
@@ -1532,7 +1559,7 @@ class Interaction:
         plt.subplots_adjust(left=0.15)
         plt.xlabel('Time stamps (-)',fontsize=50)
         plt.show()
-
+	"""
 
     def stop_recording(self, dummy=None):
         '''Stops recording continuous motion'''
