@@ -30,7 +30,7 @@ from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 from pr2_controllers_msgs.msg import SingleJointPositionAction
 from pr2_controllers_msgs.msg import SingleJointPositionGoal
-
+from matplotlib.backends.backend_pdf import PdfPages
 
 class DemoState:
     READY_TO_TAKE = 'READY_TO_TAKE'
@@ -267,7 +267,7 @@ class Interaction:
 
         # Tweak spacing to prevent clipping of ylabel
         plt.subplots_adjust(left=0.15)
-        # plt.show()
+        plt.show()
 
         ################################################
 
@@ -427,7 +427,10 @@ class Interaction:
         # filtered = (numpy.average(data) / numpy.average(filtered)) * filtered
         # filtered = numpy.roll(filtered, -25)
         ''' method 1 '''
-        peakind = sgnl.find_peaks_cwt(data, numpy.arange(1,250), noise_perc=15)
+        peakind = sgnl.find_peaks_cwt(data, numpy.arange(1,200), noise_perc=15) # for tool 11
+        # peakind = sgnl.find_peaks_cwt(data, numpy.arange(1,150), noise_perc=15) # for tool 11
+
+        # peakind = sgnl.find_peaks_cwt(data, numpy.arange(1,250), noise_perc=15) # for tool 17
         ''' method 2 '''
         # peakind = sgnl.find_peaks_cwt(filtered, numpy.arange(100,200))
         ''' method 3: finding the maximum values from filtered curves: '''
@@ -445,13 +448,16 @@ class Interaction:
         for i in peakind:
             peak_data.append(data[i])
 
-        # plt.plot(data)
-        # # plt.plot(filtered)
-        # # plt.plot(peak_index, filtered[peakind], 'ro')
-        # plt.plot(peakind, peak_data, 'ro')
-        # plt.ylabel('Test numbers')
-        # plt.show()
-
+        plt.plot(data, linewidth=10)
+        # plt.plot(filtered)
+        # plt.plot(peak_index, filtered[peakind], 'ro')
+        plt.plot(peakind[1:(len(peakind)-1)], peak_data[1:(len(peakind)-1)], 'ro', markersize=30)
+        plt.xlabel('Time stamps(-)',fontsize=40)
+        plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        plt.xlim(0, len(all_z))
+        plt.tick_params(axis='x', labelsize=40)
+        plt.tick_params(axis='y', labelsize=40)
+        plt.show()
         
         """
         Using sliding window method to find clusters
@@ -551,6 +557,8 @@ class Interaction:
             t = list(xrange(n))
             slope_x = numpy.polyfit(t, x_app,1)[0]
             slope_y = numpy.polyfit(t, y_app,1)[0]
+
+            rospy.loginfo('Slopes: ' + str(slope_x) + ', ' + str(slope_y))
            
             if (numpy.abs(slope_x) > numpy.abs(slope_y)):
                 if (slope_x > 0):
@@ -616,6 +624,8 @@ class Interaction:
 
         slopes = [slopes_x_pos, slopes_x_neg, slopes_y_pos, slopes_y_neg]
         
+        rospy.loginfo('Slopes: ' + str(slopes))
+
         app_direction = max(slopes)
 
         instances = 0
@@ -775,8 +785,11 @@ class Interaction:
         cluster_num = 0
         best_cu = []
         diff = numpy.inf
-        first = app_cluster_bounds.pop(0)
-        last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
+        using_all = True
+        if (len(app_cluster_bounds) > 2):
+            first = app_cluster_bounds.pop(0)
+            last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
+            using_all = False
         rospy.loginfo('Total repetitions: ' + str(len(app_cluster_bounds)))
         tried_everything = 0
 
@@ -853,7 +866,7 @@ class Interaction:
                         diff_list.append(diff)
                     cu_list = cu_list + cu_peaks
 
-            if not cu_list:
+            if ((not cu_list) and (not using_all)):
                 app_cluster_bounds = [first, last]
                 tried_everything = tried_everything + 1
             else:
@@ -921,6 +934,61 @@ class Interaction:
         Check if cleaning unit is very flat and truncate
         """
 
+        rospy.loginfo('Peaks before truncation: ' + str(best_cu))
+
+
+        # cleanU_data = []
+        # for i in best_cu:
+        #     cleanU_data.append(all_z[i])
+
+
+        # plt.plot(all_z, linewidth=10)
+        # # plt.plot(filtered)
+        # # plt.plot(peak_index, filtered[peakind], 'ro')
+        # plt.plot(best_cu, cleanU_data, 'ro', markersize=30)
+        # plt.xlabel('Time stamps(-)',fontsize=40)
+        # plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        # plt.xlim(0, len(all_z))
+        # plt.tick_params(axis='x', labelsize=40)
+        # plt.tick_params(axis='y', labelsize=40)
+        # plt.show()
+
+
+######### for non-plat surfaces:
+
+        # plt.subplot(2, 1, 1)
+        # plt.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
+        # plt.ylabel('X (m)',fontsize=40 )
+        # # plt.xlim(0, len(all_x[best_cu[0]:best_cu[1]]))
+        # plt.tick_params(axis='x', labelsize=20)
+        # plt.tick_params(axis='y', labelsize=20) 
+
+        # plt.subplot(2, 1, 2)
+        # plt.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
+        # plt.ylabel('Y (m)', fontsize=40)
+        # # plt.xlim(0, len(all_y[best_cu[0]:best_cu[1]]))
+        # plt.tick_params(axis='x', labelsize=20)
+        # plt.tick_params(axis='y', labelsize=20)
+
+        # # plt.subplot(3, 1, 3)
+        # # plt.plot(all_z[best_cu[0]:best_cu[1]], 'g', linewidth=10)
+        # # plt.ylabel('Z (m)', fontsize=40)
+        # # # plt.xlim(0, len(all_z[best_cu[0]:best_cu[1]]))
+        # # plt.tick_params(axis='x', labelsize=20)
+        # # plt.tick_params(axis='y', labelsize=20)
+
+
+        # plt.subplots_adjust(left=0.15)
+        # plt.xlabel('Time stamps (-)',fontsize=50)
+        # plt.show()
+
+
+
+
+
+
+
+
         var_tol = 0.002 #TODO: pick a good variance tolerance to detect flat cleaning units
         truncated = False
 
@@ -955,7 +1023,82 @@ class Interaction:
                 best_cu = [mid_index - count, mid_index + count]
 
         rospy.loginfo('Best cleaning peaks: ' + str(best_cu))
+
+############## for flat surfaces:
+
+
+        plt.subplot(2, 1, 1)
+        plt.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
+        # plt.ylabel('X (m)',fontsize=40 )
+        # plt.xlim(0, len(all_x[best_cu[0]:best_cu[1]]))
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20) 
+        # plt.ylim(0.60, 0.65)#tool 11
+        plt.xlim(0, 15)
+
+        plt.subplot(2, 1, 2)
+        plt.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
+        # plt.ylabel('Y (m)', fontsize=40)
+        # plt.xlim(0, len(all_y[best_cu[0]:best_cu[1]]))
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
+        plt.xlim(0, 15)
+
+        # plt.ylim(min(all_y[best_cu[0]:best_cu[1]]), max(all_y[best_cu[0]:best_cu[1]]))
+
+        # plt.subplot(3, 1, 3)
+        # plt.plot(all_z[best_cu[0]:best_cu[1]], 'g', linewidth=10)
+        # plt.ylabel('Z (m)', fontsize=40)
+        # # plt.xlim(0, len(all_z[best_cu[0]:best_cu[1]]))
+        # plt.tick_params(axis='x', labelsize=20)
+        # plt.tick_params(axis='y', labelsize=20)
+
+        plt.show()
+
+
+        # plt.subplots_adjust(left=0.15)
+        # plt.xlabel('Time stamps (-)',fontsize=50)
+        # #plt.show()
+        # plt.show()
+        # print 'saving image..'
+        # pp = PdfPages('/home/joseph/Desktop/foo.pdf')
+        # plt.savefig(pp, format='pdf')
+        # #fig = plt.figure()
+        # #pp.savefig(fig)
+        # pp.close()
+
+
+
+####################################################
+
+
+
+
+
+
+
+
+
         
+        cleanU_data = []
+        for i in best_cu:
+            cleanU_data.append(all_z[i])
+
+
+        plt.plot(all_z, linewidth=10)
+        # plt.plot(filtered)
+        # plt.plot(peak_index, filtered[peakind], 'ro')
+        plt.plot(best_cu, cleanU_data, 'ro', markersize=30)
+        plt.xlabel('Time stamps(-)',fontsize=40)
+        plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        plt.xlim(0, len(all_z))
+        plt.tick_params(axis='x', labelsize=40)
+        plt.tick_params(axis='y', labelsize=40)
+        plt.show()
+
+
+
+
 
         """
         Publishing the cleaning unit trajectory and markers
@@ -1384,7 +1527,8 @@ class Interaction:
         # filtered = (numpy.average(data) / numpy.average(filtered)) * filtered
         # filtered = numpy.roll(filtered, -25)
         ''' method 1 '''
-        peakind = sgnl.find_peaks_cwt(data_rep, numpy.arange(1,20), noise_perc=10)
+        peakind = sgnl.find_peaks_cwt(data_rep, numpy.arange(1,15), noise_perc=10)
+        # peakind = sgnl.find_peaks_cwt(data_rep, numpy.arange(1,50), noise_perc=10)#for tool 11
         ''' method 2 '''
         # peakind = sgnl.find_peaks_cwt(filtered, numpy.arange(100,200))
         ''' method 3: finding the maximum values from filtered curves: '''
@@ -1405,19 +1549,29 @@ class Interaction:
             peak_data_app.append(data_app[i])
 
 
+        ###### plot repetition and application directions, repapp:
 
-        # plt.subplot(2, 1, 1)
-        # plt.plot(data_rep)
-        # plt.plot(peakind, peak_data_rep, 'ro')
-        # plt.ylabel('repetiton peaks')
+        plt.subplot(2, 1, 1)
+        plt.plot(data_rep, 'r', linewidth=10)
+        plt.plot(peakind[1:(len(peakind)-1)], peak_data_rep[1:(len(peakind)-1)], 'yo', markersize=30)
+        plt.ylabel('Rep (m)', fontsize=40)
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
+        # plt.ylim(0.5, 0.8)# for tool 11.
 
-        # plt.subplot(2, 1, 2)
-        # plt.plot(data_app)
-        # plt.plot(peakind, peak_data_app, 'go-')
-        # plt.ylabel('application peaks')
+        plt.subplot(2, 1, 2)
+        plt.plot(data_app, 'b', linewidth=10)
+        plt.plot(peakind[1:(len(peakind)-1)], peak_data_app[1:(len(peakind)-1)], 'yo', markersize=30)
+        plt.ylabel('App (m)', fontsize=40)
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
 
-        # plt.subplots_adjust(left=0.15)
-        #plt.show()
+
+        plt.subplots_adjust(left=0.15)
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
+        plt.xlabel('Time stamps (-)',fontsize=40)
+        plt.show()
 
         cleaning_peaks_indices = peakind
 
@@ -1427,7 +1581,23 @@ class Interaction:
         good_cleaning_peaks = []
         rejected_peak_pairs = []
 
+        current_cu_rep = []
+        var_list_rep = []
+
+
         if (len(cleaning_peaks_indices) < 2):
+
+            for j in range(indices[0],indices[len(indices) -1]):
+                current_cu_rep.append(repetition_vals[j])
+            variance = numpy.var(current_cu_rep)
+
+            var_tol = 0.002 #TODO: pick a good variance tolerance to detect flat cleaning units
+            truncated = False
+
+          
+            if (variance < var_tol):
+                return [[indices[0],indices[len(indices) -1]]]
+        else:
             return []
 
         
@@ -1492,27 +1662,36 @@ class Interaction:
 
         num_bins = 50
         # the histogram of the data
-        # plt.subplot(4, 1, 1)
-        # plt.plot(range(n_points), all_x, 'ro-')
-        # plt.ylabel('x')
+        plt.subplot(3, 1, 1)
+        plt.plot(range(n_points), all_x, 'r.-', markersize = 20)
+        plt.ylabel('X (m)',fontsize=40 )
+        plt.xlim(0, len(all_x))
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20) 
 
-        # plt.subplot(4, 1, 2)
-        # plt.plot(range(n_points), all_y, 'bo-')
-        # plt.ylabel('y')
+        plt.subplot(3, 1, 2)
+        plt.plot(range(n_points), all_y, 'b.-', markersize = 20)
+        plt.ylabel('Y (m)', fontsize=40)
+        plt.xlim(0, len(all_y))
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
 
-        # plt.subplot(4, 1, 3)
-        # plt.plot(range(n_points), all_z, 'go-')
-        # plt.ylabel('z')
+        plt.subplot(3, 1, 3)
+        plt.plot(range(n_points), all_z, 'g.-', markersize = 20)
+        plt.ylabel('Z (m)', fontsize=40)
+        plt.xlim(0, len(all_z))
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
 
         # plt.subplot(4, 1, 4)
         # n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
         # plt.xlabel('z (histogram bins)')
         # plt.ylabel('occurance')
 
-        # # Tweak spacing to prevent clipping of ylabel
-        # plt.subplots_adjust(left=0.15)
-        # plt.show()
-
+        # Tweak spacing to prevent clipping of ylabel
+        plt.subplots_adjust(left=0.15)
+        plt.xlabel('Time stamps (-)',fontsize=50)
+        plt.show()
 
     def stop_recording(self, dummy=None):
         '''Stops recording continuous motion'''
