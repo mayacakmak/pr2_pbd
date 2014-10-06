@@ -775,8 +775,15 @@ class Interaction:
         cluster_num = 0
         best_cu = []
         diff = numpy.inf
-        first = app_cluster_bounds.pop(0)
-        last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
+
+	used_all = False
+	if (len(app_cluster_bounds) > 2):
+	    first = app_cluster_bounds.pop(0)
+	    last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
+	    used_all = True
+
+        #first = app_cluster_bounds.pop(0)
+        #last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
         rospy.loginfo('Total repetitions: ' + str(len(app_cluster_bounds)))
         tried_everything = 0
 
@@ -853,7 +860,7 @@ class Interaction:
                         diff_list.append(diff)
                     cu_list = cu_list + cu_peaks
 
-            if not cu_list:
+            if (not cu_list and not used_all):
                 app_cluster_bounds = [first, last]
                 tried_everything = tried_everything + 1
             else:
@@ -1137,6 +1144,7 @@ class Interaction:
 
 
 
+	z_offset_1 = -0.02
         
         # decide number of cleaning units
         number_units_app = int(numpy.floor(corner_dist_app/app_dist))
@@ -1145,17 +1153,18 @@ class Interaction:
         if (truncated):
             #corner_shift_x = 0
             #corner_shift_y = 0
-            #number_units_app = number_units_app + 1
+	    z_offset_1 = -0.02
+            number_units_app = number_units_app + 1 
             number_units_rep = number_units_rep - 1
             if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
                 
-                corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*0.75
-                corner_shift_y = 2.5*numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+                corner_shift_x = 0.05 + numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+                corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
        
             elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
                 
-                corner_shift_x = 2.5*numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-                corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*0.75
+                corner_shift_x = -0.05 + numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+                corner_shift_y = 0.05 + numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
 
 
 
@@ -1229,7 +1238,6 @@ class Interaction:
 
 
 
-
         for k in range(number_units_rep):
             
 
@@ -1257,7 +1265,7 @@ class Interaction:
 
 
                     if ((j == 0) and (i == 0)):
-                        r_new_pose.position.z = r_unit[i].ee_pose.position.z + z_offset
+                        r_new_pose.position.z = r_unit[i].ee_pose.position.z + z_offset + z_offset_1
                         #Very first point only
                         # if not timing_gen:
                         #     timing_gen.append(timing_unit[i] + rospy.Duration(time_offset*time_step + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))  
@@ -1270,13 +1278,13 @@ class Interaction:
                         timing_gen.append(timing_unit[i] + rospy.Duration(time_offset*time_step*num_time_offset + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
                     #Last point in rep
                     elif ((j == (number_units_app - 1)) and (i == (unit_length -1)) ):
-                        r_new_pose.position.z = r_unit[i].ee_pose.position.z + z_offset
+                        r_new_pose.position.z = r_unit[i].ee_pose.position.z + z_offset + z_offset_1
                         num_extra_time_offset = num_time_offset + 20
                         timing_gen.append(timing_unit[i] + rospy.Duration(time_step*time_offset*num_extra_time_offset  + time_offset*time_step + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
                         
                     #All the middle points
                     else:
-                        r_new_pose.position.z = r_unit[i].ee_pose.position.z
+                        r_new_pose.position.z = r_unit[i].ee_pose.position.z + z_offset_1
                         num_time_offset = num_time_offset + 0.3
                         timing_gen.append(timing_unit[i]  + rospy.Duration(time_offset*time_step*num_time_offset + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step )))
                     r_new_pose.orientation.x = r_unit[i].ee_pose.orientation.x
@@ -1419,6 +1427,13 @@ class Interaction:
         # plt.subplots_adjust(left=0.15)
         #plt.show()
 
+
+
+	current_cu_rep = []
+	for j in range(indices[0],indices[len(indices) -1]):
+	    current_cu_rep.append(repetition_vals[j])
+	variance = numpy.var(current_cu_rep)
+
         cleaning_peaks_indices = peakind
 
 
@@ -1428,8 +1443,11 @@ class Interaction:
         rejected_peak_pairs = []
 
         if (len(cleaning_peaks_indices) < 2):
-            return []
-
+	    var_tol = 0.002
+	    if (variance < var_tol):
+	        return [[indices[0], indices[len(indices) -1]]]
+	    else:
+	        return []
         
         for i in range(len(cleaning_peaks_indices) - 1):
             diff = numpy.abs(subset_rep_vals[cleaning_peaks_indices[i]] - subset_rep_vals[cleaning_peaks_indices[i + 1]])
