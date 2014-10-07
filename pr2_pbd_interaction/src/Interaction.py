@@ -1320,7 +1320,7 @@ class Interaction:
             app_dist = numpy.abs(app_offset_y)
             rep_offset_x = rep_dist
             corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/4
-            corner_shift_y = 0.05 + numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
 
 
 
@@ -1332,14 +1332,14 @@ class Interaction:
  
         # decide number of cleaning units
         number_units_app = int(numpy.floor(corner_dist_app/app_dist)) 
-        number_units_rep = int(numpy.floor(corner_dist_rep/numpy.abs(rep_dist))) - 1
+        number_units_rep = int(numpy.floor(corner_dist_rep/numpy.abs(rep_dist)))
 
         if (truncated):
             #corner_shift_x = 0
             #corner_shift_y = 0
 	    z_offset_1 = -0.02
             number_units_app = number_units_app + 1 
-            number_units_rep = number_units_rep - 1
+            number_units_rep = number_units_rep 
             if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
                 
                 corner_shift_x = 0.05 + numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
@@ -1348,7 +1348,7 @@ class Interaction:
             elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
                 
                 corner_shift_x = -0.05 + numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-                corner_shift_y = 0.05 + numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+                corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
 
 
 	"""
