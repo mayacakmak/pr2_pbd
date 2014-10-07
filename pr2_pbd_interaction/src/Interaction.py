@@ -68,7 +68,7 @@ class Interaction:
         self.torso_client.wait_for_server()
         torso_up = .195
         torso_down = .02
-	torso_pos = torso_down + (torso_up-torso_down)*0.7
+	torso_pos = torso_down + (torso_up-torso_down)*0.75
         self.torso_client.send_goal(SingleJointPositionGoal(position = torso_pos))
         self.torso_client.wait_for_result()
 
@@ -247,6 +247,7 @@ class Interaction:
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
 
         num_bins = 50
+	"""
         #the histogram of the data
         plt.subplot(4, 1, 1)
         plt.plot(range(n_points), all_x, 'ro-')
@@ -270,7 +271,7 @@ class Interaction:
 
         plt.show()
 
-
+	"""
         ################################################
 
         # Assign points close to lowest point as application (cluster 2)
@@ -360,26 +361,64 @@ class Interaction:
         # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
 
 
-        # temp_table_0_x = table_corner[0].position.x
-        # temp_table_0_y = table_corner[0].position.y
+	new_table[0].position.x = 0.357422931489 
+	new_table[0].position.y = 0.0917838743858 
 
-        # temp_table_2_x = table_corner[2].position.x
-        # temp_table_2_y = table_corner[2].position.y
+	new_table[1].position.x = 0.355151070231
+	new_table[1].position.y = -0.233292997104 
 
-        # table_corner[0].position.x = table_corner[1].position.x
-        # table_corner[0].position.y = table_corner[1].position.y
+	new_table[2].position.x = 0.670232919157
+	new_table[2].position.y = 0.0920909003632
 
-        # table_corner[2].position.x = table_corner[3].position.x
-        # table_corner[2].position.y = table_corner[3].position.y
+	new_table[3].position.x = 0.668757351361
+	new_table[3].position.y = -0.225486994861  
+
+	"""
+	[INFO] [WallTime: 1412646239.568564] table corner 1 0.369608646527 -0.142634726541
+	[INFO] [WallTime: 1412646239.569458] table corner 2 0.361322212301 0.183477436135
+	[INFO] [WallTime: 1412646239.569975] table corner 3 0.681141857571 0.18985431411
+	[INFO] [WallTime: 1412646239.570378] table corner 4 0.685940764028 -0.128664197659
+	[INFO] [WallTime: 1412646239.570683] the size of the demonstrated trajecotry is 1003
+	[INFO] [WallTime: 1412646239.571505] new table corner 1 0.668757351361 -0.225486994861
+	[INFO] [WallTime: 1412646239.571820] new table corner 2 0.355151070231 -0.233292997104
+	[INFO] [WallTime: 1412646239.572126] new table corner 3 0.357422931489 0.0917838743858
+	[INFO] [WallTime: 1412646239.572538] new table corner 4 0.670232919157 0.0920909003632
+	"""
+
+        temp_table_0_x = table_corner[0].position.x
+        temp_table_0_y = table_corner[0].position.y
+
+        temp_table_2_x = table_corner[2].position.x
+        temp_table_2_y = table_corner[2].position.y
+
+        table_corner[0].position.x = 0.361322212301
+        table_corner[0].position.y = 0.183477436135
+
+        table_corner[2].position.x = 0.681141857571
+        table_corner[2].position.y = 0.18985431411 
 
 
-        # table_corner[1].position.x = temp_table_0_x
-        # table_corner[1].position.y = temp_table_0_y
+        table_corner[1].position.x = 0.369608646527
+        table_corner[1].position.y = -0.142634726541 
 
-        # table_corner[3].position.x = temp_table_2_x
-        # table_corner[3].position.y = temp_table_2_y
+        table_corner[3].position.x = 0.685940764028
+        table_corner[3].position.y = -0.128664197659 
+
+	"""
+        table_corner[0].position.x = table_corner[1].position.x
+        table_corner[0].position.y = table_corner[1].position.y
+
+        table_corner[2].position.x = table_corner[3].position.x
+        table_corner[2].position.y = table_corner[3].position.y
 
 
+        table_corner[1].position.x = temp_table_0_x
+        table_corner[1].position.y = temp_table_0_y
+
+        table_corner[3].position.x = temp_table_2_x
+        table_corner[3].position.y = temp_table_2_y
+
+	"""
 
 
         # try to create a new cluster and also visualize it.
@@ -449,7 +488,7 @@ class Interaction:
         peak_data = []
         for i in peakind:
             peak_data.append(data[i])
-
+        """
         plt.plot(data, linewidth=10)
         # plt.plot(filtered)
         # plt.plot(peak_index, filtered[peakind], 'ro')
@@ -460,7 +499,7 @@ class Interaction:
         plt.tick_params(axis='x', labelsize=40)
         plt.tick_params(axis='y', labelsize=40)
         plt.show()
-        
+        """
         """
         Using sliding window method to find clusters
         Starts at peaks and computes variance of points within the window
@@ -765,6 +804,8 @@ class Interaction:
             corner_dist_rep = numpy.abs(new_table[1].position.x - new_table[3].position.x)
             corner_dist_app = numpy.abs(new_table[0].position.y - new_table[1].position.y)
 
+
+	
         rep_dist = corner_dist_rep/num_reps
         if (numpy.abs(rep_dist - numpy.mean(dist_between_means)) > 0.03):
             rep_dist =  numpy.mean(dist_between_means)
@@ -1034,22 +1075,22 @@ class Interaction:
 ############## for flat surfaces:
 
 
-        plt.subplot(2, 1, 1)
-        plt.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
+        #plt.subplot(2, 1, 1)
+        #plt.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
         # plt.ylabel('X (m)',fontsize=40 )
         # plt.xlim(0, len(all_x[best_cu[0]:best_cu[1]]))
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20) 
+        #plt.tick_params(axis='x', labelsize=20)
+        #plt.tick_params(axis='y', labelsize=20) 
         # plt.ylim(0.60, 0.65)#tool 11
-        plt.xlim(0, 15)
+        #plt.xlim(0, 15)
 
-        plt.subplot(2, 1, 2)
-        plt.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
+        #plt.subplot(2, 1, 2)
+        #plt.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
         # plt.ylabel('Y (m)', fontsize=40)
         # plt.xlim(0, len(all_y[best_cu[0]:best_cu[1]]))
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20)
-        plt.xlim(0, 15)
+        #plt.tick_params(axis='x', labelsize=20)
+        #plt.tick_params(axis='y', labelsize=20)
+        #plt.xlim(0, 15)
 
         # plt.ylim(min(all_y[best_cu[0]:best_cu[1]]), max(all_y[best_cu[0]:best_cu[1]]))
 
@@ -1060,7 +1101,7 @@ class Interaction:
         # plt.tick_params(axis='x', labelsize=20)
         # plt.tick_params(axis='y', labelsize=20)
 
-        plt.show()
+        #plt.show()
 
 
         # plt.subplots_adjust(left=0.15)
@@ -1091,7 +1132,7 @@ class Interaction:
         for i in best_cu:
             cleanU_data.append(all_z[i])
 
-
+	"""
         plt.plot(all_z, linewidth=10)
         # plt.plot(filtered)
         # plt.plot(peak_index, filtered[peakind], 'ro')
@@ -1102,7 +1143,7 @@ class Interaction:
         plt.tick_params(axis='x', labelsize=40)
         plt.tick_params(axis='y', labelsize=40)
         plt.show()
-
+	"""
 
 
 
@@ -1119,11 +1160,11 @@ class Interaction:
         r_unit = []
         l_unit = []
 
-        downsample = False
+        downsample = True
 
         if (downsample):
 
-            max_points = 10
+            max_points = 6
             interval = int(numpy.floor((best_cu[1] - best_cu[0])/max_points))
             if (interval > 1):
                 for i in range(best_cu[0],best_cu[1]):
@@ -1284,8 +1325,11 @@ class Interaction:
 
 
 
-	z_offset_1 = -0.02
-        
+	z_offset_1 = -0.03
+       
+	rospy.loginfo('corner_dist_rep: ' + str(corner_dist_rep))
+	rospy.loginfo('rep_dist: ' + str(rep_dist))
+ 
         # decide number of cleaning units
         number_units_app = int(numpy.floor(corner_dist_app/app_dist))
         number_units_rep = int(numpy.floor(corner_dist_rep/numpy.abs(rep_dist)))
@@ -1295,7 +1339,7 @@ class Interaction:
             #corner_shift_y = 0
 	    z_offset_1 = -0.02
             number_units_app = number_units_app + 1 
-            number_units_rep = number_units_rep - 1
+            number_units_rep = number_units_rep #- 1
             if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
                 
                 corner_shift_x = 0.05 + numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
@@ -1307,7 +1351,7 @@ class Interaction:
                 corner_shift_y = 0.05 + numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
 
 
-
+	"""
         #if end of last generated unit is not as far in rep dir as end of real, add one more rep
         if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
             end_gen_traj = new_start[1] + number_units_rep*rep_dist -  corner_shift_y
@@ -1330,7 +1374,7 @@ class Interaction:
             else:
                 if (end_gen_traj > all_x[end_rep[len(end_rep) -1]]):
                     number_units_rep = number_units_rep + 1
-        
+        """
 
         rospy.loginfo('Number of units_app: ' + str(number_units_app))
         rospy.loginfo('Number of units_rep: ' + str(number_units_rep))
@@ -1500,7 +1544,7 @@ class Interaction:
 
         # Execute
         execution_z_offset = 0.00
-        #self.arms.start_execution(self.session.execution, execution_z_offset)
+        self.arms.start_execution(self.session.execution, execution_z_offset)
 
   
 
@@ -1555,7 +1599,7 @@ class Interaction:
 
 
         ###### plot repetition and application directions, repapp:
-
+        """
         plt.subplot(2, 1, 1)
         plt.plot(data_rep, 'r', linewidth=10)
         plt.plot(peakind[1:(len(peakind)-1)], peak_data_rep[1:(len(peakind)-1)], 'yo', markersize=30)
@@ -1577,7 +1621,7 @@ class Interaction:
         plt.tick_params(axis='y', labelsize=20)
         plt.xlabel('Time stamps (-)',fontsize=40)
         plt.show()
-
+	"""
         current_cu_rep = []
         for j in range(indices[0],indices[len(indices) -1]):
             current_cu_rep.append(repetition_vals[j])
@@ -1677,7 +1721,7 @@ class Interaction:
 
         ################################################
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
-
+	"""
         num_bins = 50
         # the histogram of the data
         plt.subplot(3, 1, 1)
@@ -1710,6 +1754,7 @@ class Interaction:
         plt.subplots_adjust(left=0.15)
         plt.xlabel('Time stamps (-)',fontsize=50)
         plt.show()
+	"""
 
     def stop_recording(self, dummy=None):
         '''Stops recording continuous motion'''
