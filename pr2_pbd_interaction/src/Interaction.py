@@ -1319,8 +1319,8 @@ class Interaction:
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
             app_dist = numpy.abs(app_offset_y)
             rep_offset_x = rep_dist
-            corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/4
-            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+            corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/4 - 0.07
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) - 0.03
 
 
 
