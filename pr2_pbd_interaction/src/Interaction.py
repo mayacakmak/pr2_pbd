@@ -359,7 +359,8 @@ class Interaction:
         rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + ' ' + str(new_table[3].position.y))
 
         # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
-
+	
+	"""
 
 	new_table[0].position.x = 0.357422931489 
 	new_table[0].position.y = 0.0917838743858 
@@ -371,7 +372,8 @@ class Interaction:
 	new_table[2].position.y = 0.0920909003632
 
 	new_table[3].position.x = 0.668757351361
-	new_table[3].position.y = -0.225486994861  
+	new_table[3].position.y = -0.225486994861
+	"""  
 
 	"""
 	[INFO] [WallTime: 1412646239.568564] table corner 1 0.369608646527 -0.142634726541
@@ -1339,7 +1341,7 @@ class Interaction:
             #corner_shift_y = 0
 	    z_offset_1 = -0.02
             number_units_app = number_units_app + 1 
-            number_units_rep = number_units_rep #- 1
+            number_units_rep = number_units_rep - 1
             if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
                 
                 corner_shift_x = 0.05 + numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
@@ -1347,8 +1349,8 @@ class Interaction:
        
             elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
                 
-                corner_shift_x = -0.05 + numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-                corner_shift_y = 0.05 + numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+                corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+                corner_shift_y = -0.17 + numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
 
 
 	"""
