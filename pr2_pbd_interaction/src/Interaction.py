@@ -12,6 +12,7 @@ import rospy
 import time
 import numpy
 import math
+import copy
 from visualization_msgs.msg import MarkerArray
 # Local stuff
 from World import World
@@ -387,24 +388,59 @@ class Interaction:
 	[INFO] [WallTime: 1412646239.572538] new table corner 4 0.670232919157 0.0920909003632
 	"""
 
-        temp_table_0_x = table_corner[0].position.x
-        temp_table_0_y = table_corner[0].position.y
+        # temp_table_0_x = table_corner[0].position.x
+        # temp_table_0_y = table_corner[0].position.y
 
-        temp_table_2_x = table_corner[2].position.x
-        temp_table_2_y = table_corner[2].position.y
+        # temp_table_2_x = table_corner[2].position.x
+        # temp_table_2_y = table_corner[2].position.y
 
-        table_corner[0].position.x = 0.361322212301
-        table_corner[0].position.y = 0.183477436135
+        temp_table = copy.deepcopy(table_corner)
 
-        table_corner[2].position.x = 0.681141857571
-        table_corner[2].position.y = 0.18985431411 
+        mid = (table_corner[0].position.x + table_corner[1].position.x + table_corner[2].position.x + table_corner[3].position.x) / 4.0
+
+        for corner in range(4):
+            if table_corner[corner].position.x < mid and table_corner[corner].position.y > 0:
+                temp_table[0] = copy.deepcopy(table_corner[corner])
+            elif table_corner[corner].position.x < mid and table_corner[corner].position.y < 0:
+                temp_table[1] = copy.deepcopy(table_corner[corner])
+            elif table_corner[corner].position.x > mid and table_corner[corner].position.y > 0:
+                temp_table[2] = copy.deepcopy(table_corner[corner])
+            elif table_corner[corner].position.x > mid and table_corner[corner].position.y < 0:
+                temp_table[3] = copy.deepcopy(table_corner[corner])
+
+        table_corner = copy.deepcopy(temp_table)
+
+        rospy.loginfo('table corner 1 ' + str(table_corner[0].position.x) + ' ' + str(table_corner[0].position.y))
+        rospy.loginfo('table corner 2 ' + str(table_corner[1].position.x) + ' ' +str(table_corner[1].position.y))
+        rospy.loginfo('table corner 3 ' + str(table_corner[2].position.x) + ' ' +str(table_corner[2].position.y))
+        rospy.loginfo('table corner 4 ' + str(table_corner[3].position.x) + ' ' +str(table_corner[3].position.y))
+        rospy.loginfo('the size of the demonstrated trajecotry is ' + str(len(arm_trajectory.timing)))
 
 
-        table_corner[1].position.x = 0.369608646527
-        table_corner[1].position.y = -0.142634726541 
+        # get the new surface:
 
-        table_corner[3].position.x = 0.685940764028
-        table_corner[3].position.y = -0.128664197659 
+        self.surface = self.world.get_surface()
+        new_table = self.surface #arm_traj_newSurface.table_corners[:]
+
+        rospy.loginfo('new table corner 1 ' + str(new_table[0].position.x) + ' ' + str(new_table[0].position.y))
+        rospy.loginfo('new table corner 2 ' + str(new_table[1].position.x) + ' ' + str(new_table[1].position.y))
+        rospy.loginfo('new table corner 3 ' + str(new_table[2].position.x) + ' ' + str(new_table[2].position.y))
+        rospy.loginfo('new table corner 4 ' + str(new_table[3].position.x) + ' ' + str(new_table[3].position.y))
+
+        # """to re-align the simulated surface with the physical card-board -- solve the mirrored misalignment issue: """
+
+        # table_corner[0].position.x = 0.361322212301
+        # table_corner[0].position.y = 0.183477436135
+
+        # table_corner[2].position.x = 0.681141857571
+        # table_corner[2].position.y = 0.18985431411 
+
+
+        # table_corner[1].position.x = 0.369608646527
+        # table_corner[1].position.y = -0.142634726541 
+
+        # table_corner[3].position.x = 0.685940764028
+        # table_corner[3].position.y = -0.128664197659 
 
 	"""
         table_corner[0].position.x = table_corner[1].position.x
@@ -1166,7 +1202,7 @@ class Interaction:
 
         if (downsample):
 
-            max_points = 6
+            max_points = 10
             interval = int(numpy.floor((best_cu[1] - best_cu[0])/max_points))
             if (interval > 1):
                 for i in range(best_cu[0],best_cu[1]):
@@ -1313,44 +1349,127 @@ class Interaction:
             rospy.loginfo('Application dir offset: ' + str(app_offset_x))
             app_dist = numpy.abs(app_offset_x)
             rep_offset_y = rep_dist
-            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/4
+        #     corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+        #     corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/4
    
         elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
             app_offset_y = all_y[best_cu[1]] - all_y[best_cu[0]]
             rospy.loginfo('Application dir offset: ' + str(app_offset_y))
             app_dist = numpy.abs(app_offset_y)
             rep_offset_x = rep_dist
-            corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/4 - 0.07
-            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) - 0.03
+        #     corner_shift_x = numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/4 - 0.07
+        #     corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) - 0.03
 
+        if (app_direction == slopes_x_pos) and pos_rep:
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/3
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) - 0.6*numpy.abs(rep_dist)
+            corner_shift_x = numpy.abs(corner_shift_x)
+            corner_shift_y = numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_x_pos) and not pos_rep:
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/3
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) + 0.6*numpy.abs(rep_dist)
+            corner_shift_x = numpy.abs(corner_shift_x)
+            corner_shift_y = -1*numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_x_neg) and pos_rep:
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*3
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) - 0.6*numpy.abs(rep_dist)
+            corner_shift_x = -1*numpy.abs(corner_shift_x)
+            corner_shift_y = numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_x_neg) and not pos_rep:
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*3
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) + 0.6*numpy.abs(rep_dist)
+            corner_shift_x = -1*numpy.abs(corner_shift_x)
+            corner_shift_y = -1*numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_y_pos) and pos_rep:
+            corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) - 0.6*numpy.abs(rep_dist)
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/3
+            corner_shift_x = numpy.abs(corner_shift_x)
+            corner_shift_y = numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_y_pos) and not pos_rep:
+            corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) + 0.6*numpy.abs(rep_dist)
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/3
+            corner_shift_x = -1*numpy.abs(corner_shift_x)
+            corner_shift_y = numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_y_neg) and pos_rep:
+            corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) - 0.6*numpy.abs(rep_dist)
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*3
+            corner_shift_x = numpy.abs(corner_shift_x)
+            corner_shift_y = -1*numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_y_neg) and not pos_rep:
+            corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) + 0.6*numpy.abs(rep_dist)
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*3
+            corner_shift_x = -1*numpy.abs(corner_shift_x)
+            corner_shift_y = -1*numpy.abs(corner_shift_y)
 
+        
 
-
-	z_offset_1 = -0.03
-       
-	rospy.loginfo('corner_dist_rep: ' + str(corner_dist_rep))
-	rospy.loginfo('rep_dist: ' + str(rep_dist))
+        z_offset_1 = -0.03
+           
+        rospy.loginfo('corner_dist_rep: ' + str(corner_dist_rep))
+        rospy.loginfo('rep_dist: ' + str(rep_dist))
  
         # decide number of cleaning units
         number_units_app = int(numpy.floor(corner_dist_app/app_dist)) 
         number_units_rep = int(numpy.floor(corner_dist_rep/numpy.abs(rep_dist)))
 
         if (truncated):
+            rospy.loginfo('TRUNCATED')
             #corner_shift_x = 0
             #corner_shift_y = 0
-	    z_offset_1 = -0.02
-            number_units_app = number_units_app + 1 
-            number_units_rep = number_units_rep - 1
-            if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
+            z_offset_1 = -0.02
+            # number_units_app = number_units_app + 1 
+            # number_units_rep = number_units_rep - 1
+            # if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)) :
                 
-                corner_shift_x = 0.05 + numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-                corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+            #     corner_shift_x = 0.05 + numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
+            #     corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
        
-            elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
+            # elif ((app_direction == slopes_y_pos) or (app_direction == slopes_y_neg)):
                 
-                corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))
-                corner_shift_y = -0.17 + numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))
+            #     corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) - numpy.abs(rep_dist)
+            #     corner_shift_y = -0.17 + numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) 
+
+
+        if (app_direction == slopes_x_pos) and pos_rep:
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/3
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) - 0.6*numpy.abs(rep_dist)
+            corner_shift_x = numpy.abs(corner_shift_x)
+            corner_shift_y = numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_x_pos) and not pos_rep:
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))/3
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) + 0.6*numpy.abs(rep_dist)
+            corner_shift_x = numpy.abs(corner_shift_x)
+            corner_shift_y = -1*numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_x_neg) and pos_rep:
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*3
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) - 0.6*numpy.abs(rep_dist)
+            corner_shift_x = -1*numpy.abs(corner_shift_x)
+            corner_shift_y = numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_x_neg) and not pos_rep:
+            corner_shift_x = numpy.abs(app_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0]))*3
+            corner_shift_y = numpy.abs(rep_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1])) + 0.6*numpy.abs(rep_dist)
+            corner_shift_x = -1*numpy.abs(corner_shift_x)
+            corner_shift_y = -1*numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_y_pos) and pos_rep:
+            corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) - 0.6*numpy.abs(rep_dist)
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/3
+            corner_shift_x = numpy.abs(corner_shift_x)
+            corner_shift_y = numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_y_pos) and not pos_rep:
+            corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) + 0.6*numpy.abs(rep_dist)
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))/3
+            corner_shift_x = -1*numpy.abs(corner_shift_x)
+            corner_shift_y = numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_y_neg) and pos_rep:
+            corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) - 0.6*numpy.abs(rep_dist)
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*3
+            corner_shift_x = numpy.abs(corner_shift_x)
+            corner_shift_y = -1*numpy.abs(corner_shift_y)
+        elif (app_direction == slopes_y_neg) and not pos_rep:
+            corner_shift_x =  numpy.abs(rep_dist)*(all_x[best_cu[0]] - corner[0])/numpy.abs((all_x[best_cu[0]] - corner[0])) + 0.6*numpy.abs(rep_dist)
+            corner_shift_y = numpy.abs(app_dist)*(all_y[best_cu[0]] - corner[1])/numpy.abs((all_y[best_cu[0]] - corner[1]))*3
+            corner_shift_x = -1*numpy.abs(corner_shift_x)
+            corner_shift_y = -1*numpy.abs(corner_shift_y)
 
 
 	"""
@@ -1380,6 +1499,8 @@ class Interaction:
 
         rospy.loginfo('Number of units_app: ' + str(number_units_app))
         rospy.loginfo('Number of units_rep: ' + str(number_units_rep))
+        rospy.loginfo('Corner shift x: ' + str(corner_shift_x))
+        rospy.loginfo('Corner shift y: ' + str(corner_shift_y))
 
         #TODO: decide number of cleaning units
         time_step = 0.03
@@ -1457,8 +1578,8 @@ class Interaction:
                         #     timing_gen.append(timing_unit[i] + rospy.Duration(time_offset*time_step + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))  
                         #First point in rep
                         #else:
-                        if (k == 0):
-                            rospy.loginfo('Point is: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
+                        #if (k == 0):
+                            #rospy.loginfo('Point is: ' + str(r_new_pose.position.x) + ', ' + str(r_new_pose.position.y))
                         num_extra_time_offset = num_time_offset + 50
                         num_time_offset = num_extra_time_offset
                         timing_gen.append(timing_unit[i] + rospy.Duration(time_offset*time_step*num_time_offset + (j*(unit_duration.to_sec()+time_step))+number_units_app*k*(unit_duration.to_sec()+time_step)))
@@ -1546,7 +1667,7 @@ class Interaction:
 
         # Execute
         execution_z_offset = 0.00
-        self.arms.start_execution(self.session.execution, execution_z_offset)
+        #self.arms.start_execution(self.session.execution, execution_z_offset)
 
   
 
