@@ -248,7 +248,7 @@ class Interaction:
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
 
         num_bins = 50
-	"""
+	
         #the histogram of the data
         plt.subplot(4, 1, 1)
         plt.plot(range(n_points), all_x, 'ro-')
@@ -272,7 +272,7 @@ class Interaction:
 
         plt.show()
 
-	"""
+	
         ################################################
 
         # Assign points close to lowest point as application (cluster 2)
@@ -526,7 +526,7 @@ class Interaction:
         peak_data = []
         for i in peakind:
             peak_data.append(data[i])
-        """
+    
         plt.plot(data, linewidth=10)
         # plt.plot(filtered)
         # plt.plot(peak_index, filtered[peakind], 'ro')
@@ -537,7 +537,7 @@ class Interaction:
         plt.tick_params(axis='x', labelsize=40)
         plt.tick_params(axis='y', labelsize=40)
         plt.show()
-        """
+        
         """
         Using sliding window method to find clusters
         Starts at peaks and computes variance of points within the window
@@ -546,7 +546,7 @@ class Interaction:
         """
 
         window_size = 50
-        tolerance = 0.000015
+        tolerance = 0.000017
 
         peak_index = peakind
 
@@ -600,11 +600,22 @@ class Interaction:
 
     
             current_app_cluster = range(peak_index[i] + _j, peak_index[i + 1] - _k)
-            app_cluster_bounds.append(current_app_cluster)
+            # if (current_app_cluster[0] < 50):
+            #     current_app_cluster = [c for c in current_app_cluster if c > 50]
+            # if (current_app_cluster[-1] > (len(clusters) - 50)):
+            #     current_app_cluster = [c for c in current_app_cluster if c < (len(clusters) - 50)]
+
+            if (current_app_cluster[0] < 50) or (current_app_cluster[-1] > (len(clusters) - 50)):
+                continue
+            else:
+                app_cluster_bounds.append(current_app_cluster)
+
+
 
         rospy.loginfo('First 10 of app_cluster_bounds: ' + str(app_cluster_bounds[0][:10]))
-        clusters[:5] = [-1]*5
-        clusters[(len(clusters) - 5):] = [-1]*5 
+        rospy.loginfo('Last 10 of app_cluster_bounds' + str(app_cluster_bounds[-1][(len(app_cluster_bounds[-1]) - 10):]))
+        clusters[:50] = [-1]*50
+        clusters[(len(clusters) - 50):] = [-1]*50
 
     
         """
@@ -678,7 +689,7 @@ class Interaction:
             clusters[i] = -1
 
        
-        for i in range(n_points-1):
+        for i in range(n_points):
             if clusters[i] == -1:
                 clusters[i] = ArmTrajectory.CONNECTOR
 
@@ -881,8 +892,10 @@ class Interaction:
 
         cu_list = []
         diff_list = []
+        z_diff_list = []
         var_list_x = []
         var_list_y = []
+        var_list_z = []
 
         while(tried_everything < 2):
             if (app_direction == slopes_x_pos):
@@ -901,6 +914,7 @@ class Interaction:
                     for i in cu_peaks:
                         diff = numpy.abs(all_y[i[0]] - all_y[i[1]])
                         diff_list.append(diff)
+                        z_diff_list.append(numpy.abs(all_z[i[0]] - all_z[i[1]]))
                     cu_list = cu_list + cu_peaks
 
             elif (app_direction == slopes_y_pos):
@@ -918,6 +932,7 @@ class Interaction:
                     for i in cu_peaks:
                         diff = numpy.abs(all_x[i[0]] - all_x[i[1]])
                         diff_list.append(diff)
+                        z_diff_list.append(numpy.abs(all_z[i[0]] - all_z[i[1]]))
                     cu_list = cu_list + cu_peaks            
             elif (app_direction == slopes_x_neg):
                 rospy.loginfo('Negative X is App direction')
@@ -934,6 +949,7 @@ class Interaction:
                     for i in cu_peaks:
                         diff = numpy.abs(all_y[i[0]] - all_y[i[1]])
                         diff_list.append(diff)
+                        z_diff_list.append(numpy.abs(all_z[i[0]] - all_z[i[1]]))
                     cu_list = cu_list + cu_peaks                      
             elif (app_direction == slopes_y_neg):
                 rospy.loginfo('Negative Y is App direction')
@@ -950,6 +966,7 @@ class Interaction:
                     for i in cu_peaks:
                         diff = numpy.abs(all_x[i[0]] - all_x[i[1]])
                         diff_list.append(diff)
+                        z_diff_list.append(numpy.abs(all_z[i[0]] - all_z[i[1]]))
                     cu_list = cu_list + cu_peaks
 
             if (not cu_list and not used_all):
@@ -966,11 +983,14 @@ class Interaction:
         for i in cu_list:
             current_cu_x = []
             current_cu_y = []
+            #current_cu_z = []
             for j in range(i[0],i[1]):
                 current_cu_x.append(all_x[j])
                 current_cu_y.append(all_y[j])
+                #current_cu_z.append(all_z[j])
             var_list_x.append(numpy.var(current_cu_x))
             var_list_y.append(numpy.var(current_cu_y))
+            
 
             
         """
@@ -1012,8 +1032,10 @@ class Interaction:
         and ending points in repetition direction
         """
 
-        min_val = min(diff_list)
-        index = diff_list.index(min_val)
+        sum_diff_list = [sum(x) for x in zip(diff_list, z_diff_list)]
+
+        min_val = min(sum_diff_list)
+        index = sum_diff_list.index(min_val)
         best_cu = cu_list[index]
 
         """
@@ -2196,6 +2218,11 @@ class Interaction:
             return ERROR_INDETERMINATE_DIR
 
     def find_outliers(self, data, m=2, height = False):
+        rospy.loginfo("___________________________")
+        rospy.loginfo("___________________________")
+        rospy.loginfo("___________________________")
+        mean_data = numpy.mean(data)
+        rospy.loginfo("Mean: " + str(mean_data))
         d = numpy.abs(data - numpy.median(data))
         mdev = numpy.median(d)
         if (mdev):
@@ -2208,17 +2235,22 @@ class Interaction:
         non = []
         non_indices = []
         for i in s:
-            if (i > m):
+            rospy.loginfo("Data mean: " + str(data[_i]))
+
+            if (i > m) or (data[_i] > (mean_data + 0.05)):
+                rospy.loginfo("Outlier!")
+                rospy.loginfo("Data mean outlier: " + str(data[_i]))
                 outlier_indices.append(_i)
-                outliers.append(i)
+                outliers.append(data[_i])
             else:
-                non.append(i)
+                non.append(data[_i])
                 non_indices.append(_i)
             _i = _i + 1
 
         if ((len(outlier_indices) == len(data)/2) and (height == True)):
             if (numpy.mean(outliers) < numpy.mean(non)):
                 outlier_indices = non_indices
+                rospy.loginfo("Switch")
 
         return outlier_indices
 
