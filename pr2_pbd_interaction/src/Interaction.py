@@ -545,7 +545,7 @@ class Interaction:
         Sections with small variance are considered part of the application
         """
 
-        window_size = 50
+        window_size = 30
         tolerance = 0.000017
 
         peak_index = peakind
@@ -880,11 +880,11 @@ class Interaction:
         best_cu = []
         diff = numpy.inf
 
-	used_all = False
-	if (len(app_cluster_bounds) > 2):
-	    first = app_cluster_bounds.pop(0)
-	    last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
-	    used_all = True
+        used_all = False
+        if (len(app_cluster_bounds) > 2):
+            first = app_cluster_bounds.pop(0)
+            last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
+            used_all = True
 
         #first = app_cluster_bounds.pop(0)
         #last = app_cluster_bounds.pop(len(app_cluster_bounds) - 1)
@@ -917,6 +917,9 @@ class Interaction:
                         diff = numpy.abs(all_y[i[0]] - all_y[i[1]])
                         diff_list.append(diff)
                         z_diff_list.append(numpy.abs(all_z[i[0]] - all_z[i[1]]))
+                        if (i[1] - i[0]) < 4:
+                            cu_peaks.remove(i)
+                            rospy.loginfo("Removing peaks: "  + str(i[0]) + ", " + str(i[1]))
                     cu_list = cu_list + cu_peaks
 
             elif (app_direction == slopes_y_pos):
@@ -935,6 +938,9 @@ class Interaction:
                         diff = numpy.abs(all_x[i[0]] - all_x[i[1]])
                         diff_list.append(diff)
                         z_diff_list.append(numpy.abs(all_z[i[0]] - all_z[i[1]]))
+                        if (i[1] - i[0]) < 4:
+                            cu_peaks.remove(i)
+                            rospy.loginfo("Removing peaks: "  + str(i[0]) + ", " + str(i[1]))
                     cu_list = cu_list + cu_peaks            
             elif (app_direction == slopes_x_neg):
                 rospy.loginfo('Negative X is App direction')
@@ -952,6 +958,9 @@ class Interaction:
                         diff = numpy.abs(all_y[i[0]] - all_y[i[1]])
                         diff_list.append(diff)
                         z_diff_list.append(numpy.abs(all_z[i[0]] - all_z[i[1]]))
+                        if (i[1] - i[0]) < 4:
+                            cu_peaks.remove(i)
+                            rospy.loginfo("Removing peaks: "  + str(i[0]) + ", " + str(i[1]))
                     cu_list = cu_list + cu_peaks                      
             elif (app_direction == slopes_y_neg):
                 rospy.loginfo('Negative Y is App direction')
@@ -969,6 +978,9 @@ class Interaction:
                         diff = numpy.abs(all_x[i[0]] - all_x[i[1]])
                         diff_list.append(diff)
                         z_diff_list.append(numpy.abs(all_z[i[0]] - all_z[i[1]]))
+                        if (i[1] - i[0]) < 4:
+                            cu_peaks.remove(i)
+                            rospy.loginfo("Removing peaks: "  + str(i[0]) + ", " + str(i[1]))
                     cu_list = cu_list + cu_peaks
 
             if (not cu_list and not used_all):
@@ -1227,7 +1239,7 @@ class Interaction:
         if (downsample):
 
             max_points = 10
-            interval = int(numpy.floor((best_cu[1] - best_cu[0])/max_points))
+            interval = int(numpy.ceil((best_cu[1] - best_cu[0])/max_points))
             rospy.loginfo("Interval: " + str(interval))
             rospy.loginfo("Best cu: " + str(best_cu[1]) + ", " + str(best_cu[0]))
             if (interval > 1):
@@ -1255,32 +1267,16 @@ class Interaction:
                                         l_traj[i].ee_pose,
                                         l_traj[i].joint_pose, Object()))
             else:
-                interval = (best_cu[1] - best_cu[0])
+                for i in range(best_cu[0],best_cu[1]):
+                    timing_unit.append(timing[i])
 
-                if (interval > 1):
-                    for i in range(best_cu[0],best_cu[1]):
-                        
-                        #timing_unit.append(rospy.Duration(i*0.2))
-                        if ((i == best_cu[0]) or (i == best_cu[1])):
-                            timing_unit.append(timing[i])
+                    r_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                    r_traj[i].ee_pose,
+                                    r_traj[i].joint_pose, Object()))
 
-                            r_unit.append(ArmState(ArmState.ROBOT_BASE,
-                                            r_traj[i].ee_pose,
-                                            r_traj[i].joint_pose, Object()))
-
-                            l_unit.append(ArmState(ArmState.ROBOT_BASE,
-                                            l_traj[i].ee_pose,
-                                            l_traj[i].joint_pose, Object()))
-                        elif ( i%interval == 0):
-                            timing_unit.append(timing[i])
-
-                            r_unit.append(ArmState(ArmState.ROBOT_BASE,
-                                            r_traj[i].ee_pose,
-                                            r_traj[i].joint_pose, Object()))
-
-                            l_unit.append(ArmState(ArmState.ROBOT_BASE,
-                                            l_traj[i].ee_pose,
-                                            l_traj[i].joint_pose, Object()))
+                    l_unit.append(ArmState(ArmState.ROBOT_BASE,
+                                    l_traj[i].ee_pose,
+                                    l_traj[i].joint_pose, Object()))
         else:
             for i in range(best_cu[0],best_cu[1]):
                 timing_unit.append(timing[i])
