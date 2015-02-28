@@ -250,27 +250,27 @@ class Interaction:
         num_bins = 50
 	
         #the histogram of the data
-        plt.subplot(4, 1, 1)
-        plt.plot(range(n_points), all_x, 'ro-')
-        plt.ylabel('x')
+        # plt.subplot(4, 1, 1)
+        # plt.plot(range(n_points), all_x, 'ro-')
+        # plt.ylabel('x')
 
-        plt.subplot(4, 1, 2)
-        plt.plot(range(n_points), all_y, 'bo-')
-        plt.ylabel('y')
+        # plt.subplot(4, 1, 2)
+        # plt.plot(range(n_points), all_y, 'bo-')
+        # plt.ylabel('y')
 
-        plt.subplot(4, 1, 3)
-        plt.plot(range(n_points), all_z, 'go-')
-        plt.ylabel('z')
+        # plt.subplot(4, 1, 3)
+        # plt.plot(range(n_points), all_z, 'go-')
+        # plt.ylabel('z')
 
-        plt.subplot(4, 1, 4)
-        n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
-        plt.xlabel('z (histogram bins)')
-        plt.ylabel('occurance')
+        # plt.subplot(4, 1, 4)
+        # n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
+        # plt.xlabel('z (histogram bins)')
+        # plt.ylabel('occurance')
 
-        # Tweak spacing to prevent clipping of ylabel
-        plt.subplots_adjust(left=0.15)
+        # # Tweak spacing to prevent clipping of ylabel
+        # plt.subplots_adjust(left=0.15)
 
-        plt.show()
+        # plt.show()
 
 	
         ################################################
@@ -527,16 +527,16 @@ class Interaction:
         for i in peakind:
             peak_data.append(data[i])
     
-        plt.plot(data, linewidth=10)
-        # plt.plot(filtered)
-        # plt.plot(peak_index, filtered[peakind], 'ro')
-        plt.plot(peakind[1:(len(peakind)-1)], peak_data[1:(len(peakind)-1)], 'ro', markersize=30)
-        plt.xlabel('Time stamps(-)',fontsize=40)
-        plt.ylabel('End-effector vertcial position (m)', fontsize=50)
-        plt.xlim(0, len(all_z))
-        plt.tick_params(axis='x', labelsize=40)
-        plt.tick_params(axis='y', labelsize=40)
-        plt.show()
+        # plt.plot(data, linewidth=10)
+        # # plt.plot(filtered)
+        # # plt.plot(peak_index, filtered[peakind], 'ro')
+        # plt.plot(peakind[1:(len(peakind)-1)], peak_data[1:(len(peakind)-1)], 'ro', markersize=30)
+        # plt.xlabel('Time stamps(-)',fontsize=40)
+        # plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        # plt.xlim(0, len(all_z))
+        # plt.tick_params(axis='x', labelsize=40)
+        # plt.tick_params(axis='y', labelsize=40)
+        # plt.show()
         
         """
         Using sliding window method to find clusters
@@ -1777,7 +1777,7 @@ class Interaction:
 
         # Execute
         execution_z_offset = 0.00
-        #self.arms.start_execution(self.session.execution, execution_z_offset)
+        self.arms.start_execution(self.session.execution, execution_z_offset)
 
   
 
