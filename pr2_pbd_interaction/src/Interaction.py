@@ -1207,23 +1207,95 @@ class Interaction:
 
 ############## for flat surfaces:
 
+        fig = plt.figure()
 
-        #plt.subplot(2, 1, 1)
-        #plt.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
-        # plt.ylabel('X (m)',fontsize=40 )
-        # plt.xlim(0, len(all_x[best_cu[0]:best_cu[1]]))
-        #plt.tick_params(axis='x', labelsize=20)
-        #plt.tick_params(axis='y', labelsize=20) 
-        # plt.ylim(0.60, 0.65)#tool 11
-        #plt.xlim(0, 15)
+        # #SQUARE NO X GREYED AXES SCALE
 
-        #plt.subplot(2, 1, 2)
-        #plt.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
-        # plt.ylabel('Y (m)', fontsize=40)
-        # plt.xlim(0, len(all_y[best_cu[0]:best_cu[1]]))
-        #plt.tick_params(axis='x', labelsize=20)
-        #plt.tick_params(axis='y', labelsize=20)
-        #plt.xlim(0, 15)
+        # max_size_cu = 32
+        # buffer_x = int((max_size_cu - len(all_y[best_cu[0]:best_cu[1]]))/2)
+        
+        # ax1 = fig.add_subplot(211, aspect='320.0') #adjustable='box', aspect=1.0)
+        # ax1.plot(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)], 'r', linewidth=10)
+        # #ax1.tick_params(axis='x', labelsize=20)
+        # ax1.get_xaxis().set_visible(False)
+        # ax1.tick_params(axis='y', labelsize=20) 
+        # avg_x = (max(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]) - min(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]))/2.0 + min(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)])
+        # rospy.loginfo("Avg_x: " + str(avg_x))
+        # ax1.set_ylim(avg_x - 0.05, avg_x + 0.05)
+        # ax1.set_xlim(0, max_size_cu)
+        # ax1.axvspan(0, buffer_x, color='black', alpha=0.5)
+        # ax1.axvspan(max_size_cu - buffer_x, max_size_cu, color='black', alpha=0.5)
+        
+        
+        # buffer_x = int((max_size_cu - len(all_y[best_cu[0]:best_cu[1]]))/2)
+        # ax2 = fig.add_subplot(212, aspect='320.0') #adjustable='box', aspect=1.0)
+        # ax2.plot(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)], 'b', linewidth=10)
+        # ax2.get_xaxis().set_visible(False)
+        # #ax2.tick_params(axis='x', labelsize=20)
+        # ax2.tick_params(axis='y', labelsize=20)
+        # avg_y = (max(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]) - min(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]))/2.0 + min(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)])
+        # rospy.loginfo("Avg_y: " + str(avg_y))
+        # ax2.set_ylim(avg_y - 0.05, avg_y + 0.05)
+        # ax2.set_xlim(0, max_size_cu)
+        # ax2.axvspan(0, buffer_x, color='black', alpha=0.5)
+        # ax2.axvspan(max_size_cu - buffer_x, max_size_cu, color='black', alpha=0.5)
+
+        
+        #SQUARE NO X AXES SCALE
+
+        len_cu = len(all_y[best_cu[0]:best_cu[1]])
+
+        ax1 = fig.add_subplot(211, aspect=str(len_cu * 10.0)) #adjustable='box', aspect=1.0)
+        ax1.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
+        #ax1.tick_params(axis='x', labelsize=20)
+        ax1.get_xaxis().set_visible(False)
+        ax1.tick_params(axis='y', labelsize=20) 
+        avg_x = (max(all_x[best_cu[0]:best_cu[1]]) - min(all_x[best_cu[0]:best_cu[1]]))/2.0 + min(all_x[best_cu[0]:best_cu[1]])
+        rospy.loginfo("Avg_x: " + str(avg_x))
+        ax1.set_ylim(avg_x - 0.05, avg_x + 0.05)
+        
+
+        
+        ax1.set_xlim(0, len_cu)
+
+        ax2 = fig.add_subplot(212, aspect=str(len_cu * 10.0)) #adjustable='box', aspect=1.0)
+        ax2.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
+        ax2.get_xaxis().set_visible(False)
+        #ax2.tick_params(axis='x', labelsize=20)
+        ax2.tick_params(axis='y', labelsize=20)
+        ax2.set_xlim(0, len_cu)
+        avg_y = (max(all_y[best_cu[0]:best_cu[1]]) - min(all_y[best_cu[0]:best_cu[1]]))/2.0 + min(all_y[best_cu[0]:best_cu[1]])
+        rospy.loginfo("Avg_y: " + str(avg_y))
+        ax2.set_ylim(avg_y - 0.05, avg_y + 0.05)
+        
+
+        rospy.loginfo("Len cu: " + str(len(all_y[best_cu[0]:best_cu[1]])))
+
+        """
+        plt.subplot(211)
+        plt.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
+
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20) 
+        avg_x = (max(all_x[best_cu[0]:best_cu[1]]) - min(all_x[best_cu[0]:best_cu[1]]))/2.0 + min(all_x[best_cu[0]:best_cu[1]])
+        rospy.loginfo("Avg_x: " + str(avg_x))
+        plt.ylim(avg_x - 0.05, avg_x + 0.05)
+        
+
+        
+        plt.xlim(0, 15)
+
+        plt.subplot(212)
+        plt.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
+  
+        plt.tick_params(axis='x', labelsize=20)
+        plt.tick_params(axis='y', labelsize=20)
+        plt.xlim(0, 15)
+        avg_y = (max(all_y[best_cu[0]:best_cu[1]]) - min(all_y[best_cu[0]:best_cu[1]]))/2.0 + min(all_y[best_cu[0]:best_cu[1]])
+        rospy.loginfo("Avg_y: " + str(avg_y))
+        plt.ylim(avg_y - 0.05, avg_y + 0.05)
+        """
+        
 
         # plt.ylim(min(all_y[best_cu[0]:best_cu[1]]), max(all_y[best_cu[0]:best_cu[1]]))
 
@@ -1234,7 +1306,7 @@ class Interaction:
         # plt.tick_params(axis='x', labelsize=20)
         # plt.tick_params(axis='y', labelsize=20)
 
-        #plt.show()
+        plt.show()
 
 
         # plt.subplots_adjust(left=0.15)
@@ -1260,12 +1332,14 @@ class Interaction:
 
 
 
+
+
         
         cleanU_data = []
         for i in best_cu:
             cleanU_data.append(all_z[i])
 
-	"""
+	
         plt.plot(all_z, linewidth=10)
         # plt.plot(filtered)
         # plt.plot(peak_index, filtered[peakind], 'ro')
@@ -1276,7 +1350,7 @@ class Interaction:
         plt.tick_params(axis='x', labelsize=40)
         plt.tick_params(axis='y', labelsize=40)
         plt.show()
-	"""
+	
 
 
 
@@ -1777,7 +1851,7 @@ class Interaction:
 
         # Execute
         execution_z_offset = 0.00
-        self.arms.start_execution(self.session.execution, execution_z_offset)
+        #self.arms.start_execution(self.session.execution, execution_z_offset)
 
   
 
