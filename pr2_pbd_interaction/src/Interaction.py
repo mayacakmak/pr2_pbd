@@ -13,7 +13,7 @@ import time
 import numpy
 import math
 import copy
-from visualization_msgs.msg import MarkerArray
+from visualization_msgs.msg import MarkerArray, Marker
 # Local stuff
 from World import World
 from RobotSpeech import RobotSpeech
@@ -545,7 +545,7 @@ class Interaction:
         Sections with small variance are considered part of the application
         """
 
-        window_size = 30
+        window_size = 50
         tolerance = 0.000017
 
         peak_index = peakind
@@ -614,8 +614,8 @@ class Interaction:
 
 
 
-        rospy.loginfo('First 10 of app_cluster_bounds: ' + str(app_cluster_bounds[0][:10]))
-        rospy.loginfo('Last 10 of app_cluster_bounds' + str(app_cluster_bounds[-1][(len(app_cluster_bounds[-1]) - 10):]))
+        #rospy.loginfo('First 10 of app_cluster_bounds: ' + str(app_cluster_bounds[0][:10]))
+        #rospy.loginfo('Last 10 of app_cluster_bounds' + str(app_cluster_bounds[-1][(len(app_cluster_bounds[-1]) - 10):]))
         clusters[:50] = [-1]*50
         clusters[(len(clusters) - 50):] = [-1]*50
 
@@ -865,6 +865,65 @@ class Interaction:
 
         
         prev_start = [all_x[start_rep[0]], all_y[start_rep[0]]]
+
+        furthest_start_point = None
+        for rep in start_rep:
+            rospy.loginfo("Rep from start_rep: " + str(rep))
+            rospy.loginfo("furthest_start_point" + str(furthest_start_point))
+            if (app_direction == slopes_x_pos):
+                if (furthest_start_point == None) or (all_x[rep] < furthest_start_point):
+                    furthest_start_point = all_x[rep]
+
+            elif (app_direction == slopes_x_neg): 
+                if (furthest_start_point == None) or (all_x[rep] > furthest_start_point):
+                    furthest_start_point = all_x[rep] 
+            
+            elif (app_direction == slopes_y_pos):
+                if (furthest_start_point == None) or (all_y[rep] < furthest_start_point):
+                    furthest_start_point = all_y[rep]
+            elif (app_direction == slopes_y_neg):
+                if (furthest_start_point == None) or (all_y[rep] > furthest_start_point):
+                    furthest_start_point = all_y[rep]
+            rospy.loginfo("Rep from start_rep: " + str(rep))
+            rospy.loginfo("furthest_start_point" + str(furthest_start_point))
+            rospy.loginfo("Coords: "  + str(all_x[rep]) + ", " + str(all_y[rep]))
+
+        if ((app_direction == slopes_x_pos) or (app_direction == slopes_x_neg)): 
+            prev_start[0] = furthest_start_point
+        
+        elif (app_direction == slopes_y_pos) or (app_direction == slopes_y_neg):
+            prev_start[1] = furthest_start_point
+         
+
+        topic = "visualization_marker_array"
+        start_pub = rospy.Publisher(topic, MarkerArray)
+
+        mArray = MarkerArray()
+
+        marker = Marker()
+
+        marker.header.frame_id = "/base_link"
+
+        marker.type = marker.SPHERE
+        marker.action = marker.ADD
+        marker.scale.x = 0.05
+        marker.scale.y = 0.05
+        marker.scale.z = 0.05
+        marker.color.a = 1.0
+        marker.pose.orientation.w = 1.0
+        marker.pose.position.x = prev_start[0]
+        marker.pose.position.y = prev_start[1]
+        marker.pose.position.z = all_z[start_rep[0]]
+
+
+
+        # We add the new marker to the MarkerArray, removing the oldest marker from it when necessary
+
+        mArray.markers.append(marker)
+
+
+        # Publish the MarkerArray
+        start_pub.publish(mArray)
 
         #Find repetition direction
 
@@ -1456,6 +1515,8 @@ class Interaction:
            
         rospy.loginfo('corner_dist_rep: ' + str(corner_dist_rep))
         rospy.loginfo('rep_dist: ' + str(rep_dist))
+        rospy.loginfo('corner_dist_app: ' + str(corner_dist_app))
+        rospy.loginfo('app_dist: ' + str(app_dist))
  
         # decide number of cleaning units
         number_units_app = int(numpy.floor(corner_dist_app/app_dist)) 
