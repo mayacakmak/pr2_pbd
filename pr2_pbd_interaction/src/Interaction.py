@@ -6,6 +6,7 @@ roslib.load_manifest("pr2_controllers_msgs")
 
 # Generic libraries
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import scipy.signal as sgnl
 
 import rospy
@@ -527,16 +528,16 @@ class Interaction:
         for i in peakind:
             peak_data.append(data[i])
     
-        # plt.plot(data, linewidth=10)
-        # # plt.plot(filtered)
-        # # plt.plot(peak_index, filtered[peakind], 'ro')
-        # plt.plot(peakind[1:(len(peakind)-1)], peak_data[1:(len(peakind)-1)], 'ro', markersize=30)
-        # plt.xlabel('Time stamps(-)',fontsize=40)
-        # plt.ylabel('End-effector vertcial position (m)', fontsize=50)
-        # plt.xlim(0, len(all_z))
-        # plt.tick_params(axis='x', labelsize=40)
-        # plt.tick_params(axis='y', labelsize=40)
-        # plt.show()
+        plt.plot(data, linewidth=10)
+        # plt.plot(filtered)
+        # plt.plot(peak_index, filtered[peakind], 'ro')
+        plt.plot(peakind[1:(len(peakind)-1)], peak_data[1:(len(peakind)-1)], 'ro', markersize=30)
+        plt.xlabel('Time stamps(-)',fontsize=40)
+        plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        plt.xlim(0, len(all_z))
+        plt.tick_params(axis='x', labelsize=40)
+        plt.tick_params(axis='y', labelsize=40)
+        plt.show()
         
         """
         Using sliding window method to find clusters
@@ -965,9 +966,9 @@ class Interaction:
                     rospy.loginfo('cluster num: ' + str(cluster_num))
                     cluster_num = cluster_num + 1
                     if (y_pos):
-                        cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, True, True)
+                        cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, True, True, False)
                     else:
-                        cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, False, True)
+                        cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, False, True, False)
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
                         continue
@@ -987,9 +988,9 @@ class Interaction:
                     rospy.loginfo('cluster num: ' + str(cluster_num))
                     cluster_num = cluster_num + 1
                     if (x_pos):
-                        cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, True, True)
+                        cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, True, True, True)
                     else:
-                        cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, False, True)
+                        cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, False, True, True)
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
                         continue
@@ -1007,9 +1008,9 @@ class Interaction:
                     rospy.loginfo('cluster num: ' + str(cluster_num))
                     cluster_num = cluster_num + 1
                     if (y_pos):
-                        cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, True, False)
+                        cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, True, False, False)
                     else:
-                        cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, False, False)
+                        cu_peaks = self.find_cleaning_unit(all_y, all_x, cluster, False, False, False)
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
                         continue
@@ -1027,9 +1028,9 @@ class Interaction:
                     rospy.loginfo('cluster num: ' + str(cluster_num))
                     cluster_num = cluster_num + 1
                     if (x_pos):
-                        cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, True, False)
+                        cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, True, False, True)
                     else:
-                        cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, False, False)
+                        cu_peaks = self.find_cleaning_unit(all_x, all_y, cluster, False, False, True)
                     if not cu_peaks:
                         rospy.loginfo('No cleaning peaks in that segment')
                         continue
@@ -1118,45 +1119,45 @@ class Interaction:
         rospy.loginfo('Peaks before truncation: ' + str(best_cu))
 
 
-        # cleanU_data = []
-        # for i in best_cu:
-        #     cleanU_data.append(all_z[i])
+        cleanU_data = []
+        for i in best_cu:
+            cleanU_data.append(all_z[i])
 
 
-        # plt.plot(all_z, linewidth=10)
-        # # plt.plot(filtered)
-        # # plt.plot(peak_index, filtered[peakind], 'ro')
-        # plt.plot(best_cu, cleanU_data, 'ro', markersize=30)
-        # plt.xlabel('Time stamps(-)',fontsize=40)
-        # plt.ylabel('End-effector vertcial position (m)', fontsize=50)
-        # plt.xlim(0, len(all_z))
-        # plt.tick_params(axis='x', labelsize=40)
-        # plt.tick_params(axis='y', labelsize=40)
-        # plt.show()
+        plt.plot(all_z, linewidth=10)
+        # plt.plot(filtered)
+        # plt.plot(peak_index, filtered[peakind], 'ro')
+        plt.plot(best_cu, cleanU_data, 'ro', markersize=30)
+        plt.xlabel('Time stamps(-)',fontsize=40)
+        plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        plt.xlim(0, len(all_z))
+        plt.tick_params(axis='x', labelsize=40)
+        plt.tick_params(axis='y', labelsize=40)
+        plt.show()
 
 
 ######### for non-plat surfaces:
 
-        # plt.subplot(2, 1, 1)
+        # plt.subplot(3, 1, 1)
         # plt.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
         # plt.ylabel('X (m)',fontsize=40 )
         # # plt.xlim(0, len(all_x[best_cu[0]:best_cu[1]]))
         # plt.tick_params(axis='x', labelsize=20)
         # plt.tick_params(axis='y', labelsize=20) 
 
-        # plt.subplot(2, 1, 2)
+        # plt.subplot(3, 1, 2)
         # plt.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
         # plt.ylabel('Y (m)', fontsize=40)
         # # plt.xlim(0, len(all_y[best_cu[0]:best_cu[1]]))
         # plt.tick_params(axis='x', labelsize=20)
         # plt.tick_params(axis='y', labelsize=20)
 
-        # # plt.subplot(3, 1, 3)
-        # # plt.plot(all_z[best_cu[0]:best_cu[1]], 'g', linewidth=10)
-        # # plt.ylabel('Z (m)', fontsize=40)
-        # # # plt.xlim(0, len(all_z[best_cu[0]:best_cu[1]]))
-        # # plt.tick_params(axis='x', labelsize=20)
-        # # plt.tick_params(axis='y', labelsize=20)
+        # plt.subplot(3, 1, 3)
+        # plt.plot(all_z[best_cu[0]:best_cu[1]], 'g', linewidth=10)
+        # plt.ylabel('Z (m)', fontsize=40)
+        # # plt.xlim(0, len(all_z[best_cu[0]:best_cu[1]]))
+        # plt.tick_params(axis='x', labelsize=20)
+        # plt.tick_params(axis='y', labelsize=20)
 
 
         # plt.subplots_adjust(left=0.15)
@@ -1209,67 +1210,78 @@ class Interaction:
 
         fig = plt.figure()
 
-        # #SQUARE NO X GREYED AXES SCALE
-
-        # max_size_cu = 32
-        # buffer_x = int((max_size_cu - len(all_y[best_cu[0]:best_cu[1]]))/2)
-        
-        # ax1 = fig.add_subplot(211, aspect='320.0') #adjustable='box', aspect=1.0)
-        # ax1.plot(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)], 'r', linewidth=10)
-        # #ax1.tick_params(axis='x', labelsize=20)
-        # ax1.get_xaxis().set_visible(False)
-        # ax1.tick_params(axis='y', labelsize=20) 
-        # avg_x = (max(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]) - min(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]))/2.0 + min(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)])
-        # rospy.loginfo("Avg_x: " + str(avg_x))
-        # ax1.set_ylim(avg_x - 0.05, avg_x + 0.05)
-        # ax1.set_xlim(0, max_size_cu)
-        # ax1.axvspan(0, buffer_x, color='black', alpha=0.5)
-        # ax1.axvspan(max_size_cu - buffer_x, max_size_cu, color='black', alpha=0.5)
-        
-        
-        # buffer_x = int((max_size_cu - len(all_y[best_cu[0]:best_cu[1]]))/2)
-        # ax2 = fig.add_subplot(212, aspect='320.0') #adjustable='box', aspect=1.0)
-        # ax2.plot(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)], 'b', linewidth=10)
-        # ax2.get_xaxis().set_visible(False)
-        # #ax2.tick_params(axis='x', labelsize=20)
-        # ax2.tick_params(axis='y', labelsize=20)
-        # avg_y = (max(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]) - min(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]))/2.0 + min(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)])
-        # rospy.loginfo("Avg_y: " + str(avg_y))
-        # ax2.set_ylim(avg_y - 0.05, avg_y + 0.05)
-        # ax2.set_xlim(0, max_size_cu)
-        # ax2.axvspan(0, buffer_x, color='black', alpha=0.5)
-        # ax2.axvspan(max_size_cu - buffer_x, max_size_cu, color='black', alpha=0.5)
-
-        
-        #SQUARE NO X AXES SCALE
+        #SQUARE NO X GREYED AXES SCALE
 
         len_cu = len(all_y[best_cu[0]:best_cu[1]])
 
-        ax1 = fig.add_subplot(211, aspect=str(len_cu * 10.0)) #adjustable='box', aspect=1.0)
-        ax1.plot(all_x[best_cu[0]:best_cu[1]], 'r', linewidth=10)
+        max_size_cu = 61
+        buffer_x = int((max_size_cu - len(all_y[best_cu[0]:best_cu[1]]))/2)
+        
+        ax1 = fig.add_subplot(211, aspect=str(max_size_cu * 7.0)) #adjustable='box', aspect=1.0)
+        avg_x = (max(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]) - min(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]))/2.0 + min(all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)])
+        rescaled_x = [x - avg_x for x in all_x[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]]
+        ax1.plot(rescaled_x, 'r', linewidth=10)
         #ax1.tick_params(axis='x', labelsize=20)
         ax1.get_xaxis().set_visible(False)
         ax1.tick_params(axis='y', labelsize=20) 
-        avg_x = (max(all_x[best_cu[0]:best_cu[1]]) - min(all_x[best_cu[0]:best_cu[1]]))/2.0 + min(all_x[best_cu[0]:best_cu[1]])
+        
         rospy.loginfo("Avg_x: " + str(avg_x))
-        ax1.set_ylim(avg_x - 0.05, avg_x + 0.05)
+        ax1.set_ylim(-0.07, 0.07)
+        ax1.set_xlim(0, max_size_cu)
+        ax1.axvspan(0, buffer_x, color='black', alpha=0.5)
+        ax1.axvspan(max_size_cu - buffer_x, max_size_cu, color='black', alpha=0.5)
         
-
         
-        ax1.set_xlim(0, len_cu)
-
-        ax2 = fig.add_subplot(212, aspect=str(len_cu * 10.0)) #adjustable='box', aspect=1.0)
-        ax2.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
+        buffer_x = int((max_size_cu - len(all_y[best_cu[0]:best_cu[1]]))/2)
+        ax2 = fig.add_subplot(212, aspect=str(max_size_cu * 7.0)) #adjustable='box', aspect=1.0)
+        avg_y = (max(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]) - min(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]))/2.0 + min(all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)])
+        rospy.loginfo("Avg_y: " + str(avg_y))
+        avg_y = (max(all_y[best_cu[0]:best_cu[1]]) - min(all_y[best_cu[0]:best_cu[1]]))/2.0 + min(all_y[best_cu[0]:best_cu[1]])
+        rescaled_y = [x - avg_y for x in all_y[(best_cu[0] - buffer_x):(best_cu[1] + buffer_x)]]
+        ax2.plot(rescaled_y, 'b', linewidth=10)
         ax2.get_xaxis().set_visible(False)
         #ax2.tick_params(axis='x', labelsize=20)
         ax2.tick_params(axis='y', labelsize=20)
-        ax2.set_xlim(0, len_cu)
-        avg_y = (max(all_y[best_cu[0]:best_cu[1]]) - min(all_y[best_cu[0]:best_cu[1]]))/2.0 + min(all_y[best_cu[0]:best_cu[1]])
-        rospy.loginfo("Avg_y: " + str(avg_y))
-        ax2.set_ylim(avg_y - 0.05, avg_y + 0.05)
+        
+        
+        ax2.set_ylim(-0.07, 0.07)
+        ax2.set_xlim(0, max_size_cu)
+        ax2.axvspan(0, buffer_x, color='black', alpha=0.5)
+        ax2.axvspan(max_size_cu - buffer_x, max_size_cu, color='black', alpha=0.5)
+
+        
+        # #SQUARE NO X AXES SCALE
+
+        # len_cu = len(all_y[best_cu[0]:best_cu[1]])
+
+        # ax1 = fig.add_subplot(211, aspect=str(len_cu * 10.0)) #adjustable='box', aspect=1.0)
+        # avg_x = (max(all_x[best_cu[0]:best_cu[1]]) - min(all_x[best_cu[0]:best_cu[1]]))/2.0 + min(all_x[best_cu[0]:best_cu[1]])
+        # rescaled_x = [x - avg_x for x in all_x[best_cu[0]:best_cu[1]]]
+        # ax1.plot(rescaled, 'r', linewidth=10)
+        # #ax1.tick_params(axis='x', labelsize=20)
+        # ax1.get_xaxis().set_visible(False)
+        # ax1.tick_params(axis='y', labelsize=20) 
+        
+        # rospy.loginfo("Avg_x: " + str(avg_x))
+        # ax1.set_ylim(avg_x - 0.05, avg_x + 0.05)
+        
+
+        
+        # ax1.set_xlim(0, len_cu)
+
+        # ax2 = fig.add_subplot(212, aspect=str(len_cu * 10.0)) #adjustable='box', aspect=1.0)
+        # ax2.plot(all_y[best_cu[0]:best_cu[1]], 'b', linewidth=10)
+        # ax2.get_xaxis().set_visible(False)
+        # #ax2.tick_params(axis='x', labelsize=20)
+        # ax2.tick_params(axis='y', labelsize=20)
+        # ax2.set_xlim(0, len_cu)
+        # avg_y = (max(all_y[best_cu[0]:best_cu[1]]) - min(all_y[best_cu[0]:best_cu[1]]))/2.0 + min(all_y[best_cu[0]:best_cu[1]])
+        # rospy.loginfo("Avg_y: " + str(avg_y))
+        # ax2.set_ylim(avg_y - 0.05, avg_y + 0.05)
         
 
         rospy.loginfo("Len cu: " + str(len(all_y[best_cu[0]:best_cu[1]])))
+        plt.show()
 
         """
         plt.subplot(211)
@@ -1306,7 +1318,7 @@ class Interaction:
         # plt.tick_params(axis='x', labelsize=20)
         # plt.tick_params(axis='y', labelsize=20)
 
-        plt.show()
+        
 
 
         # plt.subplots_adjust(left=0.15)
@@ -1335,21 +1347,21 @@ class Interaction:
 
 
         
-        cleanU_data = []
-        for i in best_cu:
-            cleanU_data.append(all_z[i])
+        # cleanU_data = []
+        # for i in best_cu:
+        #     cleanU_data.append(all_z[i])
 
 	
-        plt.plot(all_z, linewidth=10)
-        # plt.plot(filtered)
-        # plt.plot(peak_index, filtered[peakind], 'ro')
-        plt.plot(best_cu, cleanU_data, 'ro', markersize=30)
-        plt.xlabel('Time stamps(-)',fontsize=40)
-        plt.ylabel('End-effector vertcial position (m)', fontsize=50)
-        plt.xlim(0, len(all_z))
-        plt.tick_params(axis='x', labelsize=40)
-        plt.tick_params(axis='y', labelsize=40)
-        plt.show()
+        # plt.plot(all_z, linewidth=10)
+        # # plt.plot(filtered)
+        # # plt.plot(peak_index, filtered[peakind], 'ro')
+        # plt.plot(best_cu, cleanU_data, 'ro', markersize=30)
+        # plt.xlabel('Time stamps(-)',fontsize=40)
+        # plt.ylabel('End-effector vertcial position (m)', fontsize=50)
+        # plt.xlim(0, len(all_z))
+        # plt.tick_params(axis='x', labelsize=40)
+        # plt.tick_params(axis='y', labelsize=40)
+        # plt.show()
 	
 
 
@@ -1855,7 +1867,7 @@ class Interaction:
 
   
 
-    def find_cleaning_unit(self, repetition_vals, application_vals, indices, positive_rep_dir, positive_app_dir):
+    def find_cleaning_unit(self, repetition_vals, application_vals, indices, positive_rep_dir, positive_app_dir, dir):
         """
         Isolate individual cleaning unit from segment trajectory
         """
@@ -1905,30 +1917,130 @@ class Interaction:
             peak_data_app.append(data_app[i])
 
 
-        ###### plot repetition and application directions, repapp:
-        """
-        plt.subplot(2, 1, 1)
-        plt.plot(data_rep, 'r', linewidth=10)
-        plt.plot(peakind[1:(len(peakind)-1)], peak_data_rep[1:(len(peakind)-1)], 'yo', markersize=30)
-        plt.ylabel('Rep (m)', fontsize=40)
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20)
-        # plt.ylim(0.5, 0.8)# for tool 11.
+        ###### plot repetition and application directions, repapp: 
 
-        plt.subplot(2, 1, 2)
-        plt.plot(data_app, 'b', linewidth=10)
-        plt.plot(peakind[1:(len(peakind)-1)], peak_data_app[1:(len(peakind)-1)], 'yo', markersize=30)
-        plt.ylabel('App (m)', fontsize=40)
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20)
+        ### KEEP THIS, DRAW BOXES HERE
+        if dir:
+            rep_col = 'r'
+            app_col = 'b'
+        else:
+            rep_col = 'b'
+            app_col = 'r'
+
+        if peak_data_rep[1:(len(peakind)-1)] and peak_data_app[1:(len(peakind)-1)]:
+
+            fig = plt.figure()
+            
+            if dir:
+                ax1 = fig.add_subplot(2, 1, 1)
+            else:
+                ax1 = fig.add_subplot(2, 1, 2)
+            ax1.plot(data_rep, rep_col, linewidth=10)
+            #ax1.plot(peakind[1:(len(peakind)-1)], peak_data_rep[1:(len(peakind)-1)], 'yo', markersize=30)
+            #avg1 = (max(peak_data_rep[1:(len(peakind)-1)]) - min(peak_data_rep[1:(len(peakind)-1)]))/2.0 + min(peak_data_rep[1:(len(peakind)-1)])
+            ax1.set_ylabel('Rep (m)', fontsize=40)
+            ax1.tick_params(axis='x', labelsize=20)
+            ax1.tick_params(axis='y', labelsize=20)
+            # plt.ylim(0.5, 0.8)# for tool 11.
+
+            square_side = (max(peak_data_rep[1:(len(peakind)-1)]) - min(peak_data_rep[1:(len(peakind)-1)]))/3.0
+
+            ax1.add_patch(
+                patches.Rectangle(
+                    (peakind[1], min(peak_data_rep[1:(len(peakind)-1)]) - square_side),
+                    (peakind[(len(peakind)-2)] - peakind[1]),
+                    max(peak_data_rep[1:(len(peakind)-1)]) - min(peak_data_rep[1:(len(peakind)-1)]) + square_side,
+                    fill=False,
+                    linewidth=2,
+                    zorder=100      # remove background
+                )
+            )
+            if dir:
+                ax2 = fig.add_subplot(2, 1, 2)
+            else:
+                ax2 = fig.add_subplot(2, 1, 1)
+            ax2.plot(data_app, app_col, linewidth=10)
+            #ax2.plot(peakind[1:(len(peakind)-1)], peak_data_app[1:(len(peakind)-1)], 'yo', markersize=30)
+            ax2.set_ylabel('App (m)', fontsize=40)
+            ax2.tick_params(axis='x', labelsize=20)
+            ax2.tick_params(axis='y', labelsize=20)
+            square_side_2 = (max(peak_data_app[1:(len(peakind)-1)]) - min(peak_data_app[1:(len(peakind)-1)]))/3.0
+
+            # ax2.add_patch(
+            #     patches.Rectangle(
+            #         (peakind[1], min(peak_data_app[1:(len(peakind)-1)]) - square_side_2),
+            #         (peakind[(len(peakind)-2)] - peakind[1]),
+            #         max(peak_data_app[1:(len(peakind)-1)]) - min(peak_data_app[1:(len(peakind)-1)]) + square_side_2,
+            #         fill=False,
+            #         linewidth=2,
+            #         zorder=100      # remove background
+            #     )
+            # )
 
 
-        plt.subplots_adjust(left=0.15)
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20)
-        plt.xlabel('Time stamps (-)',fontsize=40)
-        plt.show()
-	"""
+            plt.subplots_adjust(left=0.15)
+            plt.tick_params(axis='x', labelsize=20)
+            plt.tick_params(axis='y', labelsize=20)
+            plt.xlabel('Time stamps (-)',fontsize=40)
+            plt.show()
+
+        else:
+            fig = plt.figure()
+            
+            if dir:
+                ax1 = fig.add_subplot(2, 1, 1)
+            else:
+                ax1 = fig.add_subplot(2, 1, 2)
+            ax1.plot(data_rep, rep_col, linewidth=10)
+            #ax1.plot(peakind[1:(len(peakind)-1)], peak_data_rep[1:(len(peakind)-1)], 'yo', markersize=30)
+            #avg1 = (max(peak_data_rep[1:(len(peakind)-1)]) - min(peak_data_rep[1:(len(peakind)-1)]))/2.0 + min(peak_data_rep[1:(len(peakind)-1)])
+            ax1.set_ylabel('Rep (m)', fontsize=40)
+            ax1.tick_params(axis='x', labelsize=20)
+            ax1.tick_params(axis='y', labelsize=20)
+            # plt.ylim(0.5, 0.8)# for tool 11.
+
+            square_side = (max(peak_data_rep[:]) - min(peak_data_rep[:]))/3.0
+
+            # ax1.add_patch(
+            #     patches.Rectangle(
+            #         (peakind[0], min(peak_data_rep[:]) - square_side),
+            #         (peakind[-1] - peakind[0]),
+            #         max(peak_data_rep[:]) - min(peak_data_rep[:]) + square_side,
+            #         fill=False,
+            #         linewidth=2,
+            #         zorder=100      # remove background
+            #     )
+            # )
+
+            if dir:
+                ax2 = fig.add_subplot(2, 1, 2)
+            else:
+                ax2 = fig.add_subplot(2, 1, 1)
+            ax2.plot(data_app, app_col, linewidth=10)
+            #ax2.plot(peakind[1:(len(peakind)-1)], peak_data_app[1:(len(peakind)-1)], 'yo', markersize=30)
+            ax2.set_ylabel('App (m)', fontsize=40)
+            ax2.tick_params(axis='x', labelsize=20)
+            ax2.tick_params(axis='y', labelsize=20)
+            square_side_2 = (max(peak_data_app[:]) - min(peak_data_app[:]))/3.0
+
+            ax2.add_patch(
+                patches.Rectangle(
+                    (peakind[0], min(peak_data_app[:]) - square_side_2),
+                    (peakind[-1] - peakind[0]),
+                    max(peak_data_app[:]) - min(peak_data_app[:]) + square_side_2,
+                    fill=False,
+                    linewidth=2,
+                    zorder=100      # remove background
+                )
+            )
+
+
+            plt.subplots_adjust(left=0.15)
+            plt.tick_params(axis='x', labelsize=20)
+            plt.tick_params(axis='y', labelsize=20)
+            plt.xlabel('Time stamps (-)',fontsize=40)
+            plt.show()
+	
         current_cu_rep = []
         for j in range(indices[0],indices[len(indices) -1]):
             current_cu_rep.append(repetition_vals[j])
@@ -2028,29 +2140,29 @@ class Interaction:
 
         ################################################
         ######## LETS PLOT STUFF TO GET A BETTER IDEA
-	"""
+	
         num_bins = 50
         # the histogram of the data
         plt.subplot(3, 1, 1)
-        plt.plot(range(n_points), all_x, 'r.-', markersize = 20)
-        plt.ylabel('X (m)',fontsize=40 )
+        plt.plot(range(n_points), all_x, 'r.-', markersize = 15)
+        plt.ylabel('X (m)')
         plt.xlim(0, len(all_x))
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20) 
+        plt.tick_params(axis='x')
+        plt.tick_params(axis='y') 
 
         plt.subplot(3, 1, 2)
-        plt.plot(range(n_points), all_y, 'b.-', markersize = 20)
-        plt.ylabel('Y (m)', fontsize=40)
+        plt.plot(range(n_points), all_y, 'b.-', markersize = 15)
+        plt.ylabel('Y (m)')
         plt.xlim(0, len(all_y))
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20)
+        plt.tick_params(axis='x')
+        plt.tick_params(axis='y')
 
         plt.subplot(3, 1, 3)
-        plt.plot(range(n_points), all_z, 'g.-', markersize = 20)
-        plt.ylabel('Z (m)', fontsize=40)
+        plt.plot(range(n_points), all_z, 'g.-', markersize = 15)
+        plt.ylabel('Z (m)')
         plt.xlim(0, len(all_z))
-        plt.tick_params(axis='x', labelsize=20)
-        plt.tick_params(axis='y', labelsize=20)
+        plt.tick_params(axis='x')
+        plt.tick_params(axis='y')
 
         # plt.subplot(4, 1, 4)
         # n, bins, patches = plt.hist(all_z, num_bins, normed=1, facecolor='yellow', alpha=0.5)
@@ -2061,7 +2173,7 @@ class Interaction:
         plt.subplots_adjust(left=0.15)
         plt.xlabel('Time stamps (-)',fontsize=50)
         plt.show()
-	"""
+	
 
     def stop_recording(self, dummy=None):
         '''Stops recording continuous motion'''
